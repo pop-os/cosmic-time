@@ -29,6 +29,5 @@ pub fn get_length(
     let out = clamp_u16(timeline.get(&id, &now, index))
         .and_then(|num| Some(Length::Units(num)))
         .unwrap_or(default);
-    println!("out({}) = {:?}, {:?}", index, out, Instant::now());
     out
 }

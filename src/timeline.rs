@@ -14,7 +14,7 @@ pub struct Timeline {
     pending: Vec<(widget::Id, Duration, Vec<Vec<isize>>)>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct SubFrame {
     pub value: isize,
     pub at: Instant,
@@ -119,14 +119,12 @@ impl Timeline {
         } else {
             return None;
         };
-        println!("get ({}) = {:?}", index, subtrack.len());
 
         let mut accumulator: Option<&SubFrame> = None;
         loop {
             match (accumulator, subtrack.next()) {
                 (None, Some(subframe)) => {
                     if &subframe.at <= &now {
-                        println!("is true");
                         accumulator = Some(subframe)
                     };
                 }
@@ -136,7 +134,6 @@ impl Timeline {
                     if &subframe.at <= &now {
                         accumulator = Some(subframe);
                     } else if &subframe.at >= &now {
-                        println!("also is true");
                         // TODO add different types of interpolations. Likely needs
                         // be an enum stored in SubFrame
                         return Some(calc_linear(&now, acc, subframe));
@@ -156,7 +153,7 @@ impl Timeline {
                 .iter()
                 .any(|subtrack| subtrack.iter().any(|subframe| &subframe.at >= &now))
         }) {
-          //TODO use iced's new subscription to monitor framerate
+            //TODO use iced's new subscription to monitor framerate
             iced::time::every(Duration::from_millis(2))
         } else {
             Subscription::none()
@@ -166,7 +163,6 @@ impl Timeline {
 
 // todo should be in module for types of interpolations between points.
 fn calc_linear(now: &Instant, lower_bound: &SubFrame, upper_bound: &SubFrame) -> isize {
-    println!("now = {:?}", now);
     let percent_done = (*now - lower_bound.at).as_millis() as f64
         / (upper_bound.at - lower_bound.at).as_millis() as f64;
     let delta = (upper_bound.value - lower_bound.value) as f64;
