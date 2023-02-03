@@ -5,13 +5,36 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use crate::keyframes::IsKeyframe;
+use crate::keyframes::Repeat;
 
 pub struct Timeline {
     // Hash map of widget::id to track, where each track is made of subtracks<isize>
-    tracks: HashMap<widget::Id, Vec<Vec<SubFrame>>>,
+    tracks: HashMap<widget::Id, (Repeat, Vec<Vec<SubFrame>>)>,
     // Pending keyframes. Need to call `start` to finalize start time and move into `tracks`
-    pending: Vec<(widget::Id, Duration, Vec<Vec<isize>>)>,
+    pending: Vec<(widget::Id, Repeat, Vec<Vec<(Duration, isize)>>)>,
+}
+
+pub struct Chain<T: ExactSizeIterator<Item = Option<(Duration, isize)>>> {
+  pub id: widget::Id,
+  pub repeat: Repeat,
+  links: Vec<T>,
+}
+
+impl<T: ExactSizeIterator<Item = Option<(Duration, isize)>>> Chain<T> {
+  pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
+    Chain {
+      id,
+      repeat,
+      links,
+    }
+  }
+  fn iter_mut(&mut self) -> impl Iterator<Item=&mut T> {
+    self.links.iter_mut()
+  }
+
+  fn into_iter(self) -> impl Iterator<Item=T> {
+    self.links.into_iter()
+  }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -52,67 +75,60 @@ impl Timeline {
         }
     }
 
+    // Does using clear make more sense? Would be more efficent,
+    // But potentially a memory leak?
+    pub fn remove_pending(&mut self) {
+      self.pending = Vec::new();
+    }
+
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
-    pub fn add_keyframe<Keyframe>(&mut self, keyframe: Keyframe) -> &mut Self
-    where
-        Keyframe: IsKeyframe + ExactSizeIterator<Item = Option<isize>>,
+    pub fn set_chain<T>(&mut self, chain: Chain<T>) -> &mut Self
+      where
+          T: ExactSizeIterator<Item = Option<(Duration, isize)>>
     {
         // TODO better performance? Might be better to iter directly into self.tracks without the
         // `track` middle man. Might also be better to use Option<vec> rather than empty `vec`s.
         // Both should only allocate same on stack though.
         // TODO add garbage collection. If there are > 1 keyframes where time is less than now, remove the extras.
-        let id = keyframe.id();
-        let at = keyframe.at();
-        let len = keyframe.len();
-        let new_track: Vec<Vec<isize>> =
-            keyframe
-                .into_iter()
-                .fold(Vec::with_capacity(len), |mut acc, modifier| {
-                    acc.push(modifier.and_then(|m| Some(vec![m])).unwrap_or(Vec::new()));
-                    acc
-                });
+        let id = chain.id.clone();
+        let repeat = chain.repeat;
+        let mut tracks: Vec<Vec<(Duration, isize)>> = Vec::new();
+        let mut chain = chain.into_iter();
 
-        self.pending.push((id, at, new_track));
+        if let Some(modifiers) = chain.next() {
+          tracks.reserve(modifiers.len());
+          for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
+            if let Some((at, m)) = modifier {
+              track.push((at, m));
+            }
+          }
+        }
+
+        for modifiers in chain {
+          for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
+            if let Some((at, m)) = modifier {
+              track.push((at, m))
+            }
+          }
+        }
+        self.pending.push((id, repeat, tracks));
         self
     }
 
     pub fn start(&mut self) {
-        let now = Instant::now();
-        for (id, duration, new_track) in self.pending.drain(0..) {
-            let is_new = self.tracks.get(&id).is_none();
-            if is_new {
-                let _ = self.tracks.insert(
-                    id,
-                    new_track
-                        .into_iter()
-                        .map(|mut vec| {
-                            vec.drain(0..)
-                                .map(|value| SubFrame::new(now + duration, value))
-                                .collect()
-                        })
-                        .collect(),
-                );
-            } else {
-                let track = self
-                    .tracks
-                    .get_mut(&id)
-                    .expect("Check above should guarentee existance.");
-                track
-                    .iter_mut()
-                    .zip(new_track.into_iter())
-                    .for_each(|(subtrack, mut new)| {
-                        if let Some(value) = new.pop() {
-                            subtrack.push(SubFrame::new(now + duration, value));
-                            subtrack.sort();
-                        }
-                    });
-            }
+        self.start_at(Instant::now());
+    }
+
+    pub fn start_at(&mut self, now: Instant) {
+        for (id, repeat, mut tracks) in self.pending.drain(0..) {
+          let tracks: Vec<Vec<SubFrame>> = tracks.iter_mut().map(|track| track.iter_mut().map(|(duration, value)| SubFrame::new(now + *duration, *value)).collect()).collect();
+          let _ = self.tracks.insert(id, (repeat, tracks));
         }
     }
 
     pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<isize> {
         let mut subtrack = if let Some(subtrack) = self.tracks.get(id) {
-            subtrack
+            subtrack.1
                 .get(index)
                 .expect("proper keyframe implementation should prevent this")
                 .iter()
@@ -149,7 +165,8 @@ impl Timeline {
     {
         let now = Instant::now();
         if self.tracks.values().any(|track| {
-            track
+          // !!! TODO need to check if animation loops
+            track.1
                 .iter()
                 .any(|subtrack| subtrack.iter().any(|subframe| &subframe.at >= &now))
         }) {
