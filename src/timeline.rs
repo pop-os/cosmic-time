@@ -14,13 +14,13 @@ pub struct Timeline {
     pending: Vec<(widget::Id, Repeat, Vec<Vec<(Duration, isize)>>)>,
 }
 
-pub struct Chain<T: ExactSizeIterator<Item = Option<(Duration, isize)>>> {
+pub struct Chain<T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug> {
   pub id: widget::Id,
   pub repeat: Repeat,
   links: Vec<T>,
 }
 
-impl<T: ExactSizeIterator<Item = Option<(Duration, isize)>>> Chain<T> {
+impl<T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug> Chain<T> {
   pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
     Chain {
       id,
@@ -84,7 +84,7 @@ impl Timeline {
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
     pub fn set_chain<T>(&mut self, chain: Chain<T>) -> &mut Self
       where
-          T: ExactSizeIterator<Item = Option<(Duration, isize)>>
+          T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug
     {
         // TODO better performance? Might be better to iter directly into self.tracks without the
         // `track` middle man. Might also be better to use Option<vec> rather than empty `vec`s.
@@ -96,10 +96,10 @@ impl Timeline {
         let mut chain = chain.into_iter();
 
         if let Some(modifiers) = chain.next() {
-          tracks.reserve(modifiers.len());
+          tracks.resize_with(modifiers.len(), || Vec::new());
           for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
             if let Some((at, m)) = modifier {
-              track.push((at, m));
+              track.push((at, m))
             }
           }
         }
@@ -128,13 +128,14 @@ impl Timeline {
 
     pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<isize> {
         let mut subtrack = if let Some(subtrack) = self.tracks.get(id) {
-            subtrack.1
-                .get(index)
-                .expect("proper keyframe implementation should prevent this")
-                .iter()
+            if let Some(subtrack) = subtrack.1.get(index) {
+                subtrack
+            } else {
+                return None
+            }
         } else {
             return None;
-        };
+        }.iter();
 
         let mut accumulator: Option<&SubFrame> = None;
         loop {

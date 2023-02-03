@@ -29,6 +29,7 @@ impl From<Id> for widget::Id {
     }
 }
 
+#[derive(Debug)]
 pub struct Chain {
   id: Id,
   links: Vec<Container>,
@@ -52,7 +53,7 @@ impl Chain {
 
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
-    T: ExactSizeIterator<Item = Option<(Duration, isize)>>,
+    T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug,
     Vec<T>: From<Vec<Container>>,
 {
     fn from(chain: Chain) -> Self {
@@ -61,6 +62,7 @@ where
 }
 
 #[must_use="Keyframes are intended to be used in an animation chain."]
+#[derive(Debug)]
 pub struct Container {
     index: usize,
     at: Duration,
