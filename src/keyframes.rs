@@ -1,18 +1,28 @@
+pub mod container;
+
 use iced::Length;
 use iced_native::widget;
 
-pub mod container;
+pub use container::{Container, Chain};
 
-pub use container::Container;
-
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use crate::Timeline;
 
-pub trait IsKeyframe: ExactSizeIterator<Item = Option<isize>> {
-    fn id(&self) -> widget::Id;
+#[derive(Debug, Copy, Clone)]
+pub enum Repeat {
+  Never,
+  Forever,
+} 
 
-    fn at(&self) -> Duration;
+impl std::default::Default for Repeat {
+  fn default() -> Self {
+    Repeat::Never
+  }
+}
+
+pub trait IsChain {
+    fn repeat(&self) -> Repeat;
 }
 
 pub fn clamp_u16(num: Option<isize>) -> Option<u16> {

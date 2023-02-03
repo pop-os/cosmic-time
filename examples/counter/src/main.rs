@@ -4,9 +4,8 @@ use iced::{
 };
 use std::time::Duration;
 
-use cosmic_time::Timeline;
+use cosmic_time::{self, Timeline, keyframes};
 
-use cosmic_time::keyframes;
 use once_cell::sync::Lazy;
 
 static CONTAINER: Lazy<keyframes::container::Id> = Lazy::new(keyframes::container::Id::unique);
@@ -40,24 +39,30 @@ impl Application for Counter {
         // timeline Struct and the "timeline" itself here.
         // Though more complicated applications will likely do this in the `update`
         let mut timeline = Timeline::new();
-        let one = keyframes::Container::new(CONTAINER.clone(), Duration::ZERO)
+        let animation = cosmic_time::container::Chain::new(CONTAINER.clone())
+          .link(keyframes::Container::new(Duration::ZERO)
             .width(Length::Units(50))
-            .height(Length::Units(100));
-        let two = keyframes::Container::new(CONTAINER.clone(), Duration::from_secs(2))
+            .height(Length::Units(100))
+          )
+          .link(keyframes::Container::new(Duration::from_secs(2))
             .width(Length::Units(200))
-            .height(Length::Units(100));
-        let three = keyframes::Container::new(CONTAINER.clone(), Duration::from_secs(4))
+            .height(Length::Units(100))
+          )
+          .link(keyframes::Container::new(Duration::from_secs(4))
             .width(Length::Units(200))
             .height(Length::Units(300))
-            .padding([0, 0, 0, 0]);
-        let four = keyframes::Container::new(CONTAINER.clone(), Duration::from_secs(6))
+            .padding([0, 0, 0, 0])
+          )
+          .link(keyframes::Container::new(Duration::from_secs(6))
             .width(Length::Units(700))
             .height(Length::Units(300))
-            .padding([0, 0, 0, 500]);
-        let five = keyframes::Container::new(CONTAINER.clone(), Duration::from_secs(8))
+            .padding([0, 0, 0, 500])
+          )
+          .link(keyframes::Container::new(Duration::from_secs(8))
             .width(Length::Units(150))
             .height(Length::Units(150))
-            .padding([0, 0, 0, 0]);
+            .padding([0, 0, 0, 0])
+          );
         // Notice how we had to specify the start and end of the widget dimensions?
         // Iced's default values for widgets are usually not animatable, because
         // they are unknown until the layout is built after the update.
@@ -71,11 +76,7 @@ impl Application for Counter {
         // the height will animate smoothly from 300 to 150 right through keyframe `four`!
 
         timeline
-            .add_keyframe(one)
-            .add_keyframe(two)
-            .add_keyframe(three)
-            .add_keyframe(four)
-            .add_keyframe(five)
+            .set_chain(animation.into())
             .start();
         // `Start` is very important! Your animation won't "start" without it.
         // Cosmic-time tries to be atomic, meaning that keyframes defined in the

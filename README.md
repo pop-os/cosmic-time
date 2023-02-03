@@ -2,11 +2,13 @@ Very much still a WIP. API is mostly final and this can create animations. Just 
 
 TODOs before release:
 - [x] No heap allocations in animation render loop
+- [x] Compile time type guarentee that animation id will match correct animation to correct widget type.
 - [x] Animatable container widget
 - [ ] Looping animations
 - [ ] add button widget
 - [ ] add row widget
 - [ ] add column widget
+- [ ] add toggle button widget
 - [ ] Use iced 0.7
 - [ ] use iced 0.7's framerate subscription
 - [ ] Add logic for different animation Ease values
@@ -16,4 +18,6 @@ TODOs before release:
 
 Other TODOs:
 - [ ] physics based animations
+- [ ] Add pause for looping animations
+- [ ] Low motion accesability detection to disable animations.
 - [ ] Figure out what else needs to be on this list

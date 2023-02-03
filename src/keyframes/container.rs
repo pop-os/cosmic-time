@@ -3,7 +3,7 @@ use iced_native::{widget, Element};
 
 use std::time::{Duration, Instant};
 
-use crate::keyframes::{clamp_u16, get_length, IsKeyframe};
+use crate::keyframes::{clamp_u16, get_length, Repeat};
 
 /// A Container's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -29,9 +29,40 @@ impl From<Id> for widget::Id {
     }
 }
 
+pub struct Chain {
+  id: Id,
+  links: Vec<Container>,
+  repeat: Repeat,
+}
+
+impl Chain {
+  pub fn new(id: Id) -> Self {
+    Chain {
+      id,
+      links: Vec::new(),
+      repeat: Repeat::Never,
+    }
+  }
+
+  pub fn link(mut self, container: Container) -> Self {
+    self.links.push(container);
+    self
+  }
+}
+
+impl<T> From<Chain> for crate::timeline::Chain<T>
+where
+    T: ExactSizeIterator<Item = Option<(Duration, isize)>>,
+    Vec<T>: From<Vec<Container>>,
+{
+    fn from(chain: Chain) -> Self {
+        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+    }
+}
+
+#[must_use="Keyframes are intended to be used in an animation chain."]
 pub struct Container {
     index: usize,
-    id: Id,
     at: Duration,
     width: Option<Length>,
     height: Option<Length>,
@@ -39,10 +70,9 @@ pub struct Container {
 }
 
 impl Container {
-    pub fn new(id: Id, at: Duration) -> Container {
+    pub fn new(at: Duration) -> Container {
         Container {
             index: 0,
-            id: id.clone(),
             at,
             width: None,
             height: None,
@@ -89,16 +119,6 @@ impl Container {
     }
 }
 
-impl IsKeyframe for Container {
-    fn id(&self) -> widget::Id {
-        self.id.clone().into()
-    }
-
-    fn at(&self) -> Duration {
-        self.at
-    }
-}
-
 // 0 = width
 // 1 = height
 // 2 = padding[1] (top)
@@ -106,17 +126,17 @@ impl IsKeyframe for Container {
 // 4 = padding[3] (bottom)
 // 5 = padding[4] (left)
 impl Iterator for Container {
-    type Item = Option<isize>;
+    type Item = Option<(Duration, isize)>;
 
-    fn next(&mut self) -> Option<Option<isize>> {
+    fn next(&mut self) -> Option<Option<(Duration, isize)>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_isize(self.width)),
-            1 => Some(as_isize(self.height)),
-            2 => Some(self.padding.map(|p| p.top as isize)),
-            3 => Some(self.padding.map(|p| p.right as isize)),
-            4 => Some(self.padding.map(|p| p.bottom as isize)),
-            5 => Some(self.padding.map(|p| p.left as isize)),
+            0 => Some(as_isize(self.width).and_then(|w| Some((self.at, w)))),
+            1 => Some(as_isize(self.height).and_then(|h| Some((self.at, h)))),
+            2 => Some(self.padding.map(|p| p.top as isize).and_then(|p| Some((self.at, p)))),
+            3 => Some(self.padding.map(|p| p.right as isize).and_then(|p| Some((self.at, p)))),
+            4 => Some(self.padding.map(|p| p.bottom as isize).and_then(|p| Some((self.at, p)))),
+            5 => Some(self.padding.map(|p| p.left as isize).and_then(|p| Some((self.at, p)))),
             _ => None,
         }
     }
