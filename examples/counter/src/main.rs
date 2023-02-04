@@ -2,7 +2,7 @@ use iced::widget::{button, column, text};
 use iced::{
     executor, Alignment, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use cosmic_time::{self, keyframes, Timeline};
 
