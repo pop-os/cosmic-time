@@ -105,8 +105,8 @@ impl Container {
         let now = Instant::now();
 
         widget::Container::new(content)
-            .width(get_length(&id, &timeline, &now, 0, Length::Shrink))
-            .height(get_length(&id, &timeline, &now, 1, Length::Shrink))
+            .width(get_length(&id, timeline, &now, 0, Length::Shrink))
+            .height(get_length(&id, timeline, &now, 1, Length::Shrink))
             .padding([
                 clamp_u16(timeline.get(&id, &now, 2)).unwrap_or(0),
                 clamp_u16(timeline.get(&id, &now, 3)).unwrap_or(0),
@@ -143,28 +143,12 @@ impl Iterator for Container {
     fn next(&mut self) -> Option<Option<(Duration, isize)>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_isize(self.width).and_then(|w| Some((self.at, w)))),
-            1 => Some(as_isize(self.height).and_then(|h| Some((self.at, h)))),
-            2 => Some(
-                self.padding
-                    .map(|p| p.top as isize)
-                    .and_then(|p| Some((self.at, p))),
-            ),
-            3 => Some(
-                self.padding
-                    .map(|p| p.right as isize)
-                    .and_then(|p| Some((self.at, p))),
-            ),
-            4 => Some(
-                self.padding
-                    .map(|p| p.bottom as isize)
-                    .and_then(|p| Some((self.at, p))),
-            ),
-            5 => Some(
-                self.padding
-                    .map(|p| p.left as isize)
-                    .and_then(|p| Some((self.at, p))),
-            ),
+            0 => Some(as_isize(self.width).map(|w| (self.at, w))),
+            1 => Some(as_isize(self.height).map(|h| (self.at, h))),
+            2 => Some(self.padding.map(|p| (self.at, p.top as isize))),
+            3 => Some(self.padding.map(|p| (self.at, p.right as isize))),
+            4 => Some(self.padding.map(|p| (self.at, p.bottom as isize))),
+            5 => Some(self.padding.map(|p| (self.at, p.left as isize))),
             _ => None,
         }
     }
