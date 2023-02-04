@@ -3,22 +3,22 @@ pub mod container;
 use iced::Length;
 use iced_native::widget;
 
-pub use container::{Container, Chain};
+pub use container::{Chain, Container};
 
 use std::time::Instant;
 
 use crate::Timeline;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Repeat {
-  Never,
-  Forever,
-} 
+    Never,
+    Forever,
+}
 
 impl std::default::Default for Repeat {
-  fn default() -> Self {
-    Repeat::Never
-  }
+    fn default() -> Self {
+        Repeat::Never
+    }
 }
 
 pub trait IsChain {
