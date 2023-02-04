@@ -168,11 +168,15 @@ impl Timeline {
                     let relative_now = if meta.repeat == Repeat::Forever {
                         let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
                         let reduce_by = repeat_num * meta.length.as_millis();
-                        *now - Duration::from_millis(reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap())
+                        *now - Duration::from_millis(
+                            reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap(),
+                        )
                     } else {
                         *now
                     };
-                    if modifier.at <= relative_now { accumulator = Some(modifier) }
+                    if modifier.at <= relative_now {
+                        accumulator = Some(modifier)
+                    }
                 }
                 (None, None) => return None,
                 (Some(acc), None) => return Some(acc.value),
@@ -180,7 +184,9 @@ impl Timeline {
                     let relative_now = if meta.repeat == Repeat::Forever {
                         let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
                         let reduce_by = repeat_num * meta.length.as_millis();
-                        *now - Duration::from_millis(reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap())
+                        *now - Duration::from_millis(
+                            reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap(),
+                        )
                     } else {
                         *now
                     };
