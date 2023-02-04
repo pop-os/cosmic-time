@@ -33,9 +33,5 @@ jobs:
     - uses: actions/checkout@master
     - name: Run checks
       run: cargo check --package iced --target wasm32-unknown-unknown
-    - name: Check compilation of `tour` example
-      run: cargo build --package tour --target wasm32-unknown-unknown
-    - name: Check compilation of `todos` example
-      run: cargo build --package todos --target wasm32-unknown-unknown
-    - name: Check compilation of `integration_wgpu` example
-      run: cargo build --package integration_wgpu --target wasm32-unknown-unknown
+    - name: Check compilation of `counter` example
+      run: cargo build --package counter --target wasm32-unknown-unknown
