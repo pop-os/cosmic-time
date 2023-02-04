@@ -4,7 +4,7 @@ TODOs before release:
 - [x] No heap allocations in animation render loop
 - [x] Compile time type guarentee that animation id will match correct animation to correct widget type.
 - [x] Animatable container widget
-- [ ] Looping animations
+- [x] Looping animations
 - [ ] add button widget
 - [ ] add row widget
 - [ ] add column widget
@@ -14,7 +14,7 @@ TODOs before release:
 - [ ] Add logic for different animation Ease values
 - [ ] Documentation
 - [ ] Add `Cosmic` cargo feature for compatibility with both iced and System76's temporary fork.
-- [ ] optimize for `as_subscription` logic
+- [x] optimize for `as_subscription` logic
 
 Other TODOs:
 - [ ] physics based animations

@@ -31,24 +31,34 @@ impl From<Id> for widget::Id {
 
 #[derive(Debug)]
 pub struct Chain {
-  id: Id,
-  links: Vec<Container>,
-  repeat: Repeat,
+    id: Id,
+    links: Vec<Container>,
+    repeat: Repeat,
 }
 
 impl Chain {
-  pub fn new(id: Id) -> Self {
-    Chain {
-      id,
-      links: Vec::new(),
-      repeat: Repeat::Never,
+    pub fn new(id: Id) -> Self {
+        Chain {
+            id,
+            links: Vec::new(),
+            repeat: Repeat::Never,
+        }
     }
-  }
 
-  pub fn link(mut self, container: Container) -> Self {
-    self.links.push(container);
-    self
-  }
+    pub fn link(mut self, container: Container) -> Self {
+        self.links.push(container);
+        self
+    }
+
+    pub fn loop_forever(mut self) -> Self {
+        self.repeat = Repeat::Forever;
+        self
+    }
+
+    pub fn loop_once(mut self) -> Self {
+        self.repeat = Repeat::Never;
+        self
+    }
 }
 
 impl<T> From<Chain> for crate::timeline::Chain<T>
@@ -61,7 +71,7 @@ where
     }
 }
 
-#[must_use="Keyframes are intended to be used in an animation chain."]
+#[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug)]
 pub struct Container {
     index: usize,
@@ -135,10 +145,26 @@ impl Iterator for Container {
         match self.index - 1 {
             0 => Some(as_isize(self.width).and_then(|w| Some((self.at, w)))),
             1 => Some(as_isize(self.height).and_then(|h| Some((self.at, h)))),
-            2 => Some(self.padding.map(|p| p.top as isize).and_then(|p| Some((self.at, p)))),
-            3 => Some(self.padding.map(|p| p.right as isize).and_then(|p| Some((self.at, p)))),
-            4 => Some(self.padding.map(|p| p.bottom as isize).and_then(|p| Some((self.at, p)))),
-            5 => Some(self.padding.map(|p| p.left as isize).and_then(|p| Some((self.at, p)))),
+            2 => Some(
+                self.padding
+                    .map(|p| p.top as isize)
+                    .and_then(|p| Some((self.at, p))),
+            ),
+            3 => Some(
+                self.padding
+                    .map(|p| p.right as isize)
+                    .and_then(|p| Some((self.at, p))),
+            ),
+            4 => Some(
+                self.padding
+                    .map(|p| p.bottom as isize)
+                    .and_then(|p| Some((self.at, p))),
+            ),
+            5 => Some(
+                self.padding
+                    .map(|p| p.left as isize)
+                    .and_then(|p| Some((self.at, p))),
+            ),
             _ => None,
         }
     }

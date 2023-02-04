@@ -2,9 +2,9 @@ use iced::widget::{button, column, text};
 use iced::{
     executor, Alignment, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use cosmic_time::{self, Timeline, keyframes};
+use cosmic_time::{self, keyframes, Timeline};
 
 use once_cell::sync::Lazy;
 
@@ -40,29 +40,36 @@ impl Application for Counter {
         // Though more complicated applications will likely do this in the `update`
         let mut timeline = Timeline::new();
         let animation = cosmic_time::container::Chain::new(CONTAINER.clone())
-          .link(keyframes::Container::new(Duration::ZERO)
-            .width(Length::Units(50))
-            .height(Length::Units(100))
-          )
-          .link(keyframes::Container::new(Duration::from_secs(2))
-            .width(Length::Units(200))
-            .height(Length::Units(100))
-          )
-          .link(keyframes::Container::new(Duration::from_secs(4))
-            .width(Length::Units(200))
-            .height(Length::Units(300))
-            .padding([0, 0, 0, 0])
-          )
-          .link(keyframes::Container::new(Duration::from_secs(6))
-            .width(Length::Units(700))
-            .height(Length::Units(300))
-            .padding([0, 0, 0, 500])
-          )
-          .link(keyframes::Container::new(Duration::from_secs(8))
-            .width(Length::Units(150))
-            .height(Length::Units(150))
-            .padding([0, 0, 0, 0])
-          );
+            // .loop_forever() // Uncomment this line to loop the animation!
+            .link(
+                keyframes::Container::new(Duration::ZERO)
+                    .width(Length::Units(0))
+                    .height(Length::Units(100)),
+            )
+            .link(
+                keyframes::Container::new(Duration::from_secs(2))
+                    .width(Length::Units(200))
+                    .height(Length::Units(100)),
+            )
+            .link(
+                keyframes::Container::new(Duration::from_secs(4))
+                    .width(Length::Units(200))
+                    .height(Length::Units(300))
+                    .padding([0, 0, 0, 0]),
+            )
+            .link(
+                keyframes::Container::new(Duration::from_secs(6))
+                    .width(Length::Units(700))
+                    .height(Length::Units(300))
+                    .padding([0, 0, 0, 500]),
+            )
+            .link(
+                keyframes::Container::new(Duration::from_secs(8))
+                    .width(Length::Units(150))
+                    .height(Length::Units(150))
+                    .padding([0, 0, 0, 0]),
+            );
+
         // Notice how we had to specify the start and end of the widget dimensions?
         // Iced's default values for widgets are usually not animatable, because
         // they are unknown until the layout is built after the update.
@@ -75,9 +82,7 @@ impl Application for Counter {
         // cosmic-time assumes that the timeline is continuous. Try deleting it,
         // the height will animate smoothly from 300 to 150 right through keyframe `four`!
 
-        timeline
-            .set_chain(animation.into())
-            .start();
+        timeline.set_chain(animation.into()).start();
         // `Start` is very important! Your animation won't "start" without it.
         // Cosmic-time tries to be atomic, meaning that keyframes defined in the
         // same function call all start at the same time. Because there is process time
