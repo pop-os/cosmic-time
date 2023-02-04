@@ -22,16 +22,3 @@ jobs:
       run: |
         cargo test --verbose --workspace
         cargo test --verbose --workspace --all-features
-
-  web:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: stable
-        targets: wasm32-unknown-unknown
-    - uses: actions/checkout@master
-    - name: Run checks
-      run: cargo check --package iced --target wasm32-unknown-unknown
-    - name: Check compilation of `counter` example
-      run: cargo build --package counter --target wasm32-unknown-unknown

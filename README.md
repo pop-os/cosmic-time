@@ -21,3 +21,4 @@ Other TODOs:
 - [ ] Add pause for looping animations
 - [ ] Low motion accesability detection to disable animations.
 - [ ] Figure out what else needs to be on this list
+- [ ] Work on web via wasm-unknown-unknown builds
