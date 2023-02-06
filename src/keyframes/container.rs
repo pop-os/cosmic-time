@@ -4,6 +4,8 @@ use iced_native::{widget, Element};
 use std::time::{Duration, Instant};
 
 use crate::keyframes::{clamp_u16, get_length, Repeat};
+use crate::timeline::DurFrame;
+use crate::{Ease, Linear};
 
 /// A Container's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -63,7 +65,7 @@ impl Chain {
 
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
-    T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug,
+    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
     Vec<T>: From<Vec<Container>>,
 {
     fn from(chain: Chain) -> Self {
@@ -76,6 +78,7 @@ where
 pub struct Container {
     index: usize,
     at: Duration,
+    ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
     padding: Option<Padding>,
@@ -86,6 +89,7 @@ impl Container {
         Container {
             index: 0,
             at,
+            ease: Linear::InOut.into(),
             width: None,
             height: None,
             padding: None,
@@ -129,6 +133,11 @@ impl Container {
         self.padding = Some(padding.into());
         self
     }
+
+    pub fn ease<E: Into<Ease>>(mut self, ease: E) -> Self {
+        self.ease = ease.into();
+        self
+    }
 }
 
 // 0 = width
@@ -138,17 +147,29 @@ impl Container {
 // 4 = padding[3] (bottom)
 // 5 = padding[4] (left)
 impl Iterator for Container {
-    type Item = Option<(Duration, isize)>;
+    type Item = Option<DurFrame>;
 
-    fn next(&mut self) -> Option<Option<(Duration, isize)>> {
+    fn next(&mut self) -> Option<Option<DurFrame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_isize(self.width).map(|w| (self.at, w))),
-            1 => Some(as_isize(self.height).map(|h| (self.at, h))),
-            2 => Some(self.padding.map(|p| (self.at, p.top as isize))),
-            3 => Some(self.padding.map(|p| (self.at, p.right as isize))),
-            4 => Some(self.padding.map(|p| (self.at, p.bottom as isize))),
-            5 => Some(self.padding.map(|p| (self.at, p.left as isize))),
+            0 => Some(as_isize(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
+            1 => Some(as_isize(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
+            2 => Some(
+                self.padding
+                    .map(|p| DurFrame::new(self.at, p.top as isize, self.ease)),
+            ),
+            3 => Some(
+                self.padding
+                    .map(|p| DurFrame::new(self.at, p.right as isize, self.ease)),
+            ),
+            4 => Some(
+                self.padding
+                    .map(|p| DurFrame::new(self.at, p.bottom as isize, self.ease)),
+            ),
+            5 => Some(
+                self.padding
+                    .map(|p| DurFrame::new(self.at, p.left as isize, self.ease)),
+            ),
             _ => None,
         }
     }
