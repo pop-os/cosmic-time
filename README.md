@@ -5,6 +5,8 @@ TODOs before release:
 - [x] Compile time type guarentee that animation id will match correct animation to correct widget type.
 - [x] Animatable container widget
 - [x] Looping animations
+- [x] Animation easing
+- [x] add space widget
 - [ ] add button widget
 - [ ] add row widget
 - [ ] add column widget
@@ -17,6 +19,7 @@ TODOs before release:
 - [x] optimize for `as_subscription` logic
 
 Other TODOs:
+- [ ] test for easing and general animation logic
 - [ ] physics based animations
 - [ ] Add pause for looping animations
 - [ ] Low motion accesability detection to disable animations.

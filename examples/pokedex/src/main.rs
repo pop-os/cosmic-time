@@ -1,8 +1,58 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
 use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
+    Alignment, Application, Color, Command, Element, Length, Settings, Subscription, Theme,
 };
+
+use cosmic_time::{
+    self, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
+    Quartic, Quintic, Sinusoidal, Timeline,
+};
+use once_cell::sync::Lazy;
+use std::time::Duration;
+
+static SPACE: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
+
+//Linear,
+//Quadratic,
+//Cubic,
+//Quartic,
+//Quintic,
+//Sinusoidal,
+//Exponential,
+//Circular,
+//Elastic,
+//Back,
+//Bounce
+const EASE: [Ease; 27] = [
+    Ease::Linear(Linear::InOut),
+    Ease::Quadratic(Quadratic::In),
+    Ease::Quadratic(Quadratic::InOut),
+    Ease::Quartic(Quartic::In),
+    Ease::Quartic(Quartic::Out),
+    Ease::Quartic(Quartic::InOut),
+    Ease::Quintic(Quintic::In),
+    Ease::Quintic(Quintic::Out),
+    Ease::Quintic(Quintic::InOut),
+    Ease::Sinusoidal(Sinusoidal::In),
+    Ease::Sinusoidal(Sinusoidal::Out),
+    Ease::Sinusoidal(Sinusoidal::InOut),
+    Ease::Exponential(Exponential::In),
+    Ease::Exponential(Exponential::Out),
+    Ease::Exponential(Exponential::InOut),
+    Ease::Circular(Circular::In),
+    Ease::Circular(Circular::Out),
+    Ease::Circular(Circular::InOut),
+    Ease::Elastic(Elastic::In),
+    Ease::Elastic(Elastic::Out),
+    Ease::Elastic(Elastic::InOut),
+    Ease::Back(Back::In),
+    Ease::Back(Back::Out),
+    Ease::Back(Back::InOut),
+    Ease::Bounce(Bounce::In),
+    Ease::Bounce(Bounce::Out),
+    Ease::Bounce(Bounce::InOut),
+];
 
 pub fn main() -> iced::Result {
     Pokedex::run(Settings::default())
@@ -19,6 +69,7 @@ enum Pokedex {
 enum Message {
     PokemonFound(Result<Pokemon, Error>),
     Search,
+    Tick,
 }
 
 impl Application for Pokedex {
@@ -44,8 +95,18 @@ impl Application for Pokedex {
         format!("{subtitle} - Pokédex")
     }
 
+    fn subscription(&self) -> Subscription<Message> {
+        match self {
+            Pokedex::Loaded { pokemon } => {
+                pokemon.timeline.as_subscription().map(|_| Message::Tick)
+            }
+            _ => Subscription::none(),
+        }
+    }
+
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::Tick => Command::none(),
             Message::PokemonFound(Ok(pokemon)) => {
                 *self = Pokedex::Loaded { pokemon };
 
@@ -70,8 +131,7 @@ impl Application for Pokedex {
     fn view(&self) -> Element<Message> {
         let content = match self {
             Pokedex::Loading => {
-                column![text("Searching for Pokémon...").size(40),]
-                    .width(Length::Shrink)
+                column![text("Searching for Pokémon...").size(40),].width(Length::Shrink)
             }
             Pokedex::Loaded { pokemon } => column![
                 pokemon.view(),
@@ -99,6 +159,7 @@ impl Application for Pokedex {
 
 #[derive(Debug, Clone)]
 struct Pokemon {
+    timeline: Timeline,
     number: u16,
     name: String,
     description: String,
@@ -110,7 +171,10 @@ impl Pokemon {
 
     fn view(&self) -> Element<Message> {
         row![
-            image::viewer(self.image.clone()),
+            column![
+                keyframes::Space::as_widget(SPACE.clone(), &self.timeline),
+                image::viewer(self.image.clone())
+            ],
             column![
                 row![
                     text(&self.name).size(30).width(Length::Fill),
@@ -124,6 +188,7 @@ impl Pokemon {
             ]
             .spacing(20),
         ]
+        .height(Length::Units(300))
         .spacing(20)
         .align_items(Alignment::Center)
         .into()
@@ -163,8 +228,7 @@ impl Pokemon {
         };
 
         let (entry, image): (Entry, _) =
-            futures::future::try_join(fetch_entry, Self::fetch_image(id))
-                .await?;
+            futures::future::try_join(fetch_entry, Self::fetch_image(id)).await?;
 
         let description = entry
             .flavor_text_entries
@@ -172,7 +236,34 @@ impl Pokemon {
             .find(|text| text.language.name == "en")
             .ok_or(Error::LanguageError)?;
 
+        // This example is nice and simple!
+        // besides te subscription logic this is it.
+        // The timeline is created with each pokemon, and the animation is
+        // created the same time. All we have to do is store the timeline
+        // somewhere so it can be mapped to a subscription. Remember that
+        // you do not have to create a timeline for each animation. A timeline
+        // can hold many animations!
+        let mut timeline = Timeline::new();
+        let ease = EASE[rand::thread_rng().gen_range(0, EASE.len())];
+        let animation = cosmic_time::space::Chain::new(SPACE.clone())
+            .link(keyframes::Space::new(Duration::ZERO).height(Length::Units(0)))
+            .link(
+                keyframes::Space::new(Duration::from_millis(500))
+                    .height(Length::Units(200))
+                    .ease(ease),
+            )
+            .link(
+                keyframes::Space::new(Duration::from_millis(1000))
+                    .height(Length::Units(0))
+                    .ease(ease),
+            )
+            .loop_forever();
+
+        // println!("Animating wth ease: {ease:?}"); // Uncomment to see the type of easing
+        timeline.set_chain(animation.into()).start();
+
         Ok(Pokemon {
+            timeline,
             number: id,
             name: entry.name.to_uppercase(),
             description: description

@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use crate::keyframes::Repeat;
 use crate::{lerp, Ease, Tween};
 
+#[derive(Debug, Clone)]
 pub struct Timeline {
     // Hash map of widget::id to track, where each track is made of subtracks<isize>
     tracks: HashMap<widget::Id, (Meta, Vec<Vec<SubFrame>>)>,
@@ -21,6 +22,7 @@ impl std::default::Default for Timeline {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Pending {
     id: widget::Id,
     repeat: Repeat,
@@ -89,6 +91,7 @@ impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct SubFrame {
     pub value: isize,
     pub ease: Ease,

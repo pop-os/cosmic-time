@@ -1,7 +1,7 @@
 pub mod keyframes;
 pub mod timeline;
 
-pub use crate::keyframes::container;
+pub use crate::keyframes::{container, space};
 pub use crate::timeline::Timeline;
 
 const PI: f32 = std::f32::consts::PI;
@@ -31,10 +31,10 @@ macro_rules! tween {
         }
 
         impl Tween for Ease {
-            fn tween(&self, percent_complete: f32) -> f32 {
+            fn tween(&self, p: f32) -> f32 {
                 match self {
                     $(
-                        Ease::$x(ease) => ease.tween(percent_complete),
+                        Ease::$x(ease) => ease.tween(p),
                     )*
                 }
             }
@@ -201,7 +201,7 @@ impl Tween for Quintic {
             Quintic::Out => {
                 let q = p - 1.;
                 q.powi(5) + 1.
-            },
+            }
             // Modeled after the piecewise quintic
             // y = (1/2)((2x)^5)       ; [0, 0.5]
             // y = (1/2)((2x-2)^5 + 2) ; [0.5, 1]
@@ -237,7 +237,7 @@ impl Tween for Sinusoidal {
             Sinusoidal::In => {
                 let q = (p - 1.) * PI;
                 q.sin() + 1.
-            },
+            }
             // Modeled after quarter-cycle of sine wave (different phase)
             Sinusoidal::Out => (p * PI).sin(),
             // Modeled after half sine wave
@@ -247,7 +247,7 @@ impl Tween for Sinusoidal {
                 } else {
                     0.5 * (p.mul_add(02., 3.) * p.mul_add(2., -1.)).sqrt() + 1.
                 }
-            },
+            }
         }
     }
 }
@@ -270,23 +270,34 @@ impl Tween for Exponential {
         match self {
             // Modeled after the exponential function y = 2^(10(x-1))
             Exponential::In => {
-                if p == 0. { 0. }
-                else { (10. * (p - 1.)).powi(2)}
+                if p == 0. {
+                    0.
+                } else {
+                    (10. * (p - 1.)).powi(2)
+                }
             }
             // Modeled after the exponential function y = -2^(-10x) + 1
             Exponential::Out => {
-                if p == 1. { 1. }
-                else { 1. - (-10. * p).powi(2)}
-            },
+                if p == 1. {
+                    1.
+                } else {
+                    1. - (-10. * p).powi(2)
+                }
+            }
             // Modeled after the piecewise exponential
             // y = (1/2)*2^(10(2x -1))        ; [0, 0.5]
             // y = -(1/2)*2^(-10(2x - 1)) + 1 ; [0.5, 1]
             Exponential::InOut => {
-                if p == 0. { 0. }
-                else if p == 1. { 1. }
-                else if p < 0.5 { p.mul_add(20., -10.).powi(2) * 0.5}
-                else {p.mul_add(-20., 10.).powi(2).mul_add(-0.5, 1.)}
-            },
+                if p == 0. {
+                    0.
+                } else if p == 1. {
+                    1.
+                } else if p < 0.5 {
+                    p.mul_add(20., -10.).powi(2) * 0.5
+                } else {
+                    p.mul_add(-20., 10.).powi(2).mul_add(-0.5, 1.)
+                }
+            }
         }
     }
 }
@@ -318,9 +329,9 @@ impl Tween for Circular {
                 if p < 0.5 {
                     0.5 * (1. - (1. - 4. * p.powi(2)).sqrt())
                 } else {
-                    0.5 * (-(((2. * p) -3.) * ((2. * p) - 1.)) + 1.).sqrt()
+                    0.5 * (-(((2. * p) - 3.) * ((2. * p) - 1.)) + 1.).sqrt()
                 }
-            },
+            }
         }
     }
 }
@@ -354,7 +365,7 @@ impl Tween for Elastic {
                 } else {
                     0.5 * ((-13. * PI * ((2. * p - 1.) + 1.)).sin() * (-20. * p + 10.).powi(2) + 2.)
                 }
-            },
+            }
         }
     }
 }
@@ -379,7 +390,7 @@ impl Tween for Back {
             Back::Out => {
                 let q: f32 = 1. - p;
                 1. - (q.powi(4) * (q * PI).sin())
-            },
+            }
             Back::InOut => {
                 if p < 0.5 {
                     let q = 2. * p;
@@ -388,7 +399,7 @@ impl Tween for Back {
                     let q: f32 = 1. - (2. * p - 1.);
                     0.5 * (1. - (q.powi(4) * (q * PI).sin())) + 0.5
                 }
-            },
+            }
         }
     }
 }
@@ -408,14 +419,14 @@ pub enum Bounce {
 
 impl Bounce {
     fn bounce_ease_out(p: f32) -> f32 {
-        if p < 4./11. {
-            (121. * p.powi(2))/16.
-        } else if p < 8./11. {
-            (363./40. * p.powi(2)) - 99./10. * p + 17./5.
-        } else if p < 9./10. {
-            4356./361. * p.powi(2) - 35442./1805. * p + 16061./1805.
+        if p < 4. / 11. {
+            (121. * p.powi(2)) / 16.
+        } else if p < 8. / 11. {
+            (363. / 40. * p.powi(2)) - 99. / 10. * p + 17. / 5.
+        } else if p < 9. / 10. {
+            4356. / 361. * p.powi(2) - 35442. / 1805. * p + 16061. / 1805.
         } else {
-            54./5. * p.powi(2) - 513./25. * p + 268./25.
+            54. / 5. * p.powi(2) - 513. / 25. * p + 268. / 25.
         }
     }
 }
@@ -442,14 +453,14 @@ impl From<Bounce> for Ease {
     }
 }
 
-    //Linear,
-    //Quadratic,
-    //Cubic,
-    //Quartic,
-    //Quintic,
-    //Sinusoidal,
-    //Exponential,
-    //Circular,
-    //Elastic,
-    //Back,
-    //Bounce
+//Linear,
+//Quadratic,
+//Cubic,
+//Quartic,
+//Quintic,
+//Sinusoidal,
+//Exponential,
+//Circular,
+//Elastic,
+//Back,
+//Bounce

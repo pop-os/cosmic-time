@@ -49,7 +49,7 @@ impl Application for Counter {
             .link(
                 keyframes::Container::new(Duration::from_secs(2))
                     .width(Length::Units(200))
-                    .height(Length::Units(100))
+                    .height(Length::Units(100)),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(4))
