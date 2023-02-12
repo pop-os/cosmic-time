@@ -87,14 +87,16 @@ impl Tween for Quadratic {
         match self {
             // Modeled after the parabola y = x^2
             Quadratic::In => p.powi(2),
-            // Modeled after the parabola y = -x^2
-            Quadratic::Out => -(p * (p - 2.)),
             // Modeled after the parabola y = -x^2 + 2x
+            Quadratic::Out => -(p * (p - 2.)),
+            // Modeled after the piecewise quadratic
+            // y = (1/2)((2x)^2)             ; [0, 0.5)
+            // y = -(1/2)((2x-1)*(2x-3) - 1) ; [0.5, 1]
             Quadratic::InOut => {
                 if p < 0.5 {
                     2. * p.powi(2)
                 } else {
-                    (2. * p.powi(2)) + p.mul_add(4., -1.)
+                    (-2. * p.powi(2)) + p.mul_add(4., -1.)
                 }
             }
             // A Bezier Curve TODO
@@ -128,7 +130,7 @@ impl Tween for Cubic {
             }
             // Modeled after the piecewise cubic
             // y = (1/2)((2x)^3)       ; [0, 0.5]
-            // y = (1/2)((2x=2)^3 + 2) ; [0.5, 1]
+            // y = (1/2)((2x-2)^3 + 2) ; [0.5, 1]
             Cubic::InOut => {
                 if p < 0.5 {
                     4. * p.powi(3)
@@ -162,7 +164,7 @@ impl Tween for Quartic {
             // Modeled after the quartic y = 1 - (x - 1)^4
             Quartic::Out => {
                 let q = p - 1.;
-                (q.powi(4)).mul_add(1. - p, 1.)
+                (q.powi(3)).mul_add(1. - p, 1.)
             }
             // Modeled after the piecewise quartic
             // y = (1/2)((2x)^4)       ; [0, 0.5]
@@ -210,7 +212,7 @@ impl Tween for Quintic {
                     16. * p.powi(5)
                 } else {
                     let q = (2. * p) - 2.;
-                    q.powi(5).mul_add(-0.5, 1.)
+                    q.powi(5).mul_add(0.5, 1.)
                 }
             }
         }
@@ -233,21 +235,12 @@ pub enum Sinusoidal {
 impl Tween for Sinusoidal {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after quarter-cycle of sine wave
-            Sinusoidal::In => {
-                let q = (p - 1.) * PI;
-                q.sin() + 1.
-            }
-            // Modeled after quarter-cycle of sine wave (different phase)
-            Sinusoidal::Out => (p * PI).sin(),
-            // Modeled after half sine wave
-            Sinusoidal::InOut => {
-                if p < 0.5 {
-                    0.5 * (1. - p.powi(2).mul_add(-4., 1.).sqrt())
-                } else {
-                    0.5 * (p.mul_add(02., 3.) * p.mul_add(2., -1.)).sqrt() + 1.
-                }
-            }
+            // Modeled after eighth sinusoidal wave y = 1 - cos((x * PI) / 2)
+            Sinusoidal::In => 1. - ((p * PI) / 2.).cos(),
+            // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
+            Sinusoidal::Out => ((p * PI) / 2.).sin(),
+            // Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
+            Sinusoidal::InOut => -0.5 * ((p * PI).cos() - 1.)
         }
     }
 }
@@ -268,34 +261,40 @@ pub enum Exponential {
 impl Tween for Exponential {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the exponential function y = 2^(10(x-1))
+            // Modeled after the piecewise exponential
+            // y = 0            ; [0, 0]
+            // y = 2^(10x-10)   ; [0, 1]
             Exponential::In => {
                 if p == 0. {
                     0.
                 } else {
-                    (10. * (p - 1.)).powi(2)
+                    2_f32.powf(10. * p - 10.)
                 }
             }
-            // Modeled after the exponential function y = -2^(-10x) + 1
+            // Modeled after the piecewise exponential
+            // y = 1 - 2^(-10x)  ; [0, 1]
+            // y = 1             ; [1, 1]
             Exponential::Out => {
                 if p == 1. {
                     1.
                 } else {
-                    1. - (-10. * p).powi(2)
+                    1. - 2_f32.powf(-10. * p)
                 }
             }
             // Modeled after the piecewise exponential
-            // y = (1/2)*2^(10(2x -1))        ; [0, 0.5]
-            // y = -(1/2)*2^(-10(2x - 1)) + 1 ; [0.5, 1]
+            // y = 0                        ; [0, 0  ]
+            // y = 2^(20x - 10) / 2         ; [0, 0.5]
+            // y = 1 - 0.5*2^(-10(2x - 1))  ; [0.5, 1]
+            // y = 1                        ; [1, 1  ]
             Exponential::InOut => {
                 if p == 0. {
                     0.
                 } else if p == 1. {
                     1.
                 } else if p < 0.5 {
-                    p.mul_add(20., -10.).powi(2) * 0.5
+                    2_f32.powf(p.mul_add(20., -10.)) * 0.5
                 } else {
-                    p.mul_add(-20., 10.).powi(2).mul_add(-0.5, 1.)
+                    2_f32.powf(p.mul_add(-20., 10.)).mul_add(-0.5, 1.)
                 }
             }
         }
@@ -357,7 +356,7 @@ impl Tween for Elastic {
             // Modeled after the damped sin wave y = sin(-13pi/2(x + 1))*(-10x)^2 + 1
             Elastic::Out => (-13. * PI * (p + 1.)).sin() * (-10. * p).powi(2) + 1.,
             // Modeled after the piecewise exponentially-damped sine wave:
-            // y = (1/2)*sin(13pi/2(2*x))*(2, 10 * ((2*x) - 1))^2      ; [0,0.5)
+            // y = (1/2)*sin(13pi/2(2*x))*(2, 10 * ((2*x) - 1))^2       ; [0,0.5)
             // y = (1/2)*(sin(-13pi/2*((2x-1)+1))*(2,-10(2*x-1))^2 + 2) ; [0.5, 1]
             Elastic::InOut => {
                 if p < 0.5 {
@@ -464,3 +463,330 @@ impl From<Bounce> for Ease {
 //Elastic,
 //Back,
 //Bounce
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn r(val: f32) -> f32 {
+        (val * 10E+5).round() / 10E+5
+    }
+
+    #[test]
+    fn linear() {
+        assert_eq!(0.0, Linear::InOut.tween(0.0));
+        assert_eq!(0.1, Linear::InOut.tween(0.1));
+        assert_eq!(0.2, Linear::InOut.tween(0.2));
+        assert_eq!(0.3, Linear::InOut.tween(0.3));
+        assert_eq!(0.4, Linear::InOut.tween(0.4));
+        assert_eq!(0.5, Linear::InOut.tween(0.5));
+        assert_eq!(0.6, Linear::InOut.tween(0.6));
+        assert_eq!(0.7, Linear::InOut.tween(0.7));
+        assert_eq!(0.8, Linear::InOut.tween(0.8));
+        assert_eq!(0.9, Linear::InOut.tween(0.9));
+        assert_eq!(1.0, Linear::InOut.tween(1.0));
+    }
+
+    #[test]
+    // Modeled after the parabola y = x^2
+    fn quadratic_in() {
+        assert_eq!(0.00, r(Quadratic::In.tween(0.0)));
+        assert_eq!(0.01, r(Quadratic::In.tween(0.1)));
+        assert_eq!(0.04, r(Quadratic::In.tween(0.2)));
+        assert_eq!(0.09, r(Quadratic::In.tween(0.3)));
+        assert_eq!(0.16, r(Quadratic::In.tween(0.4)));
+        assert_eq!(0.25, r(Quadratic::In.tween(0.5)));
+        assert_eq!(0.36, r(Quadratic::In.tween(0.6)));
+        assert_eq!(0.49, r(Quadratic::In.tween(0.7)));
+        assert_eq!(0.64, r(Quadratic::In.tween(0.8)));
+        assert_eq!(0.81, r(Quadratic::In.tween(0.9)));
+        assert_eq!(1.00, r(Quadratic::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the parabola y = -x^2 + 2x
+    fn quadratic_out() {
+        assert_eq!(0.00, r(Quadratic::Out.tween(0.0)));
+        assert_eq!(0.19, r(Quadratic::Out.tween(0.1)));
+        assert_eq!(0.36, r(Quadratic::Out.tween(0.2)));
+        assert_eq!(0.51, r(Quadratic::Out.tween(0.3)));
+        assert_eq!(0.64, r(Quadratic::Out.tween(0.4)));
+        assert_eq!(0.75, r(Quadratic::Out.tween(0.5)));
+        assert_eq!(0.84, r(Quadratic::Out.tween(0.6)));
+        assert_eq!(0.91, r(Quadratic::Out.tween(0.7)));
+        assert_eq!(0.96, r(Quadratic::Out.tween(0.8)));
+        assert_eq!(0.99, r(Quadratic::Out.tween(0.9)));
+        assert_eq!(1.00, r(Quadratic::Out.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the piecewise quadratic
+    // y = (1/2)((2x)^2)             ; [0, 0.5)
+    // y = -(1/2)((2x-1)*(2x-3) - 1) ; [0.5, 1]
+    fn quadratic_inout() {
+        assert_eq!(0.00, r(Quadratic::InOut.tween(0.0)));
+        assert_eq!(0.02, r(Quadratic::InOut.tween(0.1)));
+        assert_eq!(0.08, r(Quadratic::InOut.tween(0.2)));
+        assert_eq!(0.18, r(Quadratic::InOut.tween(0.3)));
+        assert_eq!(0.32, r(Quadratic::InOut.tween(0.4)));
+        assert_eq!(0.50, r(Quadratic::InOut.tween(0.5)));
+        assert_eq!(0.68, r(Quadratic::InOut.tween(0.6)));
+        assert_eq!(0.82, r(Quadratic::InOut.tween(0.7)));
+        assert_eq!(0.92, r(Quadratic::InOut.tween(0.8)));
+        assert_eq!(0.98, r(Quadratic::InOut.tween(0.9)));
+        assert_eq!(1.00, r(Quadratic::InOut.tween(1.0)));
+    }
+
+    // TODO Bezier
+    
+    #[test]
+    // Modeled after the cubic y = x^3
+    fn cubic_in() {
+        assert_eq!(0.000, r(Cubic::In.tween(0.0)));
+        assert_eq!(0.001, r(Cubic::In.tween(0.1)));
+        assert_eq!(0.008, r(Cubic::In.tween(0.2)));
+        assert_eq!(0.027, r(Cubic::In.tween(0.3)));
+        assert_eq!(0.064, r(Cubic::In.tween(0.4)));
+        assert_eq!(0.125, r(Cubic::In.tween(0.5)));
+        assert_eq!(0.216, r(Cubic::In.tween(0.6)));
+        assert_eq!(0.343, r(Cubic::In.tween(0.7)));
+        assert_eq!(0.512, r(Cubic::In.tween(0.8)));
+        assert_eq!(0.729, r(Cubic::In.tween(0.9)));
+        assert_eq!(1.000, r(Cubic::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the cubic y = (x-1)^3 + 1
+    fn cubic_out() {
+        assert_eq!(0.000, r(Cubic::Out.tween(0.0)));
+        assert_eq!(0.271, r(Cubic::Out.tween(0.1)));
+        assert_eq!(0.488, r(Cubic::Out.tween(0.2)));
+        assert_eq!(0.657, r(Cubic::Out.tween(0.3)));
+        assert_eq!(0.784, r(Cubic::Out.tween(0.4)));
+        assert_eq!(0.875, r(Cubic::Out.tween(0.5)));
+        assert_eq!(0.936, r(Cubic::Out.tween(0.6)));
+        assert_eq!(0.973, r(Cubic::Out.tween(0.7)));
+        assert_eq!(0.992, r(Cubic::Out.tween(0.8)));
+        assert_eq!(0.999, r(Cubic::Out.tween(0.9)));
+        assert_eq!(1.000, r(Cubic::Out.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the piecewise cubic
+    // y = (1/2)((2x)^3)       ; [0, 0.5]
+    // y = (1/2)((2x-2)^3 + 2) ; [0.5, 1]
+    fn cubic_inout() {
+        assert_eq!(0.000, r(Cubic::InOut.tween(0.0)));
+        assert_eq!(0.004, r(Cubic::InOut.tween(0.1)));
+        assert_eq!(0.032, r(Cubic::InOut.tween(0.2)));
+        assert_eq!(0.108, r(Cubic::InOut.tween(0.3)));
+        assert_eq!(0.256, r(Cubic::InOut.tween(0.4)));
+        assert_eq!(0.500, r(Cubic::InOut.tween(0.5)));
+        assert_eq!(0.744, r(Cubic::InOut.tween(0.6)));
+        assert_eq!(0.892, r(Cubic::InOut.tween(0.7)));
+        assert_eq!(0.968, r(Cubic::InOut.tween(0.8)));
+        assert_eq!(0.996, r(Cubic::InOut.tween(0.9)));
+        assert_eq!(1.000, r(Cubic::InOut.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the quartic y = x^4
+    fn quartic_in() {
+        assert_eq!(0.0000, r(Quartic::In.tween(0.0)));
+        assert_eq!(0.0001, r(Quartic::In.tween(0.1)));
+        assert_eq!(0.0016, r(Quartic::In.tween(0.2)));
+        assert_eq!(0.0081, r(Quartic::In.tween(0.3)));
+        assert_eq!(0.0256, r(Quartic::In.tween(0.4)));
+        assert_eq!(0.0625, r(Quartic::In.tween(0.5)));
+        assert_eq!(0.1296, r(Quartic::In.tween(0.6)));
+        assert_eq!(0.2401, r(Quartic::In.tween(0.7)));
+        assert_eq!(0.4096, r(Quartic::In.tween(0.8)));
+        assert_eq!(0.6561, r(Quartic::In.tween(0.9)));
+        assert_eq!(1.0000, r(Quartic::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the quartic y = 1 - (x - 1)^4
+    fn quartic_out() {
+        assert_eq!(0.0000, r(Quartic::Out.tween(0.0)));
+        assert_eq!(0.3439, r(Quartic::Out.tween(0.1)));
+        assert_eq!(0.5904, r(Quartic::Out.tween(0.2)));
+        assert_eq!(0.7599, r(Quartic::Out.tween(0.3)));
+        assert_eq!(0.8704, r(Quartic::Out.tween(0.4)));
+        assert_eq!(0.9375, r(Quartic::Out.tween(0.5)));
+        assert_eq!(0.9744, r(Quartic::Out.tween(0.6)));
+        assert_eq!(0.9919, r(Quartic::Out.tween(0.7)));
+        assert_eq!(0.9984, r(Quartic::Out.tween(0.8)));
+        assert_eq!(0.9999, r(Quartic::Out.tween(0.9)));
+        assert_eq!(1.0000, r(Quartic::Out.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the piecewise quartic
+    // y = (1/2)((2x)^4)       ; [0, 0.5]
+    // y = -(1/2)((2x-2)^4 -2) ; [0.5, 1]
+    fn quartic_inout() {
+        assert_eq!(0.0000, r(Quartic::InOut.tween(0.0)));
+        assert_eq!(0.0008, r(Quartic::InOut.tween(0.1)));
+        assert_eq!(0.0128, r(Quartic::InOut.tween(0.2)));
+        assert_eq!(0.0648, r(Quartic::InOut.tween(0.3)));
+        assert_eq!(0.2048, r(Quartic::InOut.tween(0.4)));
+        assert_eq!(0.5000, r(Quartic::InOut.tween(0.5)));
+        assert_eq!(0.7952, r(Quartic::InOut.tween(0.6)));
+        assert_eq!(0.9352, r(Quartic::InOut.tween(0.7)));
+        assert_eq!(0.9872, r(Quartic::InOut.tween(0.8)));
+        assert_eq!(0.9992, r(Quartic::InOut.tween(0.9)));
+        assert_eq!(1.0000, r(Quartic::InOut.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the quartic y = x^5
+    fn quintic_in() {
+        assert_eq!(0.00000, r(Quintic::In.tween(0.0)));
+        assert_eq!(0.00001, r(Quintic::In.tween(0.1)));
+        assert_eq!(0.00032, r(Quintic::In.tween(0.2)));
+        assert_eq!(0.00243, r(Quintic::In.tween(0.3)));
+        assert_eq!(0.01024, r(Quintic::In.tween(0.4)));
+        assert_eq!(0.03125, r(Quintic::In.tween(0.5)));
+        assert_eq!(0.07776, r(Quintic::In.tween(0.6)));
+        assert_eq!(0.16807, r(Quintic::In.tween(0.7)));
+        assert_eq!(0.32768, r(Quintic::In.tween(0.8)));
+        assert_eq!(0.59049, r(Quintic::In.tween(0.9)));
+        assert_eq!(1.00000, r(Quintic::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the quintic y = (x - 1)^5 + 1
+    fn quintic_out() {
+        assert_eq!(0.00000, r(Quintic::Out.tween(0.0)));
+        assert_eq!(0.40951, r(Quintic::Out.tween(0.1)));
+        assert_eq!(0.67232, r(Quintic::Out.tween(0.2)));
+        assert_eq!(0.83193, r(Quintic::Out.tween(0.3)));
+        assert_eq!(0.92224, r(Quintic::Out.tween(0.4)));
+        assert_eq!(0.96875, r(Quintic::Out.tween(0.5)));
+        assert_eq!(0.98976, r(Quintic::Out.tween(0.6)));
+        assert_eq!(0.99757, r(Quintic::Out.tween(0.7)));
+        assert_eq!(0.99968, r(Quintic::Out.tween(0.8)));
+        assert_eq!(0.99999, r(Quintic::Out.tween(0.9)));
+        assert_eq!(1.00000, r(Quintic::Out.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the piecewise quintic
+    // y = (1/2)((2x)^5)       ; [0, 0.5]
+    // y = (1/2)((2x-2)^5 + 2) ; [0.5, 1]
+    fn quintic_inout() {
+        assert_eq!(0.00000, r(Quintic::InOut.tween(0.0)));
+        assert_eq!(0.00016, r(Quintic::InOut.tween(0.1)));
+        assert_eq!(0.00512, r(Quintic::InOut.tween(0.2)));
+        assert_eq!(0.03888, r(Quintic::InOut.tween(0.3)));
+        assert_eq!(0.16384, r(Quintic::InOut.tween(0.4)));
+        assert_eq!(0.50000, r(Quintic::InOut.tween(0.5)));
+        assert_eq!(0.83616, r(Quintic::InOut.tween(0.6)));
+        assert_eq!(0.96112, r(Quintic::InOut.tween(0.7)));
+        assert_eq!(0.99488, r(Quintic::InOut.tween(0.8)));
+        assert_eq!(0.99984, r(Quintic::InOut.tween(0.9)));
+        assert_eq!(1.00000, r(Quintic::InOut.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after eighth sinusoidal wave y = 1 - cos((x * PI) / 2)
+    fn sinusoidal_in() {
+        assert_eq!(0.000000, r(Sinusoidal::In.tween(0.0)));
+        assert_eq!(0.012312, r(Sinusoidal::In.tween(0.1)));
+        assert_eq!(0.048943, r(Sinusoidal::In.tween(0.2)));
+        assert_eq!(0.108993, r(Sinusoidal::In.tween(0.3)));
+        assert_eq!(0.190983, r(Sinusoidal::In.tween(0.4)));
+        assert_eq!(0.292893, r(Sinusoidal::In.tween(0.5)));
+        assert_eq!(0.412215, r(Sinusoidal::In.tween(0.6)));
+        assert_eq!(0.546010, r(Sinusoidal::In.tween(0.7)));
+        assert_eq!(0.690983, r(Sinusoidal::In.tween(0.8)));
+        assert_eq!(0.843566, r(Sinusoidal::In.tween(0.9)));
+        assert_eq!(1.000000, r(Sinusoidal::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
+    fn sinusoidal_out() {
+        assert_eq!(0.000000, r(Sinusoidal::Out.tween(0.0)));
+        assert_eq!(0.156434, r(Sinusoidal::Out.tween(0.1)));
+        assert_eq!(0.309017, r(Sinusoidal::Out.tween(0.2)));
+        assert_eq!(0.453991, r(Sinusoidal::Out.tween(0.3)));
+        assert_eq!(0.587785, r(Sinusoidal::Out.tween(0.4)));
+        assert_eq!(0.707107, r(Sinusoidal::Out.tween(0.5)));
+        assert_eq!(0.809017, r(Sinusoidal::Out.tween(0.6)));
+        assert_eq!(0.891007, r(Sinusoidal::Out.tween(0.7)));
+        assert_eq!(0.951057, r(Sinusoidal::Out.tween(0.8)));
+        assert_eq!(0.987688, r(Sinusoidal::Out.tween(0.9)));
+        assert_eq!(1.000000, r(Sinusoidal::Out.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
+    fn sinusoidal_inout() {
+        assert_eq!(0.000000, r(Sinusoidal::InOut.tween(0.0)));
+        assert_eq!(0.024472, r(Sinusoidal::InOut.tween(0.1)));
+        assert_eq!(0.095492, r(Sinusoidal::InOut.tween(0.2)));
+        assert_eq!(0.206107, r(Sinusoidal::InOut.tween(0.3)));
+        assert_eq!(0.345492, r(Sinusoidal::InOut.tween(0.4)));
+        assert_eq!(0.500000, r(Sinusoidal::InOut.tween(0.5)));
+        assert_eq!(0.654509, r(Sinusoidal::InOut.tween(0.6)));
+        assert_eq!(0.793893, r(Sinusoidal::InOut.tween(0.7)));
+        assert_eq!(0.904509, r(Sinusoidal::InOut.tween(0.8)));
+        assert_eq!(0.975528, r(Sinusoidal::InOut.tween(0.9)));
+        assert_eq!(1.000000, r(Sinusoidal::InOut.tween(1.0)));
+    }
+
+    // Modeled after the piecewise exponential
+    // y = 0            ; [0, 0]
+    // y = 2^(10x-10)   ; [0, 1]
+    fn exponential_in() {
+        assert_eq!(0.000000, r(Exponential::In.tween(0.0)));
+        assert_eq!(0.001953, r(Exponential::In.tween(0.1)));
+        assert_eq!(0.003906, r(Exponential::In.tween(0.2)));
+        assert_eq!(0.007813, r(Exponential::In.tween(0.3)));
+        assert_eq!(0.015625, r(Exponential::In.tween(0.4)));
+        assert_eq!(0.031250, r(Exponential::In.tween(0.5)));
+        assert_eq!(0.062500, r(Exponential::In.tween(0.6)));
+        assert_eq!(0.125000, r(Exponential::In.tween(0.7)));
+        assert_eq!(0.250000, r(Exponential::In.tween(0.8)));
+        assert_eq!(0.500000, r(Exponential::In.tween(0.9)));
+        assert_eq!(1.000000, r(Exponential::In.tween(1.0)));
+    }
+
+    // Modeled after the piecewise exponential
+    // y = 1 - 2^(-10x)  ; [0, 1]
+    // y = 1             ; [1, 1]
+    fn exponential_out() {
+        assert_eq!(0.000000, r(Exponential::Out.tween(0.0)));
+        assert_eq!(0.050000, r(Exponential::Out.tween(0.1)));
+        assert_eq!(0.750000, r(Exponential::Out.tween(0.2)));
+        assert_eq!(0.875000, r(Exponential::Out.tween(0.3)));
+        assert_eq!(0.937500, r(Exponential::Out.tween(0.4)));
+        assert_eq!(0.968750, r(Exponential::Out.tween(0.5)));
+        assert_eq!(0.984375, r(Exponential::Out.tween(0.6)));
+        assert_eq!(0.992188, r(Exponential::Out.tween(0.7)));
+        assert_eq!(0.996094, r(Exponential::Out.tween(0.8)));
+        assert_eq!(0.998047, r(Exponential::Out.tween(0.9)));
+        assert_eq!(1.000000, r(Exponential::Out.tween(1.0)));
+    }
+
+    // Modeled after the piecewise exponential
+    // y = 0                        ; [0, 0  ]
+    // y = 2^(20x - 10) / 2         ; [0, 0.5]
+    // y = 1 - 0.5*2^(-20x + 10))   ; [0.5, 1]
+    // y = 1                        ; [1, 1  ]
+    fn exponential_inout() {
+        assert_eq!(0.000000, r(Exponential::InOut.tween(0.0)));
+        assert_eq!(0.003906, r(Exponential::InOut.tween(0.1)));
+        assert_eq!(0.015625, r(Exponential::InOut.tween(0.2)));
+        assert_eq!(0.062500, r(Exponential::InOut.tween(0.3)));
+        assert_eq!(0.250000, r(Exponential::InOut.tween(0.4)));
+        assert_eq!(0.500000, r(Exponential::InOut.tween(0.5)));
+        assert_eq!(0.654509, r(Exponential::InOut.tween(0.6)));
+        assert_eq!(0.793893, r(Exponential::InOut.tween(0.7)));
+        assert_eq!(0.904509, r(Exponential::InOut.tween(0.8)));
+        assert_eq!(0.975528, r(Exponential::InOut.tween(0.9)));
+        assert_eq!(1.000000, r(Exponential::InOut.tween(1.0)));
+    }
+}

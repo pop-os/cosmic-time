@@ -4,7 +4,7 @@ use iced::{
 };
 use std::time::Duration;
 
-use cosmic_time::{self, keyframes, Quadratic, Timeline};
+use cosmic_time::{self, keyframes, Timeline};
 
 use once_cell::sync::Lazy;
 
