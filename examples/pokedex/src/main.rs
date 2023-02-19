@@ -32,8 +32,8 @@ const EASE_IN: [Ease; 10] = [
     Ease::Sinusoidal(Sinusoidal::In),
     Ease::Exponential(Exponential::In),
     Ease::Circular(Circular::In),
-    Ease::Elastic(Elastic::In),
-    Ease::Back(Back::In),
+    Ease::Elastic(Elastic::InOut),
+    Ease::Back(Back::Out),
     Ease::Bounce(Bounce::In),
 ];
 
@@ -45,8 +45,8 @@ const EASE_OUT: [Ease; 10] = [
     Ease::Sinusoidal(Sinusoidal::Out),
     Ease::Exponential(Exponential::Out),
     Ease::Circular(Circular::Out),
-    Ease::Elastic(Elastic::Out),
-    Ease::Back(Back::Out),
+    Ease::Elastic(Elastic::InOut),
+    Ease::Back(Back::In),
     Ease::Bounce(Bounce::Out),
 ];
 
@@ -185,7 +185,7 @@ impl Pokemon {
             ]
             .spacing(20),
         ]
-        .height(Length::Units(300))
+        .height(Length::Units(400))
         .spacing(20)
         .align_items(Alignment::Center)
         .into()
@@ -251,15 +251,15 @@ impl Pokemon {
         );
 
         let animation = cosmic_time::space::Chain::new(SPACE.clone())
-            .link(keyframes::Space::new(Duration::ZERO).height(Length::Units(0)))
+            .link(keyframes::Space::new(Duration::ZERO).height(Length::Units(50)))
             .link(
-                keyframes::Space::new(Duration::from_secs(1))
-                    .height(Length::Units(200))
+                keyframes::Space::new(Duration::from_millis(1500))
+                    .height(Length::Units(250))
                     .ease(EASE_IN[rand]),
             )
             .link(
-                keyframes::Space::new(Duration::from_secs(2))
-                    .height(Length::Units(0))
+                keyframes::Space::new(Duration::from_millis(3000))
+                    .height(Length::Units(50))
                     .ease(EASE_OUT[rand]),
             )
             .loop_forever();
