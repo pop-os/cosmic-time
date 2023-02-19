@@ -19,7 +19,8 @@ TODOs before release:
 - [x] optimize for `as_subscription` logic
 
 Other TODOs:
-- [ ] test for easing and general animation logic
+- [x] test for easing
+- [ ] general animation logic tests
 - [ ] physics based animations
 - [ ] Add pause for looping animations
 - [ ] Low motion accesability detection to disable animations.
