@@ -240,7 +240,7 @@ impl Tween for Sinusoidal {
             // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
             Sinusoidal::Out => ((p * PI) / 2.).sin(),
             // Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
-            Sinusoidal::InOut => -0.5 * ((p * PI).cos() - 1.)
+            Sinusoidal::InOut => -0.5 * ((p * PI).cos() - 1.),
         }
     }
 }
@@ -317,18 +317,18 @@ pub enum Circular {
 impl Tween for Circular {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after shifted quadrant IV of unit circle
+            // Modeled after shifted quadrant IV of unit circle. y = 1 - sqrt(1 - x^2)
             Circular::In => 1.0 - (1. - (p.powi(2))).sqrt(),
-            // Modeled after shifted quadrant II of unit circle
+            // Modeled after shifted quadrant II of unit circle. y = sqrt(1 - (x - 1)^ 2)
             Circular::Out => ((2. - p) * p).sqrt(),
             // Modeled after the piecewise circular function
-            // y = (1/2)(1 - sqrt(1 - 4x^2))           ; [0, 0.5)
-            // y = (1/2)(sqrt(-(2x - 3)*(2x - 1)) + 1) ; [0.5, 1]
+            // y = (1/2)(1 - sqrt(1 - 2x^2))           ; [0, 0.5)
+            // y = (1/2)(sqrt(1 - ((-2x + 2)^2)) + 1) ; [0.5, 1]
             Circular::InOut => {
                 if p < 0.5 {
-                    0.5 * (1. - (1. - 4. * p.powi(2)).sqrt())
+                    0.5 * (1. - (1. - (2. * p).powi(2)).sqrt())
                 } else {
-                    0.5 * (-(((2. * p) - 3.) * ((2. * p) - 1.)) + 1.).sqrt()
+                    0.5 * ((1. - (-2. * p + 2.).powi(2)).sqrt() + 1.)
                 }
             }
         }
@@ -351,18 +351,26 @@ pub enum Elastic {
 impl Tween for Elastic {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the demped sine wave y = sin(13pi/2x)*(10 * (x - 1)^2)
-            Elastic::In => (13. * PI * p).sin() * (10. * (p - 1.)).powi(2),
-            // Modeled after the damped sin wave y = sin(-13pi/2(x + 1))*(-10x)^2 + 1
-            Elastic::Out => (-13. * PI * (p + 1.)).sin() * (-10. * p).powi(2) + 1.,
+            // Modeled after damped sin wave: y = sin(13×π/2 x)×2^(10 (x - 1))
+            Elastic::In => (13. * (PI / 2.) * p).sin() * 2_f32.powf(10. * (p - 1.)),
+            // Modeled after damped piecewise sin wave:
+            // y = 2^(-10 x) sin((x×10 - 0.75) (2×π/3)) + 1 [0, 1]
+            // y = 1 [1, 1]
+            Elastic::Out => {
+                if p == 1. {
+                    1.
+                } else {
+                    2_f32.powf(-10. * p) * ((10. * p - 0.75) * ((2. * PI) / 3.)).sin() + 1.
+                }
+            }
             // Modeled after the piecewise exponentially-damped sine wave:
-            // y = (1/2)*sin(13pi/2(2*x))*(2, 10 * ((2*x) - 1))^2       ; [0,0.5)
-            // y = (1/2)*(sin(-13pi/2*((2x-1)+1))*(2,-10(2*x-1))^2 + 2) ; [0.5, 1]
+            // y = 2^(10 (2 x - 1) - 1) sin(13 π x) [0, 0.5]
+            // y = 1/2 (2 - 2^(-10 (2 x - 1)) sin(13 π x)) [0.5, 1]
             Elastic::InOut => {
                 if p < 0.5 {
-                    0.5 * (13. * PI * 2. * p).sin() * (10. * ((2. * p) - 1.)).powi(2)
+                    2_f32.powf(10. * (2. * p - 1.) - 1.) * (13. * PI * p).sin()
                 } else {
-                    0.5 * ((-13. * PI * ((2. * p - 1.) + 1.)).sin() * (-20. * p + 10.).powi(2) + 2.)
+                    0.5 * (2. - 2_f32.powf(-20. * p + 10.) * (13. * PI * p).sin())
                 }
             }
         }
@@ -385,18 +393,24 @@ pub enum Back {
 impl Tween for Back {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            Back::In => p.powi(4) * (p * PI).sin(),
+            // Modeled after the function: y = 2.70158 * x^3 + x^2 * (-1.70158)
+            Back::In => 2.70158 * p.powi(3) - 1.70158 * p.powi(2),
+            // Modeled after the function: y = 1 + 2.70158 (x - 1)^3 + 1.70158 (x - 1)^2
             Back::Out => {
-                let q: f32 = 1. - p;
-                1. - (q.powi(4) * (q * PI).sin())
+                let q: f32 = p - 1.;
+                1. + 2.70158 * q.powi(3) + 1.70158 * q.powi(2)
             }
+            // Modeled after the piecewise function:
+            // y = (2x)^2 * (1/2 * ((2.5949095 + 1) * 2x - 2.5949095)) [0, 0.5]
+            // y = 1/2 * ((2 x - 2)^2 * ((2.5949095 + 1) * (2x - 2) + 2.5949095) + 2) [0.5, 1]
             Back::InOut => {
+                let c = 2.5949095;
                 if p < 0.5 {
                     let q = 2. * p;
-                    0.5 * (q.powi(4) * (q * PI).sin())
+                    q.powi(2) * (0.5 * ((c + 1.) * q - c))
                 } else {
-                    let q: f32 = 1. - (2. * p - 1.);
-                    0.5 * (1. - (q.powi(4) * (q * PI).sin())) + 0.5
+                    let q = 2. * p - 2.;
+                    0.5 * (q.powi(2) * ((c + 1.) * q + c) + 2.)
                 }
             }
         }
@@ -417,6 +431,10 @@ pub enum Bounce {
 }
 
 impl Bounce {
+    fn bounce_ease_in(p: f32) -> f32 {
+        1. - Bounce::bounce_ease_out(1. - p)
+    }
+
     fn bounce_ease_out(p: f32) -> f32 {
         if p < 4. / 11. {
             (121. * p.powi(2)) / 16.
@@ -433,13 +451,13 @@ impl Bounce {
 impl Tween for Bounce {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            Bounce::In => 1. - Bounce::bounce_ease_out(1. - p),
+            Bounce::In => Bounce::bounce_ease_in(p),
             Bounce::Out => Bounce::bounce_ease_out(p),
             Bounce::InOut => {
                 if p < 0.5 {
-                    0.5 * (1. - Bounce::bounce_ease_out(p * 2.))
+                    0.5 * Bounce::bounce_ease_in(p * 2.)
                 } else {
-                    -0.5 * Bounce::bounce_ease_out(p * 2. - 1.) + 0.5
+                    0.5 + 0.5 * Bounce::bounce_ease_out(p * 2. - 1.)
                 }
             }
         }
@@ -451,18 +469,6 @@ impl From<Bounce> for Ease {
         Ease::Bounce(bounce)
     }
 }
-
-//Linear,
-//Quadratic,
-//Cubic,
-//Quartic,
-//Quintic,
-//Sinusoidal,
-//Exponential,
-//Circular,
-//Elastic,
-//Back,
-//Bounce
 
 #[cfg(test)]
 mod test {
@@ -538,7 +544,7 @@ mod test {
     }
 
     // TODO Bezier
-    
+
     #[test]
     // Modeled after the cubic y = x^3
     fn cubic_in() {
@@ -737,6 +743,7 @@ mod test {
         assert_eq!(1.000000, r(Sinusoidal::InOut.tween(1.0)));
     }
 
+    #[test]
     // Modeled after the piecewise exponential
     // y = 0            ; [0, 0]
     // y = 2^(10x-10)   ; [0, 1]
@@ -754,12 +761,13 @@ mod test {
         assert_eq!(1.000000, r(Exponential::In.tween(1.0)));
     }
 
+    #[test]
     // Modeled after the piecewise exponential
     // y = 1 - 2^(-10x)  ; [0, 1]
     // y = 1             ; [1, 1]
     fn exponential_out() {
         assert_eq!(0.000000, r(Exponential::Out.tween(0.0)));
-        assert_eq!(0.050000, r(Exponential::Out.tween(0.1)));
+        assert_eq!(0.500000, r(Exponential::Out.tween(0.1)));
         assert_eq!(0.750000, r(Exponential::Out.tween(0.2)));
         assert_eq!(0.875000, r(Exponential::Out.tween(0.3)));
         assert_eq!(0.937500, r(Exponential::Out.tween(0.4)));
@@ -771,6 +779,7 @@ mod test {
         assert_eq!(1.000000, r(Exponential::Out.tween(1.0)));
     }
 
+    #[test]
     // Modeled after the piecewise exponential
     // y = 0                        ; [0, 0  ]
     // y = 2^(20x - 10) / 2         ; [0, 0.5]
@@ -778,15 +787,217 @@ mod test {
     // y = 1                        ; [1, 1  ]
     fn exponential_inout() {
         assert_eq!(0.000000, r(Exponential::InOut.tween(0.0)));
-        assert_eq!(0.003906, r(Exponential::InOut.tween(0.1)));
-        assert_eq!(0.015625, r(Exponential::InOut.tween(0.2)));
-        assert_eq!(0.062500, r(Exponential::InOut.tween(0.3)));
-        assert_eq!(0.250000, r(Exponential::InOut.tween(0.4)));
+        assert_eq!(0.001953, r(Exponential::InOut.tween(0.1)));
+        assert_eq!(0.007813, r(Exponential::InOut.tween(0.2)));
+        assert_eq!(0.031250, r(Exponential::InOut.tween(0.3)));
+        assert_eq!(0.125000, r(Exponential::InOut.tween(0.4)));
         assert_eq!(0.500000, r(Exponential::InOut.tween(0.5)));
-        assert_eq!(0.654509, r(Exponential::InOut.tween(0.6)));
-        assert_eq!(0.793893, r(Exponential::InOut.tween(0.7)));
-        assert_eq!(0.904509, r(Exponential::InOut.tween(0.8)));
-        assert_eq!(0.975528, r(Exponential::InOut.tween(0.9)));
+        assert_eq!(0.875000, r(Exponential::InOut.tween(0.6)));
+        assert_eq!(0.968750, r(Exponential::InOut.tween(0.7)));
+        assert_eq!(0.992188, r(Exponential::InOut.tween(0.8)));
+        assert_eq!(0.998047, r(Exponential::InOut.tween(0.9)));
         assert_eq!(1.000000, r(Exponential::InOut.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after shifted quadrant IV of unit circle. y = 1 - sqrt(1 - x^2)
+    fn circular_in() {
+        assert_eq!(0.000000, r(Circular::In.tween(0.0)));
+        assert_eq!(0.005013, r(Circular::In.tween(0.1)));
+        assert_eq!(0.020204, r(Circular::In.tween(0.2)));
+        assert_eq!(0.046061, r(Circular::In.tween(0.3)));
+        assert_eq!(0.083485, r(Circular::In.tween(0.4)));
+        assert_eq!(0.133975, r(Circular::In.tween(0.5)));
+        assert_eq!(0.200000, r(Circular::In.tween(0.6)));
+        assert_eq!(0.285857, r(Circular::In.tween(0.7)));
+        assert_eq!(0.400000, r(Circular::In.tween(0.8)));
+        assert_eq!(0.564110, r(Circular::In.tween(0.9)));
+        assert_eq!(1.000000, r(Circular::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after shifted quadrant II of unit circle. y = sqrt(1 - (x - 1)^ 2)
+    fn circular_out() {
+        assert_eq!(0.000000, r(Circular::Out.tween(0.0)));
+        assert_eq!(0.435890, r(Circular::Out.tween(0.1)));
+        assert_eq!(0.600000, r(Circular::Out.tween(0.2)));
+        assert_eq!(0.714143, r(Circular::Out.tween(0.3)));
+        assert_eq!(0.800000, r(Circular::Out.tween(0.4)));
+        assert_eq!(0.866025, r(Circular::Out.tween(0.5)));
+        assert_eq!(0.916515, r(Circular::Out.tween(0.6)));
+        assert_eq!(0.953939, r(Circular::Out.tween(0.7)));
+        assert_eq!(0.979796, r(Circular::Out.tween(0.8)));
+        assert_eq!(0.994987, r(Circular::Out.tween(0.9)));
+        assert_eq!(1.000000, r(Circular::Out.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after the piecewise circular function
+    // y = (1/2)(1 - sqrt(1 - (2x)^2))          ; [0, 0.5)
+    // y = (1/2)(sqrt(1 - ((-2x + 2)^2)) + 1) ; [0.5, 1]
+    fn circular_inout() {
+        assert_eq!(0.000000, r(Circular::InOut.tween(0.0)));
+        assert_eq!(0.010102, r(Circular::InOut.tween(0.1)));
+        assert_eq!(0.041742, r(Circular::InOut.tween(0.2)));
+        assert_eq!(0.100000, r(Circular::InOut.tween(0.3)));
+        assert_eq!(0.200000, r(Circular::InOut.tween(0.4)));
+        assert_eq!(0.500000, r(Circular::InOut.tween(0.5)));
+        assert_eq!(0.800000, r(Circular::InOut.tween(0.6)));
+        assert_eq!(0.900000, r(Circular::InOut.tween(0.7)));
+        assert_eq!(0.958258, r(Circular::InOut.tween(0.8)));
+        assert_eq!(0.989898, r(Circular::InOut.tween(0.9)));
+        assert_eq!(1.000000, r(Circular::InOut.tween(1.0)));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    // Modeled after damped sin wave: y = sin(13 * π/2 * x) * 2^(10 (x - 1))
+    fn elastic_in() {
+        assert_eq!( 0.000000, r(Elastic::In.tween(0.0)));
+        assert_eq!( 0.001740, r(Elastic::In.tween(0.1)));
+        assert_eq!(-0.003160, r(Elastic::In.tween(0.2)));
+        assert_eq!(-0.001222, r(Elastic::In.tween(0.3)));
+        assert_eq!( 0.014860, r(Elastic::In.tween(0.4)));
+        assert_eq!(-0.022097, r(Elastic::In.tween(0.5)));
+        assert_eq!(-0.019313, r(Elastic::In.tween(0.6)));
+        assert_eq!( 0.123461, r(Elastic::In.tween(0.7)));
+        assert_eq!(-0.146947, r(Elastic::In.tween(0.8)));
+        assert_eq!(-0.226995, r(Elastic::In.tween(0.9)));
+        assert_eq!( 1.000000, r(Elastic::In.tween(1.0)));
+    }
+
+    #[test]
+    // Modeled after damped piecewise sin wave:
+    // y = 1 - 2^(-10 x) sin((13 π)/(2 (x + 1))) ; [0, 1]
+    // y = 1 [1, 1]
+    fn elastic_out() {
+        assert_eq!(0.000000, r(Elastic::Out.tween(0.0)));
+        assert_eq!(1.250000, r(Elastic::Out.tween(0.1)));
+        assert_eq!(1.125000, r(Elastic::Out.tween(0.2)));
+        assert_eq!(0.875000, r(Elastic::Out.tween(0.3)));
+        assert_eq!(1.031250, r(Elastic::Out.tween(0.4)));
+        assert_eq!(1.015625, r(Elastic::Out.tween(0.5)));
+        assert_eq!(0.984375, r(Elastic::Out.tween(0.6)));
+        assert_eq!(1.003906, r(Elastic::Out.tween(0.7)));
+        assert_eq!(1.001953, r(Elastic::Out.tween(0.8)));
+        assert_eq!(0.998047, r(Elastic::Out.tween(0.9)));
+        assert_eq!(1.000000, r(Elastic::Out.tween(1.0)));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    // Modeled after the piecewise exponentially-damped sine wave:
+    // y = 2^(10 (2 x - 1) - 1) sin(13 π x) [0, 0.5]
+    // y = 1/2 (2 - 2^(-10 (2 x - 1)) sin(13 π x)) [0.5, 1]
+    fn elastic_inout() {
+        assert_eq!( 0.000000, r(Elastic::InOut.tween(0.0)));
+        assert_eq!(-0.001580, r(Elastic::InOut.tween(0.1)));
+        assert_eq!( 0.007430, r(Elastic::InOut.tween(0.2)));
+        assert_eq!(-0.009657, r(Elastic::InOut.tween(0.3)));
+        assert_eq!(-0.073473, r(Elastic::InOut.tween(0.4)));
+        assert_eq!( 0.500000, r(Elastic::InOut.tween(0.5)));
+        assert_eq!( 1.073473, r(Elastic::InOut.tween(0.6)));
+        assert_eq!( 1.009657, r(Elastic::InOut.tween(0.7)));
+        assert_eq!( 0.992570, r(Elastic::InOut.tween(0.8)));
+        assert_eq!( 1.001580, r(Elastic::InOut.tween(0.9)));
+        assert_eq!( 1.000000, r(Elastic::InOut.tween(1.0)));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn back_in() {
+        // Modeled after the function: y = 2.70158 * x^3 + x^2 * (-1.70158)
+        assert_eq!( 0.000000, r(Back::In.tween(0.0)));
+        assert_eq!(-0.014314, r(Back::In.tween(0.1)));
+        assert_eq!(-0.046451, r(Back::In.tween(0.2)));
+        assert_eq!(-0.080200, r(Back::In.tween(0.3)));
+        assert_eq!(-0.099352, r(Back::In.tween(0.4)));
+        assert_eq!(-0.087698, r(Back::In.tween(0.5)));
+        assert_eq!(-0.029028, r(Back::In.tween(0.6)));
+        assert_eq!( 0.092868, r(Back::In.tween(0.7)));
+        assert_eq!( 0.294198, r(Back::In.tween(0.8)));
+        assert_eq!( 0.591172, r(Back::In.tween(0.9)));
+        assert_eq!( 1.000000, r(Back::In.tween(1.0)));
+    }
+
+    #[test]
+    fn back_out() {
+        // Modeled after the function: y = 1 + 2.70158 (x - 1)^3 + 1.70158 (x - 1)^2
+        assert_eq!(0.000000, r(Back::Out.tween(0.0)));
+        assert_eq!(0.408828, r(Back::Out.tween(0.1)));
+        assert_eq!(0.705802, r(Back::Out.tween(0.2)));
+        assert_eq!(0.907132, r(Back::Out.tween(0.3)));
+        assert_eq!(1.029027, r(Back::Out.tween(0.4)));
+        assert_eq!(1.087698, r(Back::Out.tween(0.5)));
+        assert_eq!(1.099352, r(Back::Out.tween(0.6)));
+        assert_eq!(1.0802, r(Back::Out.tween(0.7)));
+        assert_eq!(1.046451, r(Back::Out.tween(0.8)));
+        assert_eq!(1.014314, r(Back::Out.tween(0.9)));
+        assert_eq!(1.000000, r(Back::Out.tween(1.0)));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn back_inout() {
+        // Modeled after the piecewise function:
+        // y = (2x)^2 * (1/2 * ((2.5949095 + 1) * 2x - 2.5949095)) [0, 0.5]
+        // y = 1/2 * ((2 x - 2)^2 * ((2.5949095 + 1) * (2x - 2) + 2.5949095) + 2) [0.5, 1]
+        assert_eq!( 0.000000, r(Back::InOut.tween(0.0)));
+        assert_eq!(-0.037519, r(Back::InOut.tween(0.1)));
+        assert_eq!(-0.092556, r(Back::InOut.tween(0.2)));
+        assert_eq!(-0.078833, r(Back::InOut.tween(0.3)));
+        assert_eq!( 0.089926, r(Back::InOut.tween(0.4)));
+        assert_eq!( 0.500000, r(Back::InOut.tween(0.5)));
+        assert_eq!( 0.910074, r(Back::InOut.tween(0.6)));
+        assert_eq!( 1.078834, r(Back::InOut.tween(0.7)));
+        assert_eq!( 1.092556, r(Back::InOut.tween(0.8)));
+        assert_eq!( 1.037519, r(Back::InOut.tween(0.9)));
+        assert_eq!( 1.000000, r(Back::InOut.tween(1.0)));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn bounce_in() {
+        assert_eq!(0.000000, r(Bounce::In.tween(0.0)));
+        assert_eq!(    1e-6, r(Bounce::In.tween(0.1)));
+        assert_eq!(0.087757, r(Bounce::In.tween(0.2)));
+        assert_eq!(0.083250, r(Bounce::In.tween(0.3)));
+        assert_eq!(0.273000, r(Bounce::In.tween(0.4)));
+        assert_eq!(0.281250, r(Bounce::In.tween(0.5)));
+        assert_eq!(0.108000, r(Bounce::In.tween(0.6)));
+        assert_eq!(0.319375, r(Bounce::In.tween(0.7)));
+        assert_eq!(0.697500, r(Bounce::In.tween(0.8)));
+        assert_eq!(0.924375, r(Bounce::In.tween(0.9)));
+        assert_eq!(1.000000, r(Bounce::In.tween(1.0)));
+    }
+
+    #[test]
+    fn bounce_out() {
+        assert_eq!(0.000000, r(Bounce::Out.tween(0.0)));
+        assert_eq!(0.075625, r(Bounce::Out.tween(0.1)));
+        assert_eq!(0.302500, r(Bounce::Out.tween(0.2)));
+        assert_eq!(0.680625, r(Bounce::Out.tween(0.3)));
+        assert_eq!(0.892000, r(Bounce::Out.tween(0.4)));
+        assert_eq!(0.718750, r(Bounce::Out.tween(0.5)));
+        assert_eq!(0.727000, r(Bounce::Out.tween(0.6)));
+        assert_eq!(0.916750, r(Bounce::Out.tween(0.7)));
+        assert_eq!(0.912243, r(Bounce::Out.tween(0.8)));
+        assert_eq!(0.999999, r(Bounce::Out.tween(0.9)));
+        assert_eq!(1.000000, r(Bounce::Out.tween(1.0)));
+    }
+
+    #[test]
+    fn bounce_inout() {
+        assert_eq!(0.000000, r(Bounce::InOut.tween(0.0)));
+        assert_eq!(0.043878, r(Bounce::InOut.tween(0.1)));
+        assert_eq!(0.136500, r(Bounce::InOut.tween(0.2)));
+        assert_eq!(0.054000, r(Bounce::InOut.tween(0.3)));
+        assert_eq!(0.348750, r(Bounce::InOut.tween(0.4)));
+        assert_eq!(0.500000, r(Bounce::InOut.tween(0.5)));
+        assert_eq!(0.651250, r(Bounce::InOut.tween(0.6)));
+        assert_eq!(0.946000, r(Bounce::InOut.tween(0.7)));
+        assert_eq!(0.863500, r(Bounce::InOut.tween(0.8)));
+        assert_eq!(0.956121, r(Bounce::InOut.tween(0.9)));
+        assert_eq!(1.000000, r(Bounce::InOut.tween(1.0)));
     }
 }

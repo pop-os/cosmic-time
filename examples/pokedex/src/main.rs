@@ -24,34 +24,30 @@ static SPACE: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::uniqu
 //Elastic,
 //Back,
 //Bounce
-const EASE: [Ease; 27] = [
+const EASE_IN: [Ease; 10] = [
     Ease::Linear(Linear::InOut),
     Ease::Quadratic(Quadratic::In),
-    Ease::Quadratic(Quadratic::InOut),
     Ease::Quartic(Quartic::In),
-    Ease::Quartic(Quartic::Out),
-    Ease::Quartic(Quartic::InOut),
     Ease::Quintic(Quintic::In),
-    Ease::Quintic(Quintic::Out),
-    Ease::Quintic(Quintic::InOut),
     Ease::Sinusoidal(Sinusoidal::In),
-    Ease::Sinusoidal(Sinusoidal::Out),
-    Ease::Sinusoidal(Sinusoidal::InOut),
     Ease::Exponential(Exponential::In),
-    Ease::Exponential(Exponential::Out),
-    Ease::Exponential(Exponential::InOut),
     Ease::Circular(Circular::In),
-    Ease::Circular(Circular::Out),
-    Ease::Circular(Circular::InOut),
     Ease::Elastic(Elastic::In),
-    Ease::Elastic(Elastic::Out),
-    Ease::Elastic(Elastic::InOut),
     Ease::Back(Back::In),
-    Ease::Back(Back::Out),
-    Ease::Back(Back::InOut),
     Ease::Bounce(Bounce::In),
+];
+
+const EASE_OUT: [Ease; 10] = [
+    Ease::Linear(Linear::InOut),
+    Ease::Quadratic(Quadratic::Out),
+    Ease::Quartic(Quartic::Out),
+    Ease::Quintic(Quintic::Out),
+    Ease::Sinusoidal(Sinusoidal::Out),
+    Ease::Exponential(Exponential::Out),
+    Ease::Circular(Circular::Out),
+    Ease::Elastic(Elastic::Out),
+    Ease::Back(Back::Out),
     Ease::Bounce(Bounce::Out),
-    Ease::Bounce(Bounce::InOut),
 ];
 
 pub fn main() -> iced::Result {
@@ -79,6 +75,7 @@ impl Application for Pokedex {
     type Flags = ();
 
     fn new(_flags: ()) -> (Pokedex, Command<Message>) {
+        assert_eq!(EASE_IN.len(), EASE_OUT.len());
         (
             Pokedex::Loading,
             Command::perform(Pokemon::search(), Message::PokemonFound),
@@ -244,18 +241,26 @@ impl Pokemon {
         // you do not have to create a timeline for each animation. A timeline
         // can hold many animations!
         let mut timeline = Timeline::new();
-        let ease = EASE[rand::thread_rng().gen_range(0, EASE.len())];
+        let rand = rand::thread_rng().gen_range(0, EASE_IN.len());
+
+        // Print ease type to terminal if in debug build (`cargo run`)
+        //#[cfg(debug_assertaions)]
+        println!(
+            "Ease in with {:?}, and out with {:?}",
+            EASE_IN[rand], EASE_OUT[rand]
+        );
+
         let animation = cosmic_time::space::Chain::new(SPACE.clone())
             .link(keyframes::Space::new(Duration::ZERO).height(Length::Units(0)))
             .link(
-                keyframes::Space::new(Duration::from_millis(500))
+                keyframes::Space::new(Duration::from_secs(1))
                     .height(Length::Units(200))
-                    .ease(ease),
+                    .ease(EASE_IN[rand]),
             )
             .link(
-                keyframes::Space::new(Duration::from_millis(1000))
+                keyframes::Space::new(Duration::from_secs(2))
                     .height(Length::Units(0))
-                    .ease(ease),
+                    .ease(EASE_OUT[rand]),
             )
             .loop_forever();
 
