@@ -472,6 +472,7 @@ impl From<Bounce> for Ease {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::excessive_precision)]
     use super::*;
 
     fn r(val: f32) -> f32 {
@@ -712,6 +713,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::approx_constant)]
     // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
     fn sinusoidal_out() {
         assert_eq!(0.000000, r(Sinusoidal::Out.tween(0.0)));
