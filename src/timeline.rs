@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::keyframes::Repeat;
+use crate::{lerp, Ease, Tween};
 
+#[derive(Debug, Clone)]
 pub struct Timeline {
     // Hash map of widget::id to track, where each track is made of subtracks<isize>
     tracks: HashMap<widget::Id, (Meta, Vec<Vec<SubFrame>>)>,
@@ -20,6 +22,7 @@ impl std::default::Default for Timeline {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Pending {
     id: widget::Id,
     repeat: Repeat,
@@ -32,14 +35,24 @@ impl Pending {
     }
 }
 
-struct DurFrame {
+#[derive(Debug, Clone, Copy)]
+pub struct DurFrame {
     duration: Duration,
+    ease: Ease,
     value: isize,
 }
 
 impl DurFrame {
-    pub fn new(duration: Duration, value: isize) -> Self {
-        DurFrame { duration, value }
+    pub fn new(duration: Duration, value: isize, ease: Ease) -> Self {
+        DurFrame {
+            duration,
+            value,
+            ease,
+        }
+    }
+
+    pub fn to_subframe(self, now: Instant) -> SubFrame {
+        SubFrame::new(now + self.duration, self.value, self.ease)
     }
 }
 
@@ -62,13 +75,13 @@ impl Meta {
     }
 }
 
-pub struct Chain<T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug> {
+pub struct Chain<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> {
     pub id: widget::Id,
     pub repeat: Repeat,
     links: Vec<T>,
 }
 
-impl<T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug> Chain<T> {
+impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
     pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
         Chain { id, repeat, links }
     }
@@ -78,9 +91,10 @@ impl<T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug> C
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug, Clone)]
 pub struct SubFrame {
     pub value: isize,
+    pub ease: Ease,
     pub at: Instant,
 }
 
@@ -89,10 +103,19 @@ pub struct SubFrame {
 // shouldn't have to know about this type. The Instant for this
 // (and thus the keyframe itself) is applied with `start`
 impl SubFrame {
-    pub fn new(at: Instant, value: isize) -> Self {
-        SubFrame { value, at }
+    pub fn new(at: Instant, value: isize, ease: Ease) -> Self {
+        SubFrame { value, at, ease }
     }
 }
+
+// equal if instants are equal
+impl PartialEq for SubFrame {
+    fn eq(&self, other: &Self) -> bool {
+        self.at == other.at
+    }
+}
+
+impl Eq for SubFrame {}
 
 // by default sort by time.
 impl Ord for SubFrame {
@@ -125,7 +148,7 @@ impl Timeline {
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
     pub fn set_chain<T>(&mut self, chain: Chain<T>) -> &mut Self
     where
-        T: ExactSizeIterator<Item = Option<(Duration, isize)>> + std::fmt::Debug,
+        T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
     {
         let id = chain.id.clone();
         let repeat = chain.repeat;
@@ -135,16 +158,16 @@ impl Timeline {
         if let Some(modifiers) = chain.next() {
             tracks.resize_with(modifiers.len(), Vec::new);
             for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
-                if let Some((at, m)) = modifier {
-                    track.push(DurFrame::new(at, m))
+                if let Some(durframe) = modifier {
+                    track.push(durframe)
                 }
             }
         }
 
         for modifiers in chain {
             for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
-                if let Some((at, m)) = modifier {
-                    track.push(DurFrame::new(at, m))
+                if let Some(durframe) = modifier {
+                    track.push(durframe)
                 }
             }
         }
@@ -170,8 +193,14 @@ impl Timeline {
                 .map(|track| {
                     track
                         .iter_mut()
-                        .inspect(|DurFrame { duration, value: _ }| end = end.max(now + *duration))
-                        .map(|DurFrame { duration, value }| SubFrame::new(now + *duration, *value))
+                        .inspect(
+                            |DurFrame {
+                                 duration,
+                                 value: _,
+                                 ease: _,
+                             }| end = end.max(now + *duration),
+                        )
+                        .map(|durframe| durframe.to_subframe(now))
                         .collect()
                 })
                 .collect();
@@ -226,9 +255,16 @@ impl Timeline {
                     if modifier.at <= relative_now {
                         accumulator = Some(modifier);
                     } else if modifier.at >= relative_now {
-                        // TODO add different types of interpolations. Likely needs
-                        // be an enum stored in SubFrame
-                        return Some(calc_linear(&relative_now, acc, modifier));
+                        let elapsed = relative_now.duration_since(acc.at).as_millis() as f32;
+                        let duration = (modifier.at - acc.at).as_millis() as f32;
+                        return Some(
+                            lerp(
+                                acc.value as f32,
+                                modifier.value as f32,
+                                modifier.ease.tween(elapsed / duration),
+                            )
+                            .round() as isize,
+                        );
                     }
                 }
             }
@@ -250,19 +286,5 @@ impl Timeline {
         } else {
             Subscription::none()
         }
-    }
-}
-
-// todo should be in module for types of interpolations between points.
-fn calc_linear(now: &Instant, lower_bound: &SubFrame, upper_bound: &SubFrame) -> isize {
-    let percent_done = (*now - lower_bound.at).as_millis() as f64
-        / (upper_bound.at - lower_bound.at).as_millis() as f64;
-    let delta = (upper_bound.value - lower_bound.value) as f64;
-    let value = (percent_done * delta + (lower_bound.value as f64)) as isize;
-
-    if upper_bound.value > lower_bound.value {
-        upper_bound.value.min(value)
-    } else {
-        upper_bound.value.max(value)
     }
 }

@@ -1,9 +1,11 @@
 pub mod container;
+pub mod space;
 
 use iced::Length;
 use iced_native::widget;
 
-pub use container::{Chain, Container};
+pub use container::Container;
+pub use space::Space;
 
 use std::time::Instant;
 

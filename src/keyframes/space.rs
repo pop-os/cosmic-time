@@ -1,13 +1,13 @@
-use iced::{Length, Padding};
-use iced_native::{widget, Element};
+use iced::Length;
+use iced_native::widget;
 
 use std::time::{Duration, Instant};
 
-use crate::keyframes::{clamp_u16, get_length, Repeat};
+use crate::keyframes::{get_length, Repeat};
 use crate::timeline::DurFrame;
 use crate::{Ease, Linear};
 
-/// A Container's animation Id. Used for linking animation built in `update()` with widget output in `view()`
+/// A Space's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(iced_native::widget::Id);
 
@@ -34,7 +34,7 @@ impl From<Id> for widget::Id {
 #[derive(Debug)]
 pub struct Chain {
     id: Id,
-    links: Vec<Container>,
+    links: Vec<Space>,
     repeat: Repeat,
 }
 
@@ -47,8 +47,8 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, container: Container) -> Self {
-        self.links.push(container);
+    pub fn link(mut self, space: Space) -> Self {
+        self.links.push(space);
         self
     }
 
@@ -66,7 +66,7 @@ impl Chain {
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
     T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Container>>,
+    Vec<T>: From<Vec<Space>>,
 {
     fn from(chain: Chain) -> Self {
         crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
@@ -75,48 +75,33 @@ where
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug)]
-pub struct Container {
+pub struct Space {
     index: usize,
     at: Duration,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
-    padding: Option<Padding>,
 }
 
-impl Container {
-    pub fn new(at: Duration) -> Container {
-        Container {
+impl Space {
+    pub fn new(at: Duration) -> Self {
+        Space {
             index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
             height: None,
-            padding: None,
         }
     }
 
-    pub fn as_widget<'a, Message, Renderer>(
-        id: Id,
-        timeline: &crate::Timeline,
-        content: impl Into<Element<'a, Message, Renderer>>,
-    ) -> widget::Container<'a, Message, Renderer>
-    where
-        Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::container::StyleSheet,
-    {
+    pub fn as_widget(id: Id, timeline: &crate::Timeline) -> widget::Space {
         let id: widget::Id = id.into();
         let now = Instant::now();
 
-        widget::Container::new(content)
-            .width(get_length(&id, timeline, &now, 0, Length::Shrink))
-            .height(get_length(&id, timeline, &now, 1, Length::Shrink))
-            .padding([
-                clamp_u16(timeline.get(&id, &now, 2)).unwrap_or(0),
-                clamp_u16(timeline.get(&id, &now, 3)).unwrap_or(0),
-                clamp_u16(timeline.get(&id, &now, 4)).unwrap_or(0),
-                clamp_u16(timeline.get(&id, &now, 5)).unwrap_or(0),
-            ])
+        widget::Space::new(
+            get_length(&id, timeline, &now, 0, Length::Shrink),
+            get_length(&id, timeline, &now, 1, Length::Shrink),
+        )
     }
 
     pub fn width(mut self, width: Length) -> Self {
@@ -129,11 +114,6 @@ impl Container {
         self
     }
 
-    pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
-        self.padding = Some(padding.into());
-        self
-    }
-
     pub fn ease<E: Into<Ease>>(mut self, ease: E) -> Self {
         self.ease = ease.into();
         self
@@ -142,11 +122,7 @@ impl Container {
 
 // 0 = width
 // 1 = height
-// 2 = padding[1] (top)
-// 3 = padding[2] (right)
-// 4 = padding[3] (bottom)
-// 5 = padding[4] (left)
-impl Iterator for Container {
+impl Iterator for Space {
     type Item = Option<DurFrame>;
 
     fn next(&mut self) -> Option<Option<DurFrame>> {
@@ -154,28 +130,12 @@ impl Iterator for Container {
         match self.index - 1 {
             0 => Some(as_isize(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
             1 => Some(as_isize(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
-            2 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.top as isize, self.ease)),
-            ),
-            3 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.right as isize, self.ease)),
-            ),
-            4 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.bottom as isize, self.ease)),
-            ),
-            5 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.left as isize, self.ease)),
-            ),
             _ => None,
         }
     }
 }
 
-impl ExactSizeIterator for Container {
+impl ExactSizeIterator for Space {
     fn len(&self) -> usize {
         6 - self.index
     }
