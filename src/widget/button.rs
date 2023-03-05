@@ -1,15 +1,15 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::overlay;
-use crate::renderer;
-use crate::touch;
-use crate::widget::tree::{self, Tree};
-use crate::widget::Operation;
-use crate::{
+use iced_native::event::{self, Event};
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::overlay;
+use iced_native::renderer;
+use iced_native::touch;
+use iced_native::widget::tree::{self, Tree};
+use iced_native::widget::Operation;
+use iced_native::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
@@ -53,7 +53,7 @@ pub use iced_style::button::{Appearance, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
     content: Element<'a, Message, Renderer>,
@@ -66,7 +66,7 @@ where
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
@@ -121,7 +121,7 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + crate::Renderer,
+    Renderer: 'a + iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
@@ -279,7 +279,7 @@ impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: crate::Renderer + 'a,
+    Renderer: iced_native::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
     fn from(button: Button<'a, Message, Renderer>) -> Self {
@@ -355,7 +355,7 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: crate::Renderer>(
+pub fn draw<'a, Renderer: iced_native::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: Point,
