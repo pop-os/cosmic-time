@@ -95,6 +95,7 @@ impl Button {
             width: None,
             height: None,
             padding: None,
+            style: iced_style::theme::Button::default(),
         }
     }
 
