@@ -3,7 +3,7 @@ use iced_native::{widget, Element};
 
 use std::time::{Duration, Instant};
 
-use crate::keyframes::{clamp_u16, get_length, Repeat};
+use crate::keyframes::{get_length, Repeat};
 use crate::timeline::DurFrame;
 use crate::{Ease, Linear};
 
@@ -112,10 +112,10 @@ impl Container {
             .width(get_length(&id, timeline, &now, 0, Length::Shrink))
             .height(get_length(&id, timeline, &now, 1, Length::Shrink))
             .padding([
-                clamp_u16(timeline.get(&id, &now, 2)).unwrap_or(0),
-                clamp_u16(timeline.get(&id, &now, 3)).unwrap_or(0),
-                clamp_u16(timeline.get(&id, &now, 4)).unwrap_or(0),
-                clamp_u16(timeline.get(&id, &now, 5)).unwrap_or(0),
+                timeline.get(&id, &now, 2).unwrap_or(0.),
+                timeline.get(&id, &now, 3).unwrap_or(0.),
+                timeline.get(&id, &now, 4).unwrap_or(0.),
+                timeline.get(&id, &now, 5).unwrap_or(0.),
             ])
     }
 
@@ -152,23 +152,23 @@ impl Iterator for Container {
     fn next(&mut self) -> Option<Option<DurFrame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_isize(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_isize(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
+            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
+            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
             2 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.top as isize, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.top as f32, self.ease)),
             ),
             3 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.right as isize, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.right as f32, self.ease)),
             ),
             4 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.bottom as isize, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.bottom as f32, self.ease)),
             ),
             5 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.left as isize, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.left as f32, self.ease)),
             ),
             _ => None,
         }
@@ -181,9 +181,9 @@ impl ExactSizeIterator for Container {
     }
 }
 
-fn as_isize(length: Option<Length>) -> Option<isize> {
+fn as_f32(length: Option<Length>) -> Option<f32> {
     match length {
-        Some(Length::Units(i)) => Some(i as isize),
+        Some(Length::Fixed(i)) => Some(i),
         _ => None,
     }
 }

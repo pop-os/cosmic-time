@@ -128,8 +128,8 @@ impl Iterator for Space {
     fn next(&mut self) -> Option<Option<DurFrame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_isize(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_isize(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
+            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
+            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
             _ => None,
         }
     }
@@ -141,9 +141,9 @@ impl ExactSizeIterator for Space {
     }
 }
 
-fn as_isize(length: Option<Length>) -> Option<isize> {
+fn as_f32(length: Option<Length>) -> Option<f32> {
     match length {
-        Some(Length::Units(i)) => Some(i as isize),
+        Some(Length::Fixed(i)) => Some(i),
         _ => None,
     }
 }

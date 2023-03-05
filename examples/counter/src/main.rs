@@ -43,30 +43,30 @@ impl Application for Counter {
             // .loop_forever() // Uncomment this line to loop the animation!
             .link(
                 keyframes::Container::new(Duration::ZERO)
-                    .width(Length::Units(0))
-                    .height(Length::Units(100)),
+                    .width(Length::Fixed(0.))
+                    .height(Length::Fixed(100.)),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(2))
-                    .width(Length::Units(200))
-                    .height(Length::Units(100)),
+                    .width(Length::Fixed(200.))
+                    .height(Length::Fixed(100.)),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(4))
-                    .width(Length::Units(200))
-                    .height(Length::Units(300))
+                    .width(Length::Fixed(200.))
+                    .height(Length::Fixed(300.))
                     .padding([0, 0, 0, 0]),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(6))
-                    .width(Length::Units(700))
-                    .height(Length::Units(300))
+                    .width(Length::Fixed(700.))
+                    .height(Length::Fixed(300.))
                     .padding([0, 0, 0, 500]),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(8))
-                    .width(Length::Units(150))
-                    .height(Length::Units(150))
+                    .width(Length::Fixed(150.))
+                    .height(Length::Fixed(150.))
                     .padding([0, 0, 0, 0]),
             );
 

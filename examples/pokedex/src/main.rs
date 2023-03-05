@@ -185,7 +185,7 @@ impl Pokemon {
             ]
             .spacing(20),
         ]
-        .height(Length::Units(400))
+        .height(Length::Fixed(400.))
         .spacing(20)
         .align_items(Alignment::Center)
         .into()
@@ -251,15 +251,15 @@ impl Pokemon {
         );
 
         let animation = cosmic_time::space::Chain::new(SPACE.clone())
-            .link(keyframes::Space::new(Duration::ZERO).height(Length::Units(50)))
+            .link(keyframes::Space::new(Duration::ZERO).height(Length::Fixed(50.)))
             .link(
                 keyframes::Space::new(Duration::from_millis(1500))
-                    .height(Length::Units(250))
+                    .height(Length::Fixed(250.))
                     .ease(EASE_IN[rand]),
             )
             .link(
                 keyframes::Space::new(Duration::from_millis(3000))
-                    .height(Length::Units(50))
+                    .height(Length::Fixed(50.))
                     .ease(EASE_OUT[rand]),
             )
             .loop_forever();

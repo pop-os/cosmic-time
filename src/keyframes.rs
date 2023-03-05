@@ -29,10 +29,6 @@ pub trait IsChain {
     fn repeat(&self) -> Repeat;
 }
 
-pub fn clamp_u16(num: Option<isize>) -> Option<u16> {
-    num.map(|n| n.clamp(0, u16::MAX as isize) as u16)
-}
-
 pub fn get_length(
     id: &widget::Id,
     timeline: &Timeline,
@@ -40,7 +36,7 @@ pub fn get_length(
     index: usize,
     default: Length,
 ) -> Length {
-    clamp_u16(timeline.get(id, now, index))
-        .map(Length::Units)
+    timeline.get(id, now, index)
+        .map(Length::Fixed)
         .unwrap_or(default)
 }

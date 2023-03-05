@@ -39,11 +39,11 @@ impl Pending {
 pub struct DurFrame {
     duration: Duration,
     ease: Ease,
-    value: isize,
+    value: f32,
 }
 
 impl DurFrame {
-    pub fn new(duration: Duration, value: isize, ease: Ease) -> Self {
+    pub fn new(duration: Duration, value: f32, ease: Ease) -> Self {
         DurFrame {
             duration,
             value,
@@ -93,7 +93,7 @@ impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
 
 #[derive(Debug, Clone)]
 pub struct SubFrame {
-    pub value: isize,
+    pub value: f32,
     pub ease: Ease,
     pub at: Instant,
 }
@@ -103,7 +103,7 @@ pub struct SubFrame {
 // shouldn't have to know about this type. The Instant for this
 // (and thus the keyframe itself) is applied with `start`
 impl SubFrame {
-    pub fn new(at: Instant, value: isize, ease: Ease) -> Self {
+    pub fn new(at: Instant, value: f32, ease: Ease) -> Self {
         SubFrame { value, at, ease }
     }
 }
@@ -210,7 +210,7 @@ impl Timeline {
         }
     }
 
-    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<isize> {
+    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<f32> {
         let (meta, mut modifier_chain) = if let Some((meta, chain)) = self.tracks.get(id) {
             if let Some(modifier_chain) = chain.get(index) {
                 (meta, modifier_chain.iter())
@@ -263,7 +263,7 @@ impl Timeline {
                                 modifier.value as f32,
                                 modifier.ease.tween(elapsed / duration),
                             )
-                            .round() as isize,
+                            .round(),
                         );
                     }
                 }
