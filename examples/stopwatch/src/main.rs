@@ -7,6 +7,11 @@ use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
 };
 
+use once_cell::sync::Lazy;
+use cosmic_time::{self, keyframes, Timeline};
+
+static BUTTON: Lazy<keyframes::button::Id> = Lazy::new(keyframes::button::Id::unique);
+
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
@@ -14,6 +19,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Stopwatch {
+    timeline: Timeline,
     duration: Duration,
     state: State,
 }
@@ -39,6 +45,7 @@ impl Application for Stopwatch {
     fn new(_flags: ()) -> (Stopwatch, Command<Message>) {
         (
             Stopwatch {
+                timeline: Timeline::new(),
                 duration: Duration::default(),
                 state: State::Idle,
             },
@@ -57,9 +64,11 @@ impl Application for Stopwatch {
                     self.state = State::Ticking {
                         last_tick: Instant::now(),
                     };
+                    self.timeline.set_chain(anim_to_destructive().into()).start();
                 }
                 State::Ticking { .. } => {
                     self.state = State::Idle;
+                    self.timeline.set_chain(anim_to_primary().into()).start();
                 }
             },
             Message::Tick(now) => {
@@ -70,6 +79,9 @@ impl Application for Stopwatch {
             }
             Message::Reset => {
                 self.duration = Duration::default();
+                if let State::Ticking { .. } = self.state {
+                    self.timeline.set_chain(anim_to_primary().into()).start();
+                }
             }
         }
 
@@ -77,12 +89,16 @@ impl Application for Stopwatch {
     }
 
     fn subscription(&self) -> Subscription<Message> {
+      Subscription::batch( vec![
         match self.state {
             State::Idle => Subscription::none(),
             State::Ticking { .. } => {
                 time::every(Duration::from_millis(10)).map(Message::Tick)
             }
-        }
+        },
+        self.timeline.as_subscription().map(Message::Tick)
+      ]
+      )
     }
 
     fn view(&self) -> Element<Message> {
@@ -114,11 +130,16 @@ impl Application for Stopwatch {
                 State::Ticking { .. } => "Stop",
             };
 
-            button(label).on_press(Message::Toggle)
+            keyframes::Button::as_widget(
+              BUTTON.clone(),
+              &self.timeline,
+              label
+            )
+            .on_press(Message::Toggle)
         };
 
         let reset_button = button("Reset")
-            .style(theme::Button::Destructive)
+            .style(theme::Button::Secondary)
             .on_press(Message::Reset);
 
         let controls = row![toggle_button, reset_button].spacing(20);
@@ -134,4 +155,28 @@ impl Application for Stopwatch {
             .center_y()
             .into()
     }
+}
+
+fn anim_to_primary() -> cosmic_time::button::Chain {
+    cosmic_time::button::Chain::new(BUTTON.clone())
+      .link(
+        keyframes::Button::new(Duration::ZERO)
+          .style(theme::Button::Destructive)
+      )
+      .link(
+        keyframes::Button::new(Duration::from_millis(500))
+          .style(theme::Button::Primary)
+        )
+}
+
+fn anim_to_destructive() -> cosmic_time::button::Chain {
+    cosmic_time::button::Chain::new(BUTTON.clone())
+      .link(
+        keyframes::Button::new(Duration::ZERO)
+          .style(theme::Button::Primary)
+      )
+      .link(
+        keyframes::Button::new(Duration::from_millis(500))
+          .style(theme::Button::Destructive)
+        )
 }

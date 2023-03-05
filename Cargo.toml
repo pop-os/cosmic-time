@@ -13,3 +13,5 @@ iced = { version = "0.6.0", features = [ "tokio" ] }
 iced_native = "0.7.0"
 iced_futures = "0.5"
 iced_core = "0.6.2"
+# iced_style = "0.5.1"
+iced_style = { path = "../iced/style" }
