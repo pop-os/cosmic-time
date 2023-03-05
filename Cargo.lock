@@ -485,10 +485,10 @@ dependencies = [
 name = "cosmic-time"
 version = "0.1.0"
 dependencies = [
- "iced 0.6.0",
- "iced_core 0.6.2",
- "iced_futures 0.5.1",
- "iced_native 0.7.0",
+ "iced 0.8.0",
+ "iced_core 0.8.1",
+ "iced_futures 0.6.0",
+ "iced_native 0.9.1",
  "iced_style 0.7.0",
 ]
 
@@ -1358,6 +1358,7 @@ dependencies = [
  "futures",
  "log",
  "smol",
+ "tokio",
  "wasm-bindgen-futures",
  "wasm-timer",
 ]
