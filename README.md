@@ -13,7 +13,7 @@ TODOs before release:
 - [ ] add toggle button widget
 - [ ] Use iced 0.7
 - [ ] use iced 0.7's framerate subscription
-- [ ] Add logic for different animation Ease values
+- [x] Add logic for different animation Ease values
 - [ ] Documentation
 - [ ] Add `Cosmic` cargo feature for compatibility with both iced and System76's temporary fork.
 - [x] optimize for `as_subscription` logic
