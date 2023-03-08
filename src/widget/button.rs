@@ -1,6 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+use iced_native::color;
 use iced_native::event::{self, Event};
 use iced_native::layout;
 use iced_native::mouse;
@@ -10,8 +11,8 @@ use iced_native::touch;
 use iced_native::widget::tree::{self, Tree};
 use iced_native::widget::Operation;
 use iced_native::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
+    Vector, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -61,7 +62,12 @@ where
     width: Length,
     height: Length,
     padding: Padding,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
+}
+
+pub enum StyleType<T> {
+    Static(T),
+    Blend(T, T, f32),
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -77,7 +83,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: <Renderer::Theme as StyleSheet>::Style::default(),
+            style: StyleType::Static(<Renderer::Theme as StyleSheet>::Style::default()),
         }
     }
 
@@ -108,17 +114,24 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(
+    pub fn style(mut self, style: <Renderer::Theme as StyleSheet>::Style) -> Self {
+        self.style = StyleType::Static(style);
+        self
+    }
+
+    /// Sets the animatable style variant of this [`Button`].
+    pub fn blend_style(
         mut self,
-        style: <Renderer::Theme as StyleSheet>::Style,
+        style1: <Renderer::Theme as StyleSheet>::Style,
+        style2: <Renderer::Theme as StyleSheet>::Style,
+        percent: f32,
     ) -> Self {
-        self.style = style;
+        self.style = StyleType::Blend(style1, style2, percent);
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Button<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + iced_native::Renderer,
@@ -148,20 +161,14 @@ where
         self.height
     }
 
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
         layout(
             renderer,
             limits,
             self.width,
             self.height,
             self.padding,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
+            |renderer, limits| self.content.as_widget().layout(renderer, limits),
         )
     }
 
@@ -275,8 +282,7 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_native::Renderer + 'a,
@@ -360,10 +366,8 @@ pub fn draw<'a, Renderer: iced_native::Renderer>(
     bounds: Rectangle,
     cursor_position: Point,
     is_enabled: bool,
-    style_sheet: &dyn StyleSheet<
-        Style = <Renderer::Theme as StyleSheet>::Style,
-    >,
-    style: &<Renderer::Theme as StyleSheet>::Style,
+    style_sheet: &dyn StyleSheet<Style = <Renderer::Theme as StyleSheet>::Style>,
+    style: &StyleType<<Renderer::Theme as StyleSheet>::Style>,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where
@@ -371,18 +375,40 @@ where
 {
     let is_mouse_over = bounds.contains(cursor_position);
 
-    let styling = if !is_enabled {
-        style_sheet.disabled(style)
-    } else if is_mouse_over {
-        let state = state();
+    // todo disable blend if user has applied style.
+    let styling = match style {
+        StyleType::Static(style) => {
+            if !is_enabled {
+                style_sheet.disabled(style)
+            } else if is_mouse_over {
+                let state = state();
 
-        if state.is_pressed {
-            style_sheet.pressed(style)
-        } else {
-            style_sheet.hovered(style)
+                if state.is_pressed {
+                    style_sheet.pressed(style)
+                } else {
+                    style_sheet.hovered(style)
+                }
+            } else {
+                style_sheet.active(style)
+            }
         }
-    } else {
-        style_sheet.active(style)
+        StyleType::Blend(style1, style2, percent) => {
+            let (one, two) = if !is_enabled {
+                (style_sheet.disabled(style1), style_sheet.disabled(style2))
+            } else if is_mouse_over {
+                let state = state();
+
+                if state.is_pressed {
+                    (style_sheet.pressed(style1), style_sheet.pressed(style2))
+                } else {
+                    (style_sheet.hovered(style1), style_sheet.pressed(style2))
+                }
+            } else {
+                (style_sheet.active(style1), style_sheet.active(style2))
+            };
+
+            blend_appearances(one, two, *percent)
+        }
     };
 
     if styling.background.is_some() || styling.border_width > 0.0 {
@@ -452,4 +478,48 @@ pub fn mouse_interaction(
     } else {
         mouse::Interaction::default()
     }
+}
+
+fn blend_appearances(
+    one: iced_style::button::Appearance,
+    mut two: iced_style::button::Appearance,
+    percent: f32,
+) -> iced_style::button::Appearance {
+    use crate::lerp;
+
+    let text_mix: [f32; 4] = one
+        .text_color
+        .into_linear()
+        .iter()
+        .zip(two.text_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    let background_one: Color = one
+        .background
+        .map(|b| match b {
+            Background::Color(c) => c,
+        })
+        .unwrap_or(color!(0, 0, 0));
+    let background_two: Color = two
+        .background
+        .map(|b| match b {
+            Background::Color(c) => c,
+        })
+        .unwrap_or(color!(0, 0, 0));
+    let background_mix: [f32; 4] = background_one
+        .into_linear()
+        .iter()
+        .zip(background_two.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+    let new_background_color: Color = background_mix.into();
+
+    two.text_color = text_mix.into();
+    two.background = Some(new_background_color.into());
+    two
 }

@@ -131,6 +131,13 @@ impl PartialOrd for SubFrame {
     }
 }
 
+pub struct Interped {
+    pub previous: f32,
+    pub next: f32,
+    pub value: f32,
+    pub percent: f32,
+}
+
 impl Timeline {
     pub fn new() -> Self {
         Timeline {
@@ -210,7 +217,7 @@ impl Timeline {
         }
     }
 
-    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<f32> {
+    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<Interped> {
         let (meta, mut modifier_chain) = if let Some((meta, chain)) = self.tracks.get(id) {
             if let Some(modifier_chain) = chain.get(index) {
                 (meta, modifier_chain.iter())
@@ -240,7 +247,14 @@ impl Timeline {
                     }
                 }
                 (None, None) => return None,
-                (Some(acc), None) => return Some(acc.value),
+                (Some(acc), None) => {
+                    return Some(Interped {
+                        previous: acc.value,
+                        next: acc.value,
+                        percent: 1.0,
+                        value: acc.value,
+                    })
+                }
                 (Some(acc), Some(modifier)) => {
                     let relative_now = if meta.repeat == Repeat::Forever {
                         let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
@@ -252,19 +266,28 @@ impl Timeline {
                     } else {
                         *now
                     };
-                    if modifier.at <= relative_now {
+                    if relative_now >= modifier.at || acc.value == modifier.value {
                         accumulator = Some(modifier);
-                    } else if modifier.at >= relative_now {
+                    } else {
                         let elapsed = relative_now.duration_since(acc.at).as_millis() as f32;
                         let duration = (modifier.at - acc.at).as_millis() as f32;
-                        return Some(
-                            lerp(
-                                acc.value as f32,
-                                modifier.value as f32,
-                                modifier.ease.tween(elapsed / duration),
-                            )
-                            .round(),
-                        );
+
+                        let previous = acc.value;
+                        let next = modifier.value;
+                        let percent = modifier.ease.tween(elapsed / duration);
+                        let value = lerp(
+                            acc.value,
+                            modifier.value,
+                            modifier.ease.tween(elapsed / duration),
+                        )
+                        .round();
+
+                        return Some(Interped {
+                            previous,
+                            next,
+                            percent,
+                            value,
+                        });
                     }
                 }
             }

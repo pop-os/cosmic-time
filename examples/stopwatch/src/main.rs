@@ -3,12 +3,10 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{button, column, container, row, text};
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-};
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription};
 
-use once_cell::sync::Lazy;
 use cosmic_time::{self, keyframes, Timeline};
+use once_cell::sync::Lazy;
 
 static BUTTON: Lazy<keyframes::button::Id> = Lazy::new(keyframes::button::Id::unique);
 
@@ -64,7 +62,9 @@ impl Application for Stopwatch {
                     self.state = State::Ticking {
                         last_tick: Instant::now(),
                     };
-                    self.timeline.set_chain(anim_to_destructive().into()).start();
+                    self.timeline
+                        .set_chain(anim_to_destructive().into())
+                        .start();
                 }
                 State::Ticking { .. } => {
                     self.state = State::Idle;
@@ -79,9 +79,6 @@ impl Application for Stopwatch {
             }
             Message::Reset => {
                 self.duration = Duration::default();
-                if let State::Ticking { .. } = self.state {
-                    self.timeline.set_chain(anim_to_primary().into()).start();
-                }
             }
         }
 
@@ -89,16 +86,13 @@ impl Application for Stopwatch {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-      Subscription::batch( vec![
-        match self.state {
-            State::Idle => Subscription::none(),
-            State::Ticking { .. } => {
-                time::every(Duration::from_millis(10)).map(Message::Tick)
-            }
-        },
-        self.timeline.as_subscription().map(Message::Tick)
-      ]
-      )
+        Subscription::batch(vec![
+            match self.state {
+                State::Idle => Subscription::none(),
+                State::Ticking { .. } => time::every(Duration::from_millis(10)).map(Message::Tick),
+            },
+            self.timeline.as_subscription().map(Message::Tick),
+        ])
     }
 
     fn view(&self) -> Element<Message> {
@@ -117,11 +111,19 @@ impl Application for Stopwatch {
         .size(40);
 
         let button = |label| {
-            button(
-                text(label).horizontal_alignment(alignment::Horizontal::Center),
-            )
-            .padding(10)
-            .width(Length::Units(80))
+            button(text(label).horizontal_alignment(alignment::Horizontal::Center))
+                .padding(10)
+                .width(Length::Fixed(80.))
+        };
+
+        // must match the same order that the function used to parse into `u8`s
+        let buttons = |i: u8| match i {
+            0 => theme::Button::Primary,
+            1 => theme::Button::Secondary,
+            2 => theme::Button::Positive,
+            3 => theme::Button::Destructive,
+            4 => theme::Button::Text,
+            _ => panic!("custom is not supported"),
         };
 
         let toggle_button = {
@@ -131,10 +133,13 @@ impl Application for Stopwatch {
             };
 
             keyframes::Button::as_widget(
-              BUTTON.clone(),
-              &self.timeline,
-              label
+                BUTTON.clone(),
+                buttons,
+                &self.timeline,
+                text(label).horizontal_alignment(alignment::Horizontal::Center),
             )
+            .padding(10)
+            .width(Length::Fixed(80.))
             .on_press(Message::Toggle)
         };
 
@@ -159,24 +164,31 @@ impl Application for Stopwatch {
 
 fn anim_to_primary() -> cosmic_time::button::Chain {
     cosmic_time::button::Chain::new(BUTTON.clone())
-      .link(
-        keyframes::Button::new(Duration::ZERO)
-          .style(theme::Button::Destructive)
-      )
-      .link(
-        keyframes::Button::new(Duration::from_millis(500))
-          .style(theme::Button::Primary)
+        .link(keyframes::Button::new(Duration::ZERO).style(as_u8(theme::Button::Destructive)))
+        .link(
+            keyframes::Button::new(Duration::from_millis(500)).style(as_u8(theme::Button::Primary)),
         )
 }
 
 fn anim_to_destructive() -> cosmic_time::button::Chain {
     cosmic_time::button::Chain::new(BUTTON.clone())
-      .link(
-        keyframes::Button::new(Duration::ZERO)
-          .style(theme::Button::Primary)
-      )
-      .link(
-        keyframes::Button::new(Duration::from_millis(500))
-          .style(theme::Button::Destructive)
+        .link(keyframes::Button::new(Duration::ZERO).style(as_u8(theme::Button::Primary)))
+        .link(
+            keyframes::Button::new(Duration::from_millis(500))
+                .style(as_u8(theme::Button::Destructive)),
         )
+}
+
+// Style implementations
+
+// the enum's default must be 0
+fn as_u8(style: theme::Button) -> u8 {
+    match style {
+        theme::Button::Primary => 0,
+        theme::Button::Secondary => 1,
+        theme::Button::Positive => 2,
+        theme::Button::Destructive => 3,
+        theme::Button::Text => 4,
+        _ => panic!("Custom is not supported"),
+    }
 }

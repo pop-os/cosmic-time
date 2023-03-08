@@ -1,11 +1,11 @@
 use iced::{Length, Padding};
-use iced_native::{widget, Element, Renderer};
-use iced_style::button::{ StyleSheet};
+use iced_native::{widget, Element};
+use iced_style::button::StyleSheet;
 
 use std::time::{Duration, Instant};
 
 use crate::keyframes::{get_length, Repeat};
-use crate::timeline::DurFrame;
+use crate::timeline::{DurFrame, Interped};
 use crate::{Ease, Linear};
 
 /// A Button's animation Id. Used for linking animation built in `update()` with widget output in `view()`
@@ -83,7 +83,7 @@ pub struct Button {
     width: Option<Length>,
     height: Option<Length>,
     padding: Option<Padding>,
-    style: iced_style::theme::Button,
+    style: Option<u8>,
 }
 
 impl Button {
@@ -95,31 +95,46 @@ impl Button {
             width: None,
             height: None,
             padding: None,
-            style: iced_style::theme::Button::default(),
+            style: None,
         }
     }
 
+    // Returns a cosmic-time button, not a default iced button. The difference shouldn't
+    // matter to the end user. Though it is an implementation detail.
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
+        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> crate::widget::Button<'a, Message, Renderer>
     where
         Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::button::StyleSheet, <Renderer as iced_native::Renderer>::Theme: iced_style::button::StyleSheet
+        Renderer::Theme: widget::button::StyleSheet,
     {
         let id: widget::Id = id.into();
         let now = Instant::now();
 
-        crate::widget::Button::new(content)
+        let button = crate::widget::Button::new(content)
             .width(get_length(&id, timeline, &now, 0, Length::Shrink))
             .height(get_length(&id, timeline, &now, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, &now, 2).unwrap_or(0.),
-                timeline.get(&id, &now, 3).unwrap_or(0.),
-                timeline.get(&id, &now, 4).unwrap_or(0.),
-                timeline.get(&id, &now, 5).unwrap_or(0.),
-            ])
+                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(5.0),
+            ]);
+
+        if let Some(Interped {
+            previous,
+            next,
+            percent,
+            ..
+        }) = timeline.get(&id, &now, 6)
+        {
+            button.blend_style(style(previous as u8), style(next as u8), percent)
+        } else {
+            button
+        }
     }
 
     pub fn width(mut self, width: Length) -> Self {
@@ -142,9 +157,11 @@ impl Button {
         self
     }
 
-    pub fn style(mut self, style: iced_style::theme::Button) -> Self {
-      self.style = style;
-      self
+    // TODO: Currently only works with the upstream theme type.
+    // Need to find a solution that allows for user defined types.
+    pub fn style(mut self, style: u8) -> Self {
+        self.style = Some(style);
+        self
     }
 }
 
@@ -154,6 +171,7 @@ impl Button {
 // 3 = padding[2] (right)
 // 4 = padding[3] (bottom)
 // 5 = padding[4] (left)
+// 6 = style blend (passed to widget to mix values at `draw` time)
 impl Iterator for Button {
     type Item = Option<DurFrame>;
 
@@ -178,6 +196,10 @@ impl Iterator for Button {
                 self.padding
                     .map(|p| DurFrame::new(self.at, p.left as f32, self.ease)),
             ),
+            6 => Some(
+                self.style
+                    .map(|s| DurFrame::new(self.at, s as f32, self.ease)),
+            ),
             _ => None,
         }
     }
@@ -185,7 +207,7 @@ impl Iterator for Button {
 
 impl ExactSizeIterator for Button {
     fn len(&self) -> usize {
-        6 - self.index
+        7 - self.index
     }
 }
 

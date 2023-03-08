@@ -112,10 +112,10 @@ impl Container {
             .width(get_length(&id, timeline, &now, 0, Length::Shrink))
             .height(get_length(&id, timeline, &now, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, &now, 2).unwrap_or(0.),
-                timeline.get(&id, &now, 3).unwrap_or(0.),
-                timeline.get(&id, &now, 4).unwrap_or(0.),
-                timeline.get(&id, &now, 5).unwrap_or(0.),
+                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(0.),
             ])
     }
 

@@ -1,12 +1,12 @@
-pub mod container;
 pub mod button;
+pub mod container;
 pub mod space;
 
 use iced::Length;
 use iced_native::widget;
 
-pub use container::Container;
 pub use button::Button;
+pub use container::Container;
 pub use space::Space;
 
 use std::time::Instant;
@@ -36,7 +36,8 @@ pub fn get_length(
     index: usize,
     default: Length,
 ) -> Length {
-    timeline.get(id, now, index)
-        .map(Length::Fixed)
+    timeline
+        .get(id, now, index)
+        .map(|m| Length::Fixed(m.value))
         .unwrap_or(default)
 }

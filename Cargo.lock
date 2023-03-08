@@ -485,11 +485,11 @@ dependencies = [
 name = "cosmic-time"
 version = "0.1.0"
 dependencies = [
- "iced 0.8.0",
- "iced_core 0.8.1",
- "iced_futures 0.6.0",
- "iced_native 0.9.1",
- "iced_style 0.7.0",
+ "iced",
+ "iced_core",
+ "iced_futures",
+ "iced_native",
+ "iced_style",
 ]
 
 [[package]]
@@ -497,7 +497,7 @@ name = "counter"
 version = "0.1.0"
 dependencies = [
  "cosmic-time",
- "iced 0.6.0",
+ "iced",
  "once_cell",
 ]
 
@@ -1290,43 +1290,17 @@ dependencies = [
 
 [[package]]
 name = "iced"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47627e5bb0bcc0522aca5e11cf8187e34f072ab6da4e7c2fd3f23ed508697e9f"
-dependencies = [
- "iced_core 0.6.2",
- "iced_futures 0.5.1",
- "iced_glow",
- "iced_graphics 0.5.0",
- "iced_native 0.7.0",
- "iced_wgpu 0.7.0",
- "iced_winit 0.6.0",
- "image",
- "thiserror",
-]
-
-[[package]]
-name = "iced"
 version = "0.8.0"
 dependencies = [
- "iced_core 0.8.1",
- "iced_futures 0.6.0",
- "iced_graphics 0.7.0",
- "iced_native 0.9.1",
- "iced_wgpu 0.9.0",
- "iced_winit 0.8.0",
+ "iced_core",
+ "iced_futures",
+ "iced_glow",
+ "iced_graphics",
+ "iced_native",
+ "iced_wgpu",
+ "iced_winit",
+ "image",
  "thiserror",
-]
-
-[[package]]
-name = "iced_core"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "232c723eecb8aef2fd69f7c618c17306ff10bdede19e44d6d9dc77f372966e80"
-dependencies = [
- "bitflags",
- "palette",
- "wasm-timer",
 ]
 
 [[package]]
@@ -1336,19 +1310,6 @@ dependencies = [
  "bitflags",
  "instant",
  "palette",
-]
-
-[[package]]
-name = "iced_futures"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cc3a9fd79b857228dde2a3e923a04ade4095abeda33248c6230e8c909749366"
-dependencies = [
- "futures",
- "log",
- "tokio",
- "wasm-bindgen-futures",
- "wasm-timer",
 ]
 
 [[package]]
@@ -1365,31 +1326,27 @@ dependencies = [
 
 [[package]]
 name = "iced_glow"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ef5090a796940dcc454f9b37f98aea9619f8e8537bb2d057d7f7dedd92d3a69"
+version = "0.7.0"
 dependencies = [
  "bytemuck",
  "euclid",
  "glow",
  "glow_glyph",
  "glyph_brush",
- "iced_graphics 0.5.0",
- "iced_native 0.7.0",
+ "iced_graphics",
+ "iced_native",
  "log",
 ]
 
 [[package]]
 name = "iced_graphics"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bef7125f24a46fc5aa4c3c4d900c6edee79cbbe1b7ef4747bd923fd1469190bc"
+version = "0.7.0"
 dependencies = [
  "bitflags",
  "bytemuck",
  "glam",
- "iced_native 0.7.0",
- "iced_style 0.5.1",
+ "iced_native",
+ "iced_style",
  "image",
  "kamadak-exif",
  "log",
@@ -1398,40 +1355,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "iced_graphics"
-version = "0.7.0"
-dependencies = [
- "bitflags",
- "bytemuck",
- "glam",
- "iced_native 0.9.1",
- "iced_style 0.7.0",
- "log",
- "raw-window-handle 0.5.0",
- "thiserror",
-]
-
-[[package]]
-name = "iced_native"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5748f6d4fa3a8e31ba642cf2e159100f68c2fbc3b2973db8d8035526164d6685"
-dependencies = [
- "iced_core 0.6.2",
- "iced_futures 0.5.1",
- "iced_style 0.5.1",
- "num-traits",
- "twox-hash",
- "unicode-segmentation",
-]
-
-[[package]]
 name = "iced_native"
 version = "0.9.1"
 dependencies = [
- "iced_core 0.8.1",
- "iced_futures 0.6.0",
- "iced_style 0.7.0",
+ "iced_core",
+ "iced_futures",
+ "iced_style",
  "num-traits",
  "twox-hash",
  "unicode-segmentation",
@@ -1439,43 +1368,11 @@ dependencies = [
 
 [[package]]
 name = "iced_style"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2ffb763e34a898a1f597640718cf9308efa057a054282b7bfa627a574554f5b"
-dependencies = [
- "iced_core 0.6.2",
- "once_cell",
- "palette",
-]
-
-[[package]]
-name = "iced_style"
 version = "0.7.0"
 dependencies = [
- "iced_core 0.8.1",
+ "iced_core",
  "once_cell",
  "palette",
-]
-
-[[package]]
-name = "iced_wgpu"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb12ce0339a85a62fdb1ea3ce5b4fda1b5b2ab447b39c3982c30f697cc9d6c16"
-dependencies = [
- "bitflags",
- "bytemuck",
- "encase",
- "futures",
- "glam",
- "glyph_brush",
- "guillotiere",
- "iced_graphics 0.5.0",
- "iced_native 0.7.0",
- "log",
- "raw-window-handle 0.5.0",
- "wgpu",
- "wgpu_glyph",
 ]
 
 [[package]]
@@ -1489,8 +1386,8 @@ dependencies = [
  "glam",
  "glyph_brush",
  "guillotiere",
- "iced_graphics 0.7.0",
- "iced_native 0.9.1",
+ "iced_graphics",
+ "iced_native",
  "log",
  "raw-window-handle 0.5.0",
  "wgpu",
@@ -1499,34 +1396,17 @@ dependencies = [
 
 [[package]]
 name = "iced_winit"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "595311dc80f3b0e6ac83573b2bb0efeb3be3693c205a3a8195f7709199f7e276"
-dependencies = [
- "iced_futures 0.5.1",
- "iced_graphics 0.5.0",
- "iced_native 0.7.0",
- "log",
- "thiserror",
- "web-sys",
- "winapi",
- "window_clipboard",
- "winit 0.27.5",
-]
-
-[[package]]
-name = "iced_winit"
 version = "0.8.0"
 dependencies = [
- "iced_futures 0.6.0",
- "iced_graphics 0.7.0",
- "iced_native 0.9.1",
+ "iced_futures",
+ "iced_graphics",
+ "iced_native",
  "log",
  "thiserror",
  "web-sys",
  "winapi",
  "window_clipboard",
- "winit 0.27.2",
+ "winit",
 ]
 
 [[package]]
@@ -2239,7 +2119,7 @@ name = "pokedex"
 version = "0.1.0"
 dependencies = [
  "cosmic-time",
- "iced 0.6.0",
+ "iced",
  "once_cell",
  "rand 0.7.3",
  "reqwest",
@@ -2790,7 +2670,7 @@ name = "stopwatch"
 version = "0.1.0"
 dependencies = [
  "cosmic-time",
- "iced 0.8.0",
+ "iced",
  "once_cell",
 ]
 
@@ -3611,39 +3491,6 @@ checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
 name = "winit"
 version = "0.27.2"
 source = "git+https://github.com/iced-rs/winit.git?rev=940457522e9fb9f5dac228b0ecfafe0138b4048c#940457522e9fb9f5dac228b0ecfafe0138b4048c"
-dependencies = [
- "bitflags",
- "cocoa",
- "core-foundation",
- "core-graphics",
- "dispatch",
- "instant",
- "libc",
- "log",
- "mio",
- "ndk",
- "ndk-glue",
- "objc",
- "once_cell",
- "parking_lot 0.12.1",
- "percent-encoding",
- "raw-window-handle 0.4.3",
- "raw-window-handle 0.5.0",
- "sctk-adwaita",
- "smithay-client-toolkit",
- "wasm-bindgen",
- "wayland-client",
- "wayland-protocols",
- "web-sys",
- "windows-sys 0.36.1",
- "x11-dl",
-]
-
-[[package]]
-name = "winit"
-version = "0.27.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb796d6fbd86b2fd896c9471e6f04d39d750076ebe5680a3958f00f5ab97657c"
 dependencies = [
  "bitflags",
  "cocoa",

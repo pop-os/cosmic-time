@@ -2,14 +2,13 @@ pub mod keyframes;
 pub mod timeline;
 pub mod widget;
 
-pub use crate::keyframes::{container, space, button};
+pub use crate::keyframes::{button, container, space};
 pub use crate::timeline::Timeline;
 
 const PI: f32 = std::f32::consts::PI;
 
 // p = percent_complete in decimal form
 pub fn lerp(start: f32, end: f32, p: f32) -> f32 {
-    //let p = p.clamp(0.0, 1.0);
     (1.0 - p) * start + p * end
 }
 
