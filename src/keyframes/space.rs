@@ -1,5 +1,4 @@
-use iced::Length;
-use iced_native::widget;
+use iced_native::{widget, Length};
 
 use std::time::{Duration, Instant};
 

@@ -294,9 +294,7 @@ impl Timeline {
         }
     }
 
-    pub fn as_subscription<H, E>(&self) -> Subscription<H, E, Instant>
-    where
-        H: std::hash::Hasher,
+    pub fn as_subscription<Event>(&self) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
     {
         let now = Instant::now();
         if self
@@ -304,8 +302,7 @@ impl Timeline {
             .values()
             .any(|track| track.0.repeat == Repeat::Forever || track.0.end >= now)
         {
-            //TODO use iced's new subscription to monitor framerate
-            iced::time::every(Duration::from_millis(2))
+            iced::window::frames()
         } else {
             Subscription::none()
         }

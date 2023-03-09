@@ -1,5 +1,4 @@
-use iced::{Length, Padding};
-use iced_native::{widget, Element};
+use iced_native::{widget, Element, Length, Padding};
 use iced_style::button::StyleSheet;
 
 use std::time::{Duration, Instant};

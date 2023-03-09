@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../../../iced", features = ["smol"] }
+iced = { version = "0.8.0", features = ["smol"] }
 cosmic-time = { path = "../.."}
 once_cell = "1.15"
 

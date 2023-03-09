@@ -11,18 +11,18 @@ TODOs before release:
 - [ ] add row widget
 - [ ] add column widget
 - [ ] add toggle button widget
-- [ ] Use iced 0.7
-- [ ] use iced 0.7's framerate subscription
+- [x] Use iced 0.8
+- [x] use iced 0.8's framerate subscription
 - [x] Add logic for different animation Ease values
 - [ ] Documentation
 - [ ] Add `Cosmic` cargo feature for compatibility with both iced and System76's temporary fork.
 - [x] optimize for `as_subscription` logic
+- [ ] Add pause for looping animations
 
 Other TODOs:
 - [x] test for easing
 - [ ] general animation logic tests
 - [ ] physics based animations
-- [ ] Add pause for looping animations
 - [ ] Low motion accesability detection to disable animations.
 - [ ] Figure out what else needs to be on this list
 - [ ] Work on web via wasm-unknown-unknown builds
