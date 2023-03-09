@@ -3,9 +3,13 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{button, column, container, row, text};
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Event};
+use iced::{Alignment, Application, Command, Element, Event, Length, Settings, Subscription};
 
-use cosmic_time::{self, Timeline, style_button::{self, StyleButton}};
+use cosmic_time::{
+    self,
+    style_button::{self, StyleButton},
+    Timeline,
+};
 use once_cell::sync::Lazy;
 
 static BUTTON: Lazy<style_button::Id> = Lazy::new(style_button::Id::unique);
@@ -165,18 +169,13 @@ impl Application for Stopwatch {
 fn anim_to_primary() -> style_button::Chain {
     style_button::Chain::new(BUTTON.clone())
         .link(StyleButton::new(Duration::ZERO).style(as_u8(theme::Button::Destructive)))
-        .link(
-            StyleButton::new(Duration::from_millis(500)).style(as_u8(theme::Button::Primary)),
-        )
+        .link(StyleButton::new(Duration::from_millis(500)).style(as_u8(theme::Button::Primary)))
 }
 
 fn anim_to_destructive() -> style_button::Chain {
     style_button::Chain::new(BUTTON.clone())
         .link(StyleButton::new(Duration::ZERO).style(as_u8(theme::Button::Primary)))
-        .link(
-            StyleButton::new(Duration::from_millis(500))
-                .style(as_u8(theme::Button::Destructive)),
-        )
+        .link(StyleButton::new(Duration::from_millis(500)).style(as_u8(theme::Button::Destructive)))
 }
 
 // Style implementations

@@ -1,14 +1,14 @@
 pub mod button;
-pub mod style_button;
 pub mod container;
 pub mod space;
+pub mod style_button;
 
 use iced_native::{widget, Length};
 
 pub use button::Button;
-pub use style_button::StyleButton;
 pub use container::Container;
 pub use space::Space;
+pub use style_button::StyleButton;
 
 use std::time::Instant;
 
