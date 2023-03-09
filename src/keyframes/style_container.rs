@@ -207,19 +207,19 @@ impl Iterator for StyleContainer {
             1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
             2 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.top as f32, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.top, self.ease)),
             ),
             3 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.right as f32, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.right, self.ease)),
             ),
             4 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.bottom as f32, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.bottom, self.ease)),
             ),
             5 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.left as f32, self.ease)),
+                    .map(|p| DurFrame::new(self.at, p.left, self.ease)),
             ),
             6 => Some(self.max_width.map(|w| DurFrame::new(self.at, w, self.ease))),
             7 => Some(

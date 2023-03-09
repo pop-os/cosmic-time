@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 pub mod button;
 pub mod container;
 

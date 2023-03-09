@@ -424,7 +424,7 @@ fn blend_appearances(
                 .unwrap();
             ret
         })
-        .map(|t| Into::<Color>::into(t));
+        .map(Into::<Color>::into);
 
     two.background = Some(background.into());
     two.border_radius = lerp(one.border_radius, two.border_radius, percent);

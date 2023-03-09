@@ -1,7 +1,7 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
 use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Subscription, Theme,
+    Alignment, Application, Color, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
 use cosmic_time::{
@@ -94,9 +94,10 @@ impl Application for Pokedex {
 
     fn subscription(&self) -> Subscription<Message> {
         match self {
-            Pokedex::Loaded { pokemon } => {
-                pokemon.timeline.as_subscription().map(|_| Message::Tick)
-            }
+            Pokedex::Loaded { pokemon } => pokemon
+                .timeline
+                .as_subscription::<Event>()
+                .map(|_| Message::Tick),
             _ => Subscription::none(),
         }
     }

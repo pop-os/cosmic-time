@@ -16,16 +16,11 @@ use std::time::Instant;
 
 use crate::Timeline;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub enum Repeat {
+    #[default]
     Never,
     Forever,
-}
-
-impl std::default::Default for Repeat {
-    fn default() -> Self {
-        Repeat::Never
-    }
 }
 
 pub trait IsChain {
