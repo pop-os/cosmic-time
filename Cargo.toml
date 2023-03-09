@@ -9,7 +9,8 @@ members = [
 ]
 
 [dependencies]
-iced = { version = "0.6.0", features = [ "tokio" ] }
-iced_native = "0.7.0"
-iced_futures = "0.5"
-iced_core = "0.6.2"
+iced = { version = "0.8.0", features = [ "tokio" ] }
+iced_native = "0.9.1"
+iced_futures = "0.6.0"
+iced_core = "0.8.1"
+iced_style = "0.7.0"

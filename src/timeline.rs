@@ -39,11 +39,11 @@ impl Pending {
 pub struct DurFrame {
     duration: Duration,
     ease: Ease,
-    value: isize,
+    value: f32,
 }
 
 impl DurFrame {
-    pub fn new(duration: Duration, value: isize, ease: Ease) -> Self {
+    pub fn new(duration: Duration, value: f32, ease: Ease) -> Self {
         DurFrame {
             duration,
             value,
@@ -93,7 +93,7 @@ impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
 
 #[derive(Debug, Clone)]
 pub struct SubFrame {
-    pub value: isize,
+    pub value: f32,
     pub ease: Ease,
     pub at: Instant,
 }
@@ -103,7 +103,7 @@ pub struct SubFrame {
 // shouldn't have to know about this type. The Instant for this
 // (and thus the keyframe itself) is applied with `start`
 impl SubFrame {
-    pub fn new(at: Instant, value: isize, ease: Ease) -> Self {
+    pub fn new(at: Instant, value: f32, ease: Ease) -> Self {
         SubFrame { value, at, ease }
     }
 }
@@ -129,6 +129,13 @@ impl PartialOrd for SubFrame {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.at.cmp(&other.at))
     }
+}
+
+pub struct Interped {
+    pub previous: f32,
+    pub next: f32,
+    pub value: f32,
+    pub percent: f32,
 }
 
 impl Timeline {
@@ -210,7 +217,7 @@ impl Timeline {
         }
     }
 
-    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<isize> {
+    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<Interped> {
         let (meta, mut modifier_chain) = if let Some((meta, chain)) = self.tracks.get(id) {
             if let Some(modifier_chain) = chain.get(index) {
                 (meta, modifier_chain.iter())
@@ -240,7 +247,14 @@ impl Timeline {
                     }
                 }
                 (None, None) => return None,
-                (Some(acc), None) => return Some(acc.value),
+                (Some(acc), None) => {
+                    return Some(Interped {
+                        previous: acc.value,
+                        next: acc.value,
+                        percent: 1.0,
+                        value: acc.value,
+                    })
+                }
                 (Some(acc), Some(modifier)) => {
                     let relative_now = if meta.repeat == Repeat::Forever {
                         let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
@@ -252,28 +266,37 @@ impl Timeline {
                     } else {
                         *now
                     };
-                    if modifier.at <= relative_now {
+                    if relative_now >= modifier.at || acc.value == modifier.value {
                         accumulator = Some(modifier);
-                    } else if modifier.at >= relative_now {
+                    } else {
                         let elapsed = relative_now.duration_since(acc.at).as_millis() as f32;
                         let duration = (modifier.at - acc.at).as_millis() as f32;
-                        return Some(
-                            lerp(
-                                acc.value as f32,
-                                modifier.value as f32,
-                                modifier.ease.tween(elapsed / duration),
-                            )
-                            .round() as isize,
-                        );
+
+                        let previous = acc.value;
+                        let next = modifier.value;
+                        let percent = modifier.ease.tween(elapsed / duration);
+                        let value = lerp(
+                            acc.value,
+                            modifier.value,
+                            modifier.ease.tween(elapsed / duration),
+                        )
+                        .round();
+
+                        return Some(Interped {
+                            previous,
+                            next,
+                            percent,
+                            value,
+                        });
                     }
                 }
             }
         }
     }
 
-    pub fn as_subscription<H, E>(&self) -> Subscription<H, E, Instant>
-    where
-        H: std::hash::Hasher,
+    pub fn as_subscription<Event>(
+        &self,
+    ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
     {
         let now = Instant::now();
         if self
@@ -281,8 +304,7 @@ impl Timeline {
             .values()
             .any(|track| track.0.repeat == Repeat::Forever || track.0.end >= now)
         {
-            //TODO use iced's new subscription to monitor framerate
-            iced::time::every(Duration::from_millis(2))
+            iced::window::frames()
         } else {
             Subscription::none()
         }

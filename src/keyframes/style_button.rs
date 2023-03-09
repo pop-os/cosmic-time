@@ -1,12 +1,13 @@
-use iced_native::{widget, Element, Length, Padding, Pixels};
+use iced_native::{widget, Element, Length, Padding};
+use iced_style::button::StyleSheet;
 
 use std::time::{Duration, Instant};
 
 use crate::keyframes::{get_length, Repeat};
-use crate::timeline::DurFrame;
+use crate::timeline::{DurFrame, Interped};
 use crate::{Ease, Linear};
 
-/// A Container's animation Id. Used for linking animation built in `update()` with widget output in `view()`
+/// A Button's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(iced_native::widget::Id);
 
@@ -33,7 +34,7 @@ impl From<Id> for widget::Id {
 #[derive(Debug)]
 pub struct Chain {
     id: Id,
-    links: Vec<Container>,
+    links: Vec<StyleButton>,
     repeat: Repeat,
 }
 
@@ -46,8 +47,8 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, container: Container) -> Self {
-        self.links.push(container);
+    pub fn link(mut self, button: StyleButton) -> Self {
+        self.links.push(button);
         self
     }
 
@@ -65,7 +66,7 @@ impl Chain {
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
     T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Container>>,
+    Vec<T>: From<Vec<StyleButton>>,
 {
     fn from(chain: Chain) -> Self {
         crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
@@ -74,83 +75,74 @@ where
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug)]
-pub struct Container {
+pub struct StyleButton {
     index: usize,
     at: Duration,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
     padding: Option<Padding>,
-    max_width: Option<f32>,
-    max_height: Option<f32>,
+    style: Option<u8>,
 }
 
-impl Container {
-    pub fn new(at: Duration) -> Container {
-        Container {
+impl StyleButton {
+    pub fn new(at: Duration) -> StyleButton {
+        StyleButton {
             index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
             height: None,
             padding: None,
-            max_width: None,
-            max_height: None,
+            style: None,
         }
     }
 
+    // Returns a cosmic-time button, not a default iced button. The difference shouldn't
+    // matter to the end user. Though it is an implementation detail.
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
+        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Renderer>>,
-    ) -> widget::Container<'a, Message, Renderer>
+    ) -> crate::widget::Button<'a, Message, Renderer>
     where
         Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: widget::button::StyleSheet,
     {
         let id: widget::Id = id.into();
         let now = Instant::now();
 
-        widget::Container::new(content)
+        let button = crate::widget::Button::new(content)
             .width(get_length(&id, timeline, &now, 0, Length::Shrink))
             .height(get_length(&id, timeline, &now, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(0.),
-            ])
-            .max_width(
-                timeline
-                    .get(&id, &now, 6)
-                    .map(|m| m.value)
-                    .unwrap_or(f32::INFINITY),
-            )
-            .max_height(
-                timeline
-                    .get(&id, &now, 7)
-                    .map(|m| m.value)
-                    .unwrap_or(f32::INFINITY),
-            )
+                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(5.0),
+            ]);
+
+        if let Some(Interped {
+            previous,
+            next,
+            percent,
+            ..
+        }) = timeline.get(&id, &now, 6)
+        {
+            button.blend_style(style(previous as u8), style(next as u8), percent)
+        } else {
+            button
+        }
     }
 
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = Some(width.into());
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = Some(width);
         self
     }
 
-    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
-        self.max_width = Some(max_width.into().0);
-        self
-    }
-
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
-        self
-    }
-
-    pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
-        self.max_height = Some(max_height.into().0);
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = Some(height);
         self
     }
 
@@ -163,6 +155,11 @@ impl Container {
         self.ease = ease.into();
         self
     }
+
+    pub fn style(mut self, style: u8) -> Self {
+        self.style = Some(style);
+        self
+    }
 }
 
 // 0 = width
@@ -171,9 +168,8 @@ impl Container {
 // 3 = padding[2] (right)
 // 4 = padding[3] (bottom)
 // 5 = padding[4] (left)
-// 6 = max_width
-// 7 = max_height
-impl Iterator for Container {
+// 6 = style blend (passed to widget to mix values at `draw` time)
+impl Iterator for StyleButton {
     type Item = Option<DurFrame>;
 
     fn next(&mut self) -> Option<Option<DurFrame>> {
@@ -197,19 +193,18 @@ impl Iterator for Container {
                 self.padding
                     .map(|p| DurFrame::new(self.at, p.left, self.ease)),
             ),
-            6 => Some(self.max_width.map(|w| DurFrame::new(self.at, w, self.ease))),
-            7 => Some(
-                self.max_height
-                    .map(|h| DurFrame::new(self.at, h, self.ease)),
+            6 => Some(
+                self.style
+                    .map(|s| DurFrame::new(self.at, s as f32, self.ease)),
             ),
             _ => None,
         }
     }
 }
 
-impl ExactSizeIterator for Container {
+impl ExactSizeIterator for StyleButton {
     fn len(&self) -> usize {
-        8 - self.index
+        7 - self.index
     }
 }
 

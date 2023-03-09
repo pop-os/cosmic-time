@@ -1,12 +1,13 @@
 use iced_native::{widget, Element, Length, Padding, Pixels};
+use iced_style::container::StyleSheet;
 
 use std::time::{Duration, Instant};
 
 use crate::keyframes::{get_length, Repeat};
-use crate::timeline::DurFrame;
+use crate::timeline::{DurFrame, Interped};
 use crate::{Ease, Linear};
 
-/// A Container's animation Id. Used for linking animation built in `update()` with widget output in `view()`
+/// A StyleContainer's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(iced_native::widget::Id);
 
@@ -33,7 +34,7 @@ impl From<Id> for widget::Id {
 #[derive(Debug)]
 pub struct Chain {
     id: Id,
-    links: Vec<Container>,
+    links: Vec<StyleContainer>,
     repeat: Repeat,
 }
 
@@ -46,7 +47,7 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, container: Container) -> Self {
+    pub fn link(mut self, container: StyleContainer) -> Self {
         self.links.push(container);
         self
     }
@@ -65,7 +66,7 @@ impl Chain {
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
     T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Container>>,
+    Vec<T>: From<Vec<StyleContainer>>,
 {
     fn from(chain: Chain) -> Self {
         crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
@@ -74,7 +75,7 @@ where
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug)]
-pub struct Container {
+pub struct StyleContainer {
     index: usize,
     at: Duration,
     ease: Ease,
@@ -83,11 +84,12 @@ pub struct Container {
     padding: Option<Padding>,
     max_width: Option<f32>,
     max_height: Option<f32>,
+    style: Option<u8>,
 }
 
-impl Container {
-    pub fn new(at: Duration) -> Container {
-        Container {
+impl StyleContainer {
+    pub fn new(at: Duration) -> StyleContainer {
+        StyleContainer {
             index: 0,
             at,
             ease: Linear::InOut.into(),
@@ -96,14 +98,18 @@ impl Container {
             padding: None,
             max_width: None,
             max_height: None,
+            style: None,
         }
     }
 
+    // Returns a cosmic-time container, not a default iced button. The difference shouldn't
+    // matter to the end user. Though it is an implementation detail.
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
+        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Renderer>>,
-    ) -> widget::Container<'a, Message, Renderer>
+    ) -> crate::widget::Container<'a, Message, Renderer>
     where
         Renderer: iced_native::Renderer,
         Renderer::Theme: widget::container::StyleSheet,
@@ -111,7 +117,7 @@ impl Container {
         let id: widget::Id = id.into();
         let now = Instant::now();
 
-        widget::Container::new(content)
+        let container = crate::widget::Container::new(content)
             .width(get_length(&id, timeline, &now, 0, Length::Shrink))
             .height(get_length(&id, timeline, &now, 1, Length::Shrink))
             .padding([
@@ -131,7 +137,19 @@ impl Container {
                     .get(&id, &now, 7)
                     .map(|m| m.value)
                     .unwrap_or(f32::INFINITY),
-            )
+            );
+
+        if let Some(Interped {
+            previous,
+            next,
+            percent,
+            ..
+        }) = timeline.get(&id, &now, 8)
+        {
+            container.blend_style(style(previous as u8), style(next as u8), percent)
+        } else {
+            container
+        }
     }
 
     pub fn width(mut self, width: impl Into<Length>) -> Self {
@@ -163,6 +181,11 @@ impl Container {
         self.ease = ease.into();
         self
     }
+
+    pub fn style(mut self, style: u8) -> Self {
+        self.style = Some(style);
+        self
+    }
 }
 
 // 0 = width
@@ -173,7 +196,8 @@ impl Container {
 // 5 = padding[4] (left)
 // 6 = max_width
 // 7 = max_height
-impl Iterator for Container {
+// 8 = style blend (passed to widget to mix values at `draw` time)
+impl Iterator for StyleContainer {
     type Item = Option<DurFrame>;
 
     fn next(&mut self) -> Option<Option<DurFrame>> {
@@ -202,14 +226,18 @@ impl Iterator for Container {
                 self.max_height
                     .map(|h| DurFrame::new(self.at, h, self.ease)),
             ),
+            8 => Some(
+                self.style
+                    .map(|s| DurFrame::new(self.at, s as f32, self.ease)),
+            ),
             _ => None,
         }
     }
 }
 
-impl ExactSizeIterator for Container {
+impl ExactSizeIterator for StyleContainer {
     fn len(&self) -> usize {
-        8 - self.index
+        9 - self.index
     }
 }
 

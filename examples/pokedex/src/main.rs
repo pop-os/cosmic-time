@@ -1,7 +1,7 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
 use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Subscription, Theme,
+    Alignment, Application, Color, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
 use cosmic_time::{
@@ -94,9 +94,10 @@ impl Application for Pokedex {
 
     fn subscription(&self) -> Subscription<Message> {
         match self {
-            Pokedex::Loaded { pokemon } => {
-                pokemon.timeline.as_subscription().map(|_| Message::Tick)
-            }
+            Pokedex::Loaded { pokemon } => pokemon
+                .timeline
+                .as_subscription::<Event>()
+                .map(|_| Message::Tick),
             _ => Subscription::none(),
         }
     }
@@ -185,7 +186,7 @@ impl Pokemon {
             ]
             .spacing(20),
         ]
-        .height(Length::Units(400))
+        .height(Length::Fixed(400.))
         .spacing(20)
         .align_items(Alignment::Center)
         .into()
@@ -251,15 +252,15 @@ impl Pokemon {
         );
 
         let animation = cosmic_time::space::Chain::new(SPACE.clone())
-            .link(keyframes::Space::new(Duration::ZERO).height(Length::Units(50)))
+            .link(keyframes::Space::new(Duration::ZERO).height(Length::Fixed(50.)))
             .link(
                 keyframes::Space::new(Duration::from_millis(1500))
-                    .height(Length::Units(250))
+                    .height(Length::Fixed(250.))
                     .ease(EASE_IN[rand]),
             )
             .link(
                 keyframes::Space::new(Duration::from_millis(3000))
-                    .height(Length::Units(50))
+                    .height(Length::Fixed(50.))
                     .ease(EASE_OUT[rand]),
             )
             .loop_forever();

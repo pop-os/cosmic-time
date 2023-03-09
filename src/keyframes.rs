@@ -1,34 +1,30 @@
+pub mod button;
 pub mod container;
 pub mod space;
+pub mod style_button;
+pub mod style_container;
 
-use iced::Length;
-use iced_native::widget;
+use iced_native::{widget, Length};
 
+pub use button::Button;
 pub use container::Container;
 pub use space::Space;
+pub use style_button::StyleButton;
+pub use style_container::StyleContainer;
 
 use std::time::Instant;
 
 use crate::Timeline;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub enum Repeat {
+    #[default]
     Never,
     Forever,
 }
 
-impl std::default::Default for Repeat {
-    fn default() -> Self {
-        Repeat::Never
-    }
-}
-
 pub trait IsChain {
     fn repeat(&self) -> Repeat;
-}
-
-pub fn clamp_u16(num: Option<isize>) -> Option<u16> {
-    num.map(|n| n.clamp(0, u16::MAX as isize) as u16)
 }
 
 pub fn get_length(
@@ -38,7 +34,8 @@ pub fn get_length(
     index: usize,
     default: Length,
 ) -> Length {
-    clamp_u16(timeline.get(id, now, index))
-        .map(Length::Units)
+    timeline
+        .get(id, now, index)
+        .map(|m| Length::Fixed(m.value))
         .unwrap_or(default)
 }
