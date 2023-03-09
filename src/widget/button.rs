@@ -487,16 +487,13 @@ fn blend_appearances(
 ) -> iced_style::button::Appearance {
     use crate::lerp;
 
-    let text_mix: [f32; 4] = one
-        .text_color
-        .into_linear()
-        .iter()
-        .zip(two.text_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
+    // shadow offet
+    let x1 = one.shadow_offset.x;
+    let y1 = one.shadow_offset.y;
+    let x2 = two.shadow_offset.x;
+    let y2 = two.shadow_offset.y;
 
+    // background
     let background_one: Color = one
         .background
         .map(|b| match b {
@@ -519,7 +516,34 @@ fn blend_appearances(
         .unwrap();
     let new_background_color: Color = background_mix.into();
 
-    two.text_color = text_mix.into();
+    // boarder color
+    let border_color_mix: [f32; 4] = one
+        .border_color
+        .into_linear()
+        .iter()
+        .zip(two.border_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    // text
+    let text_mix: [f32; 4] = one
+        .text_color
+        .into_linear()
+        .iter()
+        .zip(two.text_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+
+    two.shadow_offset = Vector::new(lerp(x1, x2, percent), lerp(y1, y2, percent));
     two.background = Some(new_background_color.into());
+    two.border_radius = lerp(one.border_radius, two.border_radius, percent);
+    two.border_width = lerp(one.border_width, two.border_width, percent);
+    two.border_color = border_color_mix.into();
+    two.text_color = text_mix.into();
     two
 }
