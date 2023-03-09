@@ -3,7 +3,7 @@ use iced_style::container::StyleSheet;
 
 use std::time::{Duration, Instant};
 
-use crate::keyframes::{get_length, Repeat, as_f32};
+use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{DurFrame, Interped};
 use crate::{Ease, Linear};
 

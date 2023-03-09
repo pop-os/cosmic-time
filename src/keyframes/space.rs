@@ -2,7 +2,7 @@ use iced_native::{widget, Length};
 
 use std::time::{Duration, Instant};
 
-use crate::keyframes::{get_length, Repeat, as_f32};
+use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::DurFrame;
 use crate::{Ease, Linear};
 
