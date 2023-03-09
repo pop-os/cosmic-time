@@ -3,12 +3,12 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{button, column, container, row, text};
-use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription};
+use iced::{Alignment, Application, Command, Element, Length, Settings, Subscription, Event};
 
-use cosmic_time::{self, keyframes, Timeline};
+use cosmic_time::{self, Timeline, style_button::{self, StyleButton}};
 use once_cell::sync::Lazy;
 
-static BUTTON: Lazy<keyframes::button::Id> = Lazy::new(keyframes::button::Id::unique);
+static BUTTON: Lazy<style_button::Id> = Lazy::new(style_button::Id::unique);
 
 use std::time::{Duration, Instant};
 
@@ -91,7 +91,7 @@ impl Application for Stopwatch {
                 State::Idle => Subscription::none(),
                 State::Ticking { .. } => time::every(Duration::from_millis(10)).map(Message::Tick),
             },
-            self.timeline.as_subscription().map(Message::Tick),
+            self.timeline.as_subscription::<Event>().map(Message::Tick),
         ])
     }
 
@@ -132,7 +132,7 @@ impl Application for Stopwatch {
                 State::Ticking { .. } => "Stop",
             };
 
-            keyframes::Button::as_widget(
+            StyleButton::as_widget(
                 BUTTON.clone(),
                 buttons,
                 &self.timeline,
@@ -162,19 +162,19 @@ impl Application for Stopwatch {
     }
 }
 
-fn anim_to_primary() -> cosmic_time::button::Chain {
-    cosmic_time::button::Chain::new(BUTTON.clone())
-        .link(keyframes::Button::new(Duration::ZERO).style(as_u8(theme::Button::Destructive)))
+fn anim_to_primary() -> style_button::Chain {
+    style_button::Chain::new(BUTTON.clone())
+        .link(StyleButton::new(Duration::ZERO).style(as_u8(theme::Button::Destructive)))
         .link(
-            keyframes::Button::new(Duration::from_millis(500)).style(as_u8(theme::Button::Primary)),
+            StyleButton::new(Duration::from_millis(500)).style(as_u8(theme::Button::Primary)),
         )
 }
 
-fn anim_to_destructive() -> cosmic_time::button::Chain {
-    cosmic_time::button::Chain::new(BUTTON.clone())
-        .link(keyframes::Button::new(Duration::ZERO).style(as_u8(theme::Button::Primary)))
+fn anim_to_destructive() -> style_button::Chain {
+    style_button::Chain::new(BUTTON.clone())
+        .link(StyleButton::new(Duration::ZERO).style(as_u8(theme::Button::Primary)))
         .link(
-            keyframes::Button::new(Duration::from_millis(500))
+            StyleButton::new(Duration::from_millis(500))
                 .style(as_u8(theme::Button::Destructive)),
         )
 }

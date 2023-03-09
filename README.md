@@ -7,7 +7,7 @@ TODOs before release:
 - [x] Looping animations
 - [x] Animation easing
 - [x] add space widget
-- [ ] add button widget
+- [x] add button widget
 - [ ] add row widget
 - [ ] add column widget
 - [ ] add toggle button widget
