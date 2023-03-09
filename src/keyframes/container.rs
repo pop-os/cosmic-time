@@ -1,4 +1,4 @@
-use iced_native::{widget, Element, Length, Padding};
+use iced_native::{widget, Element, Length, Padding, Pixels};
 
 use std::time::{Duration, Instant};
 
@@ -81,6 +81,8 @@ pub struct Container {
     width: Option<Length>,
     height: Option<Length>,
     padding: Option<Padding>,
+    max_width: Option<f32>,
+    max_height: Option<f32>,
 }
 
 impl Container {
@@ -92,6 +94,8 @@ impl Container {
             width: None,
             height: None,
             padding: None,
+            max_width: None,
+            max_height: None,
         }
     }
 
@@ -116,15 +120,27 @@ impl Container {
                 timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(0.),
                 timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(0.),
             ])
+            .max_width(timeline.get(&id, &now, 6).map(|m| m.value).unwrap_or(f32::INFINITY))
+            .max_height(timeline.get(&id, &now, 7).map(|m| m.value).unwrap_or(f32::INFINITY))
     }
 
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = Some(width);
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = Some(width.into());
         self
     }
 
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = Some(height);
+    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+        self.max_width = Some(max_width.into().0);
+        self
+    }
+
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = Some(height.into());
+        self
+    }
+
+    pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
+        self.max_height = Some(max_height.into().0);
         self
     }
 
@@ -145,6 +161,8 @@ impl Container {
 // 3 = padding[2] (right)
 // 4 = padding[3] (bottom)
 // 5 = padding[4] (left)
+// 6 = max_width
+// 7 = max_height
 impl Iterator for Container {
     type Item = Option<DurFrame>;
 
@@ -169,6 +187,8 @@ impl Iterator for Container {
                 self.padding
                     .map(|p| DurFrame::new(self.at, p.left as f32, self.ease)),
             ),
+            6 => Some(self.max_width.map(|w| DurFrame::new(self.at, w, self.ease))),
+            7 => Some(self.max_height.map(|h| DurFrame::new(self.at, h, self.ease))),
             _ => None,
         }
     }
@@ -176,7 +196,7 @@ impl Iterator for Container {
 
 impl ExactSizeIterator for Container {
     fn len(&self) -> usize {
-        6 - self.index
+        8 - self.index
     }
 }
 
