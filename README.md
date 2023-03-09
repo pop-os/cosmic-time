@@ -8,7 +8,7 @@ TODOs before release:
 - [x] Animation easing
 - [x] add space widget
 - [x] add button widget
-- [ ] add row widget
+- [x] add row widget
 - [ ] add column widget
 - [ ] add toggle button widget
 - [x] Use iced 0.8

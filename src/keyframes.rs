@@ -39,3 +39,10 @@ pub fn get_length(
         .map(|m| Length::Fixed(m.value))
         .unwrap_or(default)
 }
+
+fn as_f32(length: Option<Length>) -> Option<f32> {
+    match length {
+        Some(Length::Fixed(i)) => Some(i),
+        _ => None,
+    }
+}

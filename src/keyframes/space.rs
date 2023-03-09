@@ -2,7 +2,7 @@ use iced_native::{widget, Length};
 
 use std::time::{Duration, Instant};
 
-use crate::keyframes::{get_length, Repeat};
+use crate::keyframes::{get_length, Repeat, as_f32};
 use crate::timeline::DurFrame;
 use crate::{Ease, Linear};
 
@@ -137,12 +137,5 @@ impl Iterator for Space {
 impl ExactSizeIterator for Space {
     fn len(&self) -> usize {
         6 - self.index
-    }
-}
-
-fn as_f32(length: Option<Length>) -> Option<f32> {
-    match length {
-        Some(Length::Fixed(i)) => Some(i),
-        _ => None,
     }
 }
