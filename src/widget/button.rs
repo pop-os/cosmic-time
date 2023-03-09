@@ -538,7 +538,6 @@ fn blend_appearances(
         .try_into()
         .unwrap();
 
-
     two.shadow_offset = Vector::new(lerp(x1, x2, percent), lerp(y1, y2, percent));
     two.background = Some(new_background_color.into());
     two.border_radius = lerp(one.border_radius, two.border_radius, percent);

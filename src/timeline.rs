@@ -294,7 +294,9 @@ impl Timeline {
         }
     }
 
-    pub fn as_subscription<Event>(&self) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
+    pub fn as_subscription<Event>(
+        &self,
+    ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
     {
         let now = Instant::now();
         if self
