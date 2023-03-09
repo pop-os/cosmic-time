@@ -9,7 +9,7 @@ TODOs before release:
 - [x] add space widget
 - [x] add button widget
 - [x] add row widget
-- [ ] add column widget
+- [x] add column widget
 - [ ] add toggle button widget
 - [x] Use iced 0.8
 - [x] use iced 0.8's framerate subscription
