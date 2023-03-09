@@ -15,6 +15,8 @@ use iced_native::{
     Vector, Widget,
 };
 
+use crate::widget::StyleType;
+
 pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
@@ -63,11 +65,6 @@ where
     height: Length,
     padding: Padding,
     style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
-}
-
-pub enum StyleType<T> {
-    Static(T),
-    Blend(T, T, f32),
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>

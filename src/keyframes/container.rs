@@ -3,7 +3,7 @@ use iced_native::{widget, Element, Length, Padding, Pixels};
 use std::time::{Duration, Instant};
 
 use crate::keyframes::{get_length, Repeat};
-use crate::timeline::DurFrame;
+use crate::timeline::{DurFrame, Interped};
 use crate::{Ease, Linear};
 
 /// A Container's animation Id. Used for linking animation built in `update()` with widget output in `view()`
@@ -120,8 +120,18 @@ impl Container {
                 timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(0.),
                 timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(0.),
             ])
-            .max_width(timeline.get(&id, &now, 6).map(|m| m.value).unwrap_or(f32::INFINITY))
-            .max_height(timeline.get(&id, &now, 7).map(|m| m.value).unwrap_or(f32::INFINITY))
+            .max_width(
+                timeline
+                    .get(&id, &now, 6)
+                    .map(|m| m.value)
+                    .unwrap_or(f32::INFINITY),
+            )
+            .max_height(
+                timeline
+                    .get(&id, &now, 7)
+                    .map(|m| m.value)
+                    .unwrap_or(f32::INFINITY),
+            )
     }
 
     pub fn width(mut self, width: impl Into<Length>) -> Self {
@@ -188,7 +198,10 @@ impl Iterator for Container {
                     .map(|p| DurFrame::new(self.at, p.left as f32, self.ease)),
             ),
             6 => Some(self.max_width.map(|w| DurFrame::new(self.at, w, self.ease))),
-            7 => Some(self.max_height.map(|h| DurFrame::new(self.at, h, self.ease))),
+            7 => Some(
+                self.max_height
+                    .map(|h| DurFrame::new(self.at, h, self.ease)),
+            ),
             _ => None,
         }
     }

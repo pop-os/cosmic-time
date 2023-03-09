@@ -1,15 +1,18 @@
 //! Decorate content and apply alignment.
-use crate::alignment::{self, Alignment};
-use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::overlay;
-use crate::renderer;
-use crate::widget::{self, Operation, Tree};
-use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Widget,
+use iced_native::alignment::{self, Alignment};
+use iced_native::color;
+use iced_native::event::{self, Event};
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::overlay;
+use iced_native::renderer;
+use iced_native::widget::{self, Operation, Tree};
+use iced_native::{
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Widget,
 };
+
+use crate::widget::StyleType;
 
 pub use iced_style::container::{Appearance, StyleSheet};
 
@@ -19,7 +22,7 @@ pub use iced_style::container::{Appearance, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Container<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
@@ -30,13 +33,13 @@ where
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
     content: Element<'a, Message, Renderer>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
@@ -53,7 +56,7 @@ where
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style: Default::default(),
+            style: StyleType::Static(Default::default()),
             content: content.into(),
         }
     }
@@ -119,19 +122,26 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(
+    pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
+        self.style = StyleType::Static(style.into());
+        self
+    }
+
+    /// Sets the animatable style variant of this [`Button`].
+    pub fn blend_style(
         mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        style1: <Renderer::Theme as StyleSheet>::Style,
+        style2: <Renderer::Theme as StyleSheet>::Style,
+        percent: f32,
     ) -> Self {
-        self.style = style.into();
+        self.style = StyleType::Blend(style1, style2, percent);
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Container<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Container<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
@@ -150,11 +160,7 @@ where
         self.height
     }
 
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
         layout(
             renderer,
             limits,
@@ -165,9 +171,7 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
+            |renderer, limits| self.content.as_widget().layout(renderer, limits),
         )
     }
 
@@ -178,17 +182,14 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(self.id.as_ref().map(|id| &id.0), &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn on_event(
@@ -239,7 +240,12 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let style = theme.appearance(&self.style);
+        let style = match &self.style {
+            StyleType::Static(style) => theme.appearance(style),
+            StyleType::Blend(one, two, percent) => {
+                blend_appearances(theme.appearance(one), theme.appearance(two), *percent)
+            }
+        };
 
         draw_background(renderer, &style, layout.bounds());
 
@@ -248,9 +254,7 @@ where
             renderer,
             theme,
             &renderer::Style {
-                text_color: style
-                    .text_color
-                    .unwrap_or(renderer_style.text_color),
+                text_color: style.text_color.unwrap_or(renderer_style.text_color),
             },
             layout.children().next().unwrap(),
             cursor_position,
@@ -276,12 +280,10 @@ impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + crate::Renderer,
+    Renderer: 'a + iced_native::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn from(
-        column: Container<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(column)
     }
 }
@@ -326,7 +328,7 @@ pub fn draw_background<Renderer>(
     appearance: &Appearance,
     bounds: Rectangle,
 ) where
-    Renderer: crate::Renderer,
+    Renderer: iced_native::Renderer,
 {
     if appearance.background.is_some() || appearance.border_width > 0.0 {
         renderer.fill_quad(
@@ -365,4 +367,69 @@ impl From<Id> for widget::Id {
     fn from(id: Id) -> Self {
         id.0
     }
+}
+
+fn blend_appearances(
+    one: iced_style::container::Appearance,
+    mut two: iced_style::container::Appearance,
+    percent: f32,
+) -> iced_style::container::Appearance {
+    use crate::lerp;
+
+    // background
+    let background_one: Color = one
+        .background
+        .map(|b| match b {
+            Background::Color(c) => c,
+        })
+        .unwrap_or(color!(0, 0, 0));
+    let background_two: Color = two
+        .background
+        .map(|b| match b {
+            Background::Color(c) => c,
+        })
+        .unwrap_or(color!(0, 0, 0));
+    let background: [f32; 4] = background_one
+        .into_linear()
+        .iter()
+        .zip(background_two.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+    let background: Color = background.into();
+
+    // boarder color
+    let border_color: [f32; 4] = one
+        .border_color
+        .into_linear()
+        .iter()
+        .zip(two.border_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    // text
+    let text = one
+        .text_color
+        .map(|t| {
+            let ret: [f32; 4] = t
+                .into_linear()
+                .iter()
+                .zip(two.text_color.unwrap_or(t).into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent))
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap();
+            ret
+        })
+        .map(|t| Into::<Color>::into(t));
+
+    two.background = Some(background.into());
+    two.border_radius = lerp(one.border_radius, two.border_radius, percent);
+    two.border_width = lerp(one.border_width, two.border_width, percent);
+    two.border_color = border_color.into();
+    two.text_color = text;
+    two
 }
