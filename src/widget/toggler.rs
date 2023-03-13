@@ -1,17 +1,24 @@
 //! Show toggle controls using togglers.
-use crate::alignment;
-use crate::event;
-use crate::layout;
-use crate::mouse;
-use crate::renderer;
-use crate::text;
-use crate::widget::{self, Row, Text, Tree};
-use crate::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point,
+use iced_native::alignment;
+use iced_native::event;
+use iced_native::layout;
+use iced_native::mouse;
+use iced_native::renderer;
+use iced_native::text;
+use iced_native::time::Duration;
+use iced_native::widget::{self, Row, Text, Tree};
+use iced_native::{
+    color, Alignment, Background, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
     Rectangle, Shell, Widget,
 };
 
+use crate::keyframes::{self, toggler::Chain};
+use crate::lerp;
+
 pub use iced_style::toggler::{Appearance, StyleSheet};
+
+/// The default animation duration. Change here for custom widgets. Or at runtime with `.anim_multiplier`
+const ANIM_DURATION: f32 = 100.;
 
 /// A toggler widget.
 ///
@@ -34,8 +41,9 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: crate::keyframes::toggler::Id,
     is_toggled: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
+    on_toggle: Box<dyn Fn(Chain, bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
     size: f32,
@@ -44,6 +52,8 @@ where
     spacing: f32,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
+    percent: f32,
+    anim_multiplier: f32,
 }
 
 impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
@@ -63,14 +73,16 @@ where
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
     pub fn new<F>(
+        id: crate::keyframes::toggler::Id,
         label: impl Into<Option<String>>,
         is_toggled: bool,
         f: F,
     ) -> Self
     where
-        F: 'a + Fn(bool) -> Message,
+        F: 'a + Fn(Chain, bool) -> Message,
     {
         Toggler {
+            id,
             is_toggled,
             on_toggle: Box::new(f),
             label: label.into(),
@@ -81,6 +93,8 @@ where
             spacing: 0.0,
             font: Renderer::Font::default(),
             style: Default::default(),
+            percent: if is_toggled { 1.0 } else { 0.0 },
+            anim_multiplier: 1.0,
         }
     }
 
@@ -116,24 +130,36 @@ where
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Font`]: iced_native::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
         self
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// The percent completion of the toggler animation.
+    /// This is indented to automated cosmic-time use, and shouldn't
+    /// need to be called manually.
+    pub fn percent(mut self, percent: f32) -> Self {
+        self.percent = percent;
+        self
+    }
+
+    /// The default animation time is 100ms, to speed up the toggle
+    /// animation use a value less than 1.0, and to slow down the
+    /// animation use a value greater than 1.0.
+    pub fn anim_multiplier(mut self, multiplier: f32) -> Self {
+        self.anim_multiplier = multiplier;
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Toggler<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
@@ -146,11 +172,7 @@ where
         Length::Shrink
     }
 
-    fn layout(
-        &self,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
         let mut row = Row::<(), Renderer>::new()
             .width(self.width)
             .spacing(self.spacing)
@@ -162,10 +184,7 @@ where
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font.clone())
                     .width(self.width)
-                    .size(
-                        self.text_size
-                            .unwrap_or_else(|| renderer.default_size()),
-                    ),
+                    .size(self.text_size.unwrap_or_else(|| renderer.default_size())),
             );
         }
 
@@ -188,8 +207,32 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
-                if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_toggled));
+                // To prevent broken animations, only send message if
+                // toggler is clicked after animation is finished.
+                // TODO this should be possible to fix once redirectable
+                // animations are implemented.
+                if mouse_over && (self.percent == 0.0 || self.percent == 1.0) {
+                    if self.is_toggled {
+                        let off_animation = Chain::new(self.id.clone())
+                            .link(keyframes::toggler::Toggler::new(Duration::ZERO).percent(1.0))
+                            .link(
+                                keyframes::toggler::Toggler::new(Duration::from_millis(
+                                    (ANIM_DURATION * self.anim_multiplier.round()) as u64,
+                                ))
+                                .percent(0.0),
+                            );
+                        shell.publish((self.on_toggle)(off_animation, !self.is_toggled));
+                    } else {
+                        let on_animation = Chain::new(self.id.clone())
+                            .link(keyframes::toggler::Toggler::new(Duration::ZERO).percent(0.0))
+                            .link(
+                                keyframes::toggler::Toggler::new(Duration::from_millis(
+                                    (ANIM_DURATION * self.anim_multiplier.round()) as u64,
+                                ))
+                                .percent(1.0),
+                            );
+                        shell.publish((self.on_toggle)(on_animation, !self.is_toggled));
+                    }
 
                     event::Status::Captured
                 } else {
@@ -237,7 +280,7 @@ where
         if let Some(label) = &self.label {
             let label_layout = children.next().unwrap();
 
-            crate::widget::text::draw(
+            iced_native::widget::text::draw(
                 renderer,
                 style,
                 label_layout,
@@ -256,9 +299,17 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_toggled)
+            blend_appearances(
+                theme.hovered(&self.style, false),
+                theme.hovered(&self.style, true),
+                self.percent,
+            )
         } else {
-            theme.active(&self.style, self.is_toggled)
+            blend_appearances(
+                theme.active(&self.style, false),
+                theme.active(&self.style, true),
+                self.percent,
+            )
         };
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
@@ -276,20 +327,18 @@ where
                 bounds: toggler_background_bounds,
                 border_radius: border_radius.into(),
                 border_width: 1.0,
-                border_color: style
-                    .background_border
-                    .unwrap_or(style.background),
+                border_color: style.background_border.unwrap_or(style.background),
             },
             style.background,
         );
 
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
-                } else {
-                    2.0 * space
-                },
+                + lerp(
+                    2.0 * space,
+                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space)),
+                    self.percent,
+                ),
             y: bounds.y + (2.0 * space),
             width: bounds.height - (4.0 * space),
             height: bounds.height - (4.0 * space),
@@ -300,25 +349,76 @@ where
                 bounds: toggler_foreground_bounds,
                 border_radius: border_radius.into(),
                 border_width: 1.0,
-                border_color: style
-                    .foreground_border
-                    .unwrap_or(style.foreground),
+                border_color: style.foreground_border.unwrap_or(style.foreground),
             },
             style.foreground,
         );
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn from(
-        toggler: Toggler<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+    fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(toggler)
     }
+}
+
+fn blend_appearances(
+    one: iced_style::toggler::Appearance,
+    mut two: iced_style::toggler::Appearance,
+    percent: f32,
+) -> iced_style::toggler::Appearance {
+    let background: [f32; 4] = one
+        .background
+        .into_linear()
+        .iter()
+        .zip(two.background.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    let border_one: Color = one.background_border.unwrap_or(color!(0, 0, 0));
+    let border_two: Color = two.background_border.unwrap_or(color!(0, 0, 0));
+    let border: [f32; 4] = border_one
+        .into_linear()
+        .iter()
+        .zip(border_two.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+    let new_border: Color = border.into();
+
+    let foreground: [f32; 4] = one
+        .foreground
+        .into_linear()
+        .iter()
+        .zip(two.foreground.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    let f_border_one: Color = one.foreground_border.unwrap_or(color!(0, 0, 0));
+    let f_border_two: Color = two.foreground_border.unwrap_or(color!(0, 0, 0));
+    let f_border: [f32; 4] = f_border_one
+        .into_linear()
+        .iter()
+        .zip(f_border_two.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+    let new_f_border: Color = f_border.into();
+
+    two.background = background.into();
+    two.background_border = Some(new_border.into());
+    two.foreground = foreground.into();
+    two.foreground_border = Some(new_f_border.into());
+    two
 }

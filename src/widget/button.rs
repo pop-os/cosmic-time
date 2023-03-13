@@ -514,7 +514,7 @@ fn blend_appearances(
     let new_background_color: Color = background_mix.into();
 
     // boarder color
-    let border_color_mix: [f32; 4] = one
+    let border_color: [f32; 4] = one
         .border_color
         .into_linear()
         .iter()
@@ -525,7 +525,7 @@ fn blend_appearances(
         .unwrap();
 
     // text
-    let text_mix: [f32; 4] = one
+    let text: [f32; 4] = one
         .text_color
         .into_linear()
         .iter()
@@ -539,7 +539,7 @@ fn blend_appearances(
     two.background = Some(new_background_color.into());
     two.border_radius = lerp(one.border_radius, two.border_radius, percent);
     two.border_width = lerp(one.border_width, two.border_width, percent);
-    two.border_color = border_color_mix.into();
-    two.text_color = text_mix.into();
+    two.border_color = border_color.into();
+    two.text_color = text.into();
     two
 }

@@ -2,7 +2,7 @@ pub mod keyframes;
 pub mod timeline;
 pub mod widget;
 
-pub use crate::keyframes::{button, container, space, style_button, style_container};
+pub use crate::keyframes::{button, container, space, style_button, style_container, toggler};
 pub use crate::timeline::Timeline;
 
 const PI: f32 = std::f32::consts::PI;

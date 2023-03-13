@@ -22,6 +22,22 @@ impl std::default::Default for Timeline {
     }
 }
 
+pub struct Chain<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> {
+    pub id: widget::Id,
+    pub repeat: Repeat,
+    links: Vec<T>,
+}
+
+impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
+    pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
+        Chain { id, repeat, links }
+    }
+
+    fn into_iter(self) -> impl Iterator<Item = T> {
+        self.links.into_iter()
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Pending {
     id: widget::Id,
@@ -72,22 +88,6 @@ impl Meta {
             end,
             length,
         }
-    }
-}
-
-pub struct Chain<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> {
-    pub id: widget::Id,
-    pub repeat: Repeat,
-    links: Vec<T>,
-}
-
-impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
-    pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
-        Chain { id, repeat, links }
-    }
-
-    fn into_iter(self) -> impl Iterator<Item = T> {
-        self.links.into_iter()
     }
 }
 
@@ -279,8 +279,7 @@ impl Timeline {
                             acc.value,
                             modifier.value,
                             modifier.ease.tween(elapsed / duration),
-                        )
-                        .round();
+                        );
 
                         return Some(Interped {
                             previous,
