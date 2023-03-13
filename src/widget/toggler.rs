@@ -8,7 +8,7 @@ use iced_native::text;
 use iced_native::time::Duration;
 use iced_native::widget::{self, Row, Text, Tree};
 use iced_native::{
-    color, Alignment, Background, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
+    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
     Rectangle, Shell, Widget,
 };
 
@@ -417,8 +417,8 @@ fn blend_appearances(
     let new_f_border: Color = f_border.into();
 
     two.background = background.into();
-    two.background_border = Some(new_border.into());
+    two.background_border = Some(new_border);
     two.foreground = foreground.into();
-    two.foreground_border = Some(new_f_border.into());
+    two.foreground_border = Some(new_f_border);
     two
 }
