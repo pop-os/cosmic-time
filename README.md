@@ -10,7 +10,7 @@ TODOs before release:
 - [x] add button widget
 - [x] add row widget
 - [x] add column widget
-- [ ] add toggle button widget
+- [x] add toggle button widget
 - [x] Use iced 0.8
 - [x] use iced 0.8's framerate subscription
 - [x] Add logic for different animation Ease values
