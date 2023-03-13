@@ -157,10 +157,11 @@ impl Timeline {
     }
 
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
-    pub fn set_chain<T>(&mut self, chain: Chain<T>) -> &mut Self
+    pub fn set_chain<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
     where
         T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
     {
+        let chain: Chain<T> = chain.into();
         let id = chain.id.clone();
         let repeat = chain.repeat;
         let mut tracks: Vec<Vec<DurFrame>> = Vec::new();

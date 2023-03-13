@@ -66,13 +66,11 @@ impl Application for Stopwatch {
                     self.state = State::Ticking {
                         last_tick: Instant::now(),
                     };
-                    self.timeline
-                        .set_chain(anim_to_destructive().into())
-                        .start();
+                    self.timeline.set_chain(anim_to_destructive()).start();
                 }
                 State::Ticking { .. } => {
                     self.state = State::Idle;
-                    self.timeline.set_chain(anim_to_primary().into()).start();
+                    self.timeline.set_chain(anim_to_primary()).start();
                 }
             },
             Message::Tick(now) => {

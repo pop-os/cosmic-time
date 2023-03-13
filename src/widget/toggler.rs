@@ -8,8 +8,8 @@ use iced_native::text;
 use iced_native::time::Duration;
 use iced_native::widget::{self, Row, Text, Tree};
 use iced_native::{
-    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Widget,
+    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Widget,
 };
 
 use crate::keyframes::{self, toggler::Chain};

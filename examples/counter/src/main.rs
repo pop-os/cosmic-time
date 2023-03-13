@@ -83,7 +83,7 @@ impl Application for Counter {
         // cosmic-time assumes that the timeline is continuous. Try deleting it,
         // the height will animate smoothly from 300 to 150 right through keyframe `four`!
 
-        timeline.set_chain(animation.into()).start();
+        timeline.set_chain(animation).start();
         // `Start` is very important! Your animation won't "start" without it.
         // Cosmic-time tries to be atomic, meaning that keyframes defined in the
         // same function call all start at the same time. Because there is process time

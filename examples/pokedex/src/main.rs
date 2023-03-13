@@ -271,7 +271,7 @@ impl Pokemon {
             .loop_forever();
 
         // println!("Animating wth ease: {ease:?}"); // Uncomment to see the type of easing
-        timeline.set_chain(animation.into()).start();
+        timeline.set_chain(animation).start();
 
         Ok(Pokemon {
             timeline,
