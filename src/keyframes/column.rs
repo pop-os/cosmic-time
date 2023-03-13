@@ -1,6 +1,5 @@
 use iced_native::{widget, Element, Length, Padding, Pixels};
-
-use std::time::{Duration, Instant};
+use iced_native::time::Duration;
 
 use crate::keyframes::{get_length, Repeat, as_f32};
 use crate::timeline::DurFrame;

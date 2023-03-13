@@ -1,6 +1,5 @@
+use iced_native::time::Duration;
 use iced_native::widget;
-
-use std::time::{Duration, Instant};
 
 use crate::keyframes::Repeat;
 use crate::timeline::DurFrame;
@@ -103,11 +102,9 @@ impl Toggler {
         Renderer::Theme: widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
     {
-        let now = Instant::now();
-
         crate::widget::Toggler::new(id.clone(), label, is_toggled, f).percent(
             timeline
-                .get(&id.into(), &now, 0)
+                .get(&id.into(), 0)
                 .map(|m| m.value)
                 .unwrap_or(if is_toggled { 1.0 } else { 0.0 }),
         )

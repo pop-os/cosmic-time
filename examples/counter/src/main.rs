@@ -1,9 +1,9 @@
 use iced::widget::{button, column, text};
 use iced::{
-    executor, Alignment, Application, Command, Element, Event, Length, Settings, Subscription,
-    Theme,
+    executor,
+    time::{Duration, Instant},
+    Alignment, Application, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
-use std::time::Duration;
 
 use cosmic_time::{self, keyframes, Timeline};
 
@@ -24,7 +24,7 @@ struct Counter {
 enum Message {
     IncrementPressed,
     DecrementPressed,
-    Tick,
+    Tick(Instant),
 }
 
 impl Application for Counter {
@@ -105,9 +105,7 @@ impl Application for Counter {
         // at what timeline you have built and decides for you how often your
         // application should redraw for you! When the animation is done idle
         // or finished, cosmic-time will keep your applicaiton idle!
-        self.timeline
-            .as_subscription::<Event>()
-            .map(|_| Message::Tick)
+        self.timeline.as_subscription::<Event>().map(Message::Tick)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -118,7 +116,7 @@ impl Application for Counter {
             Message::DecrementPressed => {
                 self.value -= 1;
             }
-            Message::Tick => {}
+            Message::Tick(now) => self.timeline.now(now),
         }
         Command::none()
     }

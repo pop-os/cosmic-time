@@ -76,6 +76,7 @@ impl Application for Stopwatch {
                 }
             },
             Message::Tick(now) => {
+                self.timeline.now(now);
                 if let State::Ticking { last_tick } = &mut self.state {
                     self.duration += now - *last_tick;
                     *last_tick = now;

@@ -1,7 +1,6 @@
+use iced_native::time::Duration;
 use iced_native::{widget, Element, Length, Padding};
 use iced_style::button::StyleSheet;
-
-use std::time::{Duration, Instant};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{DurFrame, Interped};
@@ -111,16 +110,15 @@ impl StyleButton {
         Renderer::Theme: widget::button::StyleSheet,
     {
         let id: widget::Id = id.into();
-        let now = Instant::now();
 
         let button = crate::widget::Button::new(content)
-            .width(get_length(&id, timeline, &now, 0, Length::Shrink))
-            .height(get_length(&id, timeline, &now, 1, Length::Shrink))
+            .width(get_length(&id, timeline, 0, Length::Shrink))
+            .height(get_length(&id, timeline, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(5.0),
-                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(5.0),
-                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(5.0),
-                timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, 2).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, 3).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, 4).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, 5).map(|m| m.value).unwrap_or(5.0),
             ]);
 
         if let Some(Interped {
@@ -128,7 +126,7 @@ impl StyleButton {
             next,
             percent,
             ..
-        }) = timeline.get(&id, &now, 6)
+        }) = timeline.get(&id, 6)
         {
             button.blend_style(style(previous as u8), style(next as u8), percent)
         } else {

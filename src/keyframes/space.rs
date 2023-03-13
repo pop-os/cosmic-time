@@ -1,6 +1,5 @@
+use iced_native::time::Duration;
 use iced_native::{widget, Length};
-
-use std::time::{Duration, Instant};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::DurFrame;
@@ -95,11 +94,10 @@ impl Space {
 
     pub fn as_widget(id: Id, timeline: &crate::Timeline) -> widget::Space {
         let id: widget::Id = id.into();
-        let now = Instant::now();
 
         widget::Space::new(
-            get_length(&id, timeline, &now, 0, Length::Shrink),
-            get_length(&id, timeline, &now, 1, Length::Shrink),
+            get_length(&id, timeline, 0, Length::Shrink),
+            get_length(&id, timeline, 1, Length::Shrink),
         )
     }
 

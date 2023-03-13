@@ -14,6 +14,9 @@ pub struct Timeline {
     tracks: HashMap<widget::Id, (Meta, Vec<Vec<SubFrame>>)>,
     // Pending keyframes. Need to call `start` to finalize start time and move into `tracks`
     pendings: Vec<Pending>,
+    // Global animation interp value. Use `timeline.now(instant)`, where instant is the value
+    // passed from the `timeline.as_subscription` value.
+    now: Instant,
 }
 
 impl std::default::Default for Timeline {
@@ -143,6 +146,7 @@ impl Timeline {
         Timeline {
             tracks: HashMap::new(),
             pendings: Vec::new(),
+            now: Instant::now(),
         }
     }
 
@@ -183,11 +187,16 @@ impl Timeline {
         self
     }
 
+    pub fn now(&mut self, now: Instant) {
+        self.now = now;
+    }
+
     pub fn start(&mut self) {
         self.start_at(Instant::now());
     }
 
     pub fn start_at(&mut self, now: Instant) {
+        self.now(now);
         for Pending {
             id,
             repeat,
@@ -217,7 +226,8 @@ impl Timeline {
         }
     }
 
-    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<Interped> {
+    pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
+        let now = &self.now;
         let (meta, mut modifier_chain) = if let Some((meta, chain)) = self.tracks.get(id) {
             if let Some(modifier_chain) = chain.get(index) {
                 (meta, modifier_chain.iter())
