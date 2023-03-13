@@ -1,6 +1,7 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
 use iced::{
+    time::{Duration, Instant},
     Alignment, Application, Color, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
@@ -9,7 +10,6 @@ use cosmic_time::{
     Quartic, Quintic, Sinusoidal, Timeline,
 };
 use once_cell::sync::Lazy;
-use std::time::Duration;
 
 static SPACE: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
 
@@ -65,7 +65,7 @@ enum Pokedex {
 enum Message {
     PokemonFound(Result<Pokemon, Error>),
     Search,
-    Tick,
+    Tick(Instant),
 }
 
 impl Application for Pokedex {
@@ -97,14 +97,19 @@ impl Application for Pokedex {
             Pokedex::Loaded { pokemon } => pokemon
                 .timeline
                 .as_subscription::<Event>()
-                .map(|_| Message::Tick),
+                .map(Message::Tick),
             _ => Subscription::none(),
         }
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Tick => Command::none(),
+            Message::Tick(now) => {
+                if let Pokedex::Loaded { pokemon, .. } = self {
+                    pokemon.timeline.now(now);
+                }
+                Command::none()
+            }
             Message::PokemonFound(Ok(pokemon)) => {
                 *self = Pokedex::Loaded { pokemon };
 
@@ -266,7 +271,7 @@ impl Pokemon {
             .loop_forever();
 
         // println!("Animating wth ease: {ease:?}"); // Uncomment to see the type of easing
-        timeline.set_chain(animation.into()).start();
+        timeline.set_chain(animation).start();
 
         Ok(Pokemon {
             timeline,

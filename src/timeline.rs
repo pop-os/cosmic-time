@@ -14,11 +14,30 @@ pub struct Timeline {
     tracks: HashMap<widget::Id, (Meta, Vec<Vec<SubFrame>>)>,
     // Pending keyframes. Need to call `start` to finalize start time and move into `tracks`
     pendings: Vec<Pending>,
+    // Global animation interp value. Use `timeline.now(instant)`, where instant is the value
+    // passed from the `timeline.as_subscription` value.
+    now: Instant,
 }
 
 impl std::default::Default for Timeline {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub struct Chain<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> {
+    pub id: widget::Id,
+    pub repeat: Repeat,
+    links: Vec<T>,
+}
+
+impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
+    pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
+        Chain { id, repeat, links }
+    }
+
+    fn into_iter(self) -> impl Iterator<Item = T> {
+        self.links.into_iter()
     }
 }
 
@@ -75,22 +94,6 @@ impl Meta {
     }
 }
 
-pub struct Chain<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> {
-    pub id: widget::Id,
-    pub repeat: Repeat,
-    links: Vec<T>,
-}
-
-impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
-    pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
-        Chain { id, repeat, links }
-    }
-
-    fn into_iter(self) -> impl Iterator<Item = T> {
-        self.links.into_iter()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SubFrame {
     pub value: f32,
@@ -143,6 +146,7 @@ impl Timeline {
         Timeline {
             tracks: HashMap::new(),
             pendings: Vec::new(),
+            now: Instant::now(),
         }
     }
 
@@ -153,10 +157,11 @@ impl Timeline {
     }
 
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
-    pub fn set_chain<T>(&mut self, chain: Chain<T>) -> &mut Self
+    pub fn set_chain<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
     where
         T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
     {
+        let chain: Chain<T> = chain.into();
         let id = chain.id.clone();
         let repeat = chain.repeat;
         let mut tracks: Vec<Vec<DurFrame>> = Vec::new();
@@ -183,11 +188,16 @@ impl Timeline {
         self
     }
 
+    pub fn now(&mut self, now: Instant) {
+        self.now = now;
+    }
+
     pub fn start(&mut self) {
         self.start_at(Instant::now());
     }
 
     pub fn start_at(&mut self, now: Instant) {
+        self.now(now);
         for Pending {
             id,
             repeat,
@@ -217,7 +227,8 @@ impl Timeline {
         }
     }
 
-    pub fn get(&self, id: &widget::Id, now: &Instant, index: usize) -> Option<Interped> {
+    pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
+        let now = &self.now;
         let (meta, mut modifier_chain) = if let Some((meta, chain)) = self.tracks.get(id) {
             if let Some(modifier_chain) = chain.get(index) {
                 (meta, modifier_chain.iter())
@@ -279,8 +290,7 @@ impl Timeline {
                             acc.value,
                             modifier.value,
                             modifier.ease.tween(elapsed / duration),
-                        )
-                        .round();
+                        );
 
                         return Some(Interped {
                             previous,

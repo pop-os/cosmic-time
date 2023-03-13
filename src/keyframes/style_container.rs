@@ -1,9 +1,8 @@
+use iced_native::time::Duration;
 use iced_native::{widget, Element, Length, Padding, Pixels};
 use iced_style::container::StyleSheet;
 
-use std::time::{Duration, Instant};
-
-use crate::keyframes::{get_length, Repeat};
+use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{DurFrame, Interped};
 use crate::{Ease, Linear};
 
@@ -115,26 +114,25 @@ impl StyleContainer {
         Renderer::Theme: widget::container::StyleSheet,
     {
         let id: widget::Id = id.into();
-        let now = Instant::now();
 
         let container = crate::widget::Container::new(content)
-            .width(get_length(&id, timeline, &now, 0, Length::Shrink))
-            .height(get_length(&id, timeline, &now, 1, Length::Shrink))
+            .width(get_length(&id, timeline, 0, Length::Shrink))
+            .height(get_length(&id, timeline, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 5).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 3).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 4).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 5).map(|m| m.value).unwrap_or(0.),
             ])
             .max_width(
                 timeline
-                    .get(&id, &now, 6)
+                    .get(&id, 6)
                     .map(|m| m.value)
                     .unwrap_or(f32::INFINITY),
             )
             .max_height(
                 timeline
-                    .get(&id, &now, 7)
+                    .get(&id, 7)
                     .map(|m| m.value)
                     .unwrap_or(f32::INFINITY),
             );
@@ -144,7 +142,7 @@ impl StyleContainer {
             next,
             percent,
             ..
-        }) = timeline.get(&id, &now, 8)
+        }) = timeline.get(&id, 8)
         {
             container.blend_style(style(previous as u8), style(next as u8), percent)
         } else {
@@ -238,12 +236,5 @@ impl Iterator for StyleContainer {
 impl ExactSizeIterator for StyleContainer {
     fn len(&self) -> usize {
         9 - self.index
-    }
-}
-
-fn as_f32(length: Option<Length>) -> Option<f32> {
-    match length {
-        Some(Length::Fixed(i)) => Some(i),
-        _ => None,
     }
 }

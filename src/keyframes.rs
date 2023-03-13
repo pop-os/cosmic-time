@@ -3,6 +3,7 @@ pub mod container;
 pub mod space;
 pub mod style_button;
 pub mod style_container;
+pub mod toggler;
 
 use iced_native::{widget, Length};
 
@@ -11,8 +12,7 @@ pub use container::Container;
 pub use space::Space;
 pub use style_button::StyleButton;
 pub use style_container::StyleContainer;
-
-use std::time::Instant;
+pub use toggler::Toggler;
 
 use crate::Timeline;
 
@@ -27,15 +27,16 @@ pub trait IsChain {
     fn repeat(&self) -> Repeat;
 }
 
-pub fn get_length(
-    id: &widget::Id,
-    timeline: &Timeline,
-    now: &Instant,
-    index: usize,
-    default: Length,
-) -> Length {
+pub fn get_length(id: &widget::Id, timeline: &Timeline, index: usize, default: Length) -> Length {
     timeline
-        .get(id, now, index)
+        .get(id, index)
         .map(|m| Length::Fixed(m.value))
         .unwrap_or(default)
+}
+
+fn as_f32(length: Option<Length>) -> Option<f32> {
+    match length {
+        Some(Length::Fixed(i)) => Some(i),
+        _ => None,
+    }
 }

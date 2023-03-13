@@ -1,11 +1,11 @@
 use iced_native::time::Duration;
-use iced_native::{widget, Length};
+use iced_native::widget;
 
-use crate::keyframes::{as_f32, get_length, Repeat};
+use crate::keyframes::Repeat;
 use crate::timeline::DurFrame;
 use crate::{Ease, Linear};
 
-/// A Space's animation Id. Used for linking animation built in `update()` with widget output in `view()`
+/// A Toggler's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(iced_native::widget::Id);
 
@@ -29,10 +29,10 @@ impl From<Id> for widget::Id {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chain {
     id: Id,
-    links: Vec<Space>,
+    links: Vec<Toggler>,
     repeat: Repeat,
 }
 
@@ -45,8 +45,8 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, space: Space) -> Self {
-        self.links.push(space);
+    pub fn link(mut self, toggler: Toggler) -> Self {
+        self.links.push(toggler);
         self
     }
 
@@ -64,7 +64,7 @@ impl Chain {
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
     T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Space>>,
+    Vec<T>: From<Vec<Toggler>>,
 {
     fn from(chain: Chain) -> Self {
         crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
@@ -72,42 +72,46 @@ where
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
-#[derive(Debug)]
-pub struct Space {
+#[derive(Debug, Clone)]
+pub struct Toggler {
     index: usize,
     at: Duration,
     ease: Ease,
-    width: Option<Length>,
-    height: Option<Length>,
+    percent: f32,
 }
 
-impl Space {
-    pub fn new(at: Duration) -> Self {
-        Space {
+impl Toggler {
+    pub fn new(at: Duration) -> Toggler {
+        Toggler {
             index: 0,
             at,
             ease: Linear::InOut.into(),
-            width: None,
-            height: None,
+            percent: 1.0,
         }
     }
 
-    pub fn as_widget(id: Id, timeline: &crate::Timeline) -> widget::Space {
-        let id: widget::Id = id.into();
-
-        widget::Space::new(
-            get_length(&id, timeline, 0, Length::Shrink),
-            get_length(&id, timeline, 1, Length::Shrink),
+    pub fn as_widget<'a, Message, Renderer, F>(
+        id: Id,
+        timeline: &crate::Timeline,
+        label: impl Into<Option<String>>,
+        is_toggled: bool,
+        f: F,
+    ) -> crate::widget::Toggler<'a, Message, Renderer>
+    where
+        Renderer: iced_native::Renderer + iced_native::text::Renderer,
+        Renderer::Theme: widget::toggler::StyleSheet,
+        F: 'a + Fn(Chain, bool) -> Message,
+    {
+        crate::widget::Toggler::new(id.clone(), label, is_toggled, f).percent(
+            timeline
+                .get(&id.into(), 0)
+                .map(|m| m.value)
+                .unwrap_or(if is_toggled { 1.0 } else { 0.0 }),
         )
     }
 
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = Some(width);
-        self
-    }
-
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = Some(height);
+    pub fn percent(mut self, percent: f32) -> Self {
+        self.percent = percent;
         self
     }
 
@@ -117,23 +121,21 @@ impl Space {
     }
 }
 
-// 0 = width
-// 1 = height
-impl Iterator for Space {
+// 0 = animation percent completion
+impl Iterator for Toggler {
     type Item = Option<DurFrame>;
 
     fn next(&mut self) -> Option<Option<DurFrame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
+            0 => Some(Some(DurFrame::new(self.at, self.percent, self.ease))),
             _ => None,
         }
     }
 }
 
-impl ExactSizeIterator for Space {
+impl ExactSizeIterator for Toggler {
     fn len(&self) -> usize {
-        6 - self.index
+        1 - self.index
     }
 }

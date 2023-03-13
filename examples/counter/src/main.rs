@@ -1,9 +1,9 @@
 use iced::widget::{button, column, text};
 use iced::{
-    executor, Alignment, Application, Command, Element, Event, Length, Settings, Subscription,
-    Theme,
+    executor,
+    time::{Duration, Instant},
+    Alignment, Application, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
-use std::time::Duration;
 
 use cosmic_time::{self, keyframes, Timeline};
 
@@ -24,7 +24,7 @@ struct Counter {
 enum Message {
     IncrementPressed,
     DecrementPressed,
-    Tick,
+    Tick(Instant),
 }
 
 impl Application for Counter {
@@ -83,7 +83,7 @@ impl Application for Counter {
         // cosmic-time assumes that the timeline is continuous. Try deleting it,
         // the height will animate smoothly from 300 to 150 right through keyframe `four`!
 
-        timeline.set_chain(animation.into()).start();
+        timeline.set_chain(animation).start();
         // `Start` is very important! Your animation won't "start" without it.
         // Cosmic-time tries to be atomic, meaning that keyframes defined in the
         // same function call all start at the same time. Because there is process time
@@ -105,9 +105,7 @@ impl Application for Counter {
         // at what timeline you have built and decides for you how often your
         // application should redraw for you! When the animation is done idle
         // or finished, cosmic-time will keep your applicaiton idle!
-        self.timeline
-            .as_subscription::<Event>()
-            .map(|_| Message::Tick)
+        self.timeline.as_subscription::<Event>().map(Message::Tick)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -118,7 +116,7 @@ impl Application for Counter {
             Message::DecrementPressed => {
                 self.value -= 1;
             }
-            Message::Tick => {}
+            Message::Tick(now) => self.timeline.now(now),
         }
         Command::none()
     }
