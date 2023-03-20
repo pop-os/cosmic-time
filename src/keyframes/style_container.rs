@@ -180,7 +180,8 @@ impl StyleContainer {
         self
     }
 
-    pub fn style(mut self, style: u8) -> Self {
+    pub fn style(mut self, style: impl Into<u8>) -> Self {
+        let style = style.into();
         self.style = Some(style);
         self
     }

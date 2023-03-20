@@ -13,17 +13,6 @@ use once_cell::sync::Lazy;
 
 static SPACE: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
 
-//Linear,
-//Quadratic,
-//Cubic,
-//Quartic,
-//Quintic,
-//Sinusoidal,
-//Exponential,
-//Circular,
-//Elastic,
-//Back,
-//Bounce
 const EASE_IN: [Ease; 10] = [
     Ease::Linear(Linear::InOut),
     Ease::Quadratic(Quadratic::In),

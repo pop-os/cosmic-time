@@ -97,7 +97,7 @@ impl Application for Counter {
     }
 
     fn title(&self) -> String {
-        String::from("Counter - Iced")
+        String::from("Counter - Cosmic-Time")
     }
 
     fn subscription(&self) -> Subscription<Message> {

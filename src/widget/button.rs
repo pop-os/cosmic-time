@@ -398,7 +398,7 @@ where
                 if state.is_pressed {
                     (style_sheet.pressed(style1), style_sheet.pressed(style2))
                 } else {
-                    (style_sheet.hovered(style1), style_sheet.pressed(style2))
+                    (style_sheet.hovered(style1), style_sheet.hovered(style2))
                 }
             } else {
                 (style_sheet.active(style1), style_sheet.active(style2))
