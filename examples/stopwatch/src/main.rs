@@ -1,18 +1,22 @@
 use iced::alignment;
 use iced::executor;
-use iced::theme::{self, Theme};
-use iced::time;
-use iced::widget::{button, column, container, row, text};
-use iced::{Alignment, Application, Command, Element, Event, Length, Settings, Subscription};
+use iced::widget::{button, column, row, text};
+use iced::{Alignment, Application, Command, Event, Length, Settings, Subscription};
+
+mod theme;
+use self::widget::Element;
+use theme::Theme;
 
 use cosmic_time::{
     self,
     style_button::{self, StyleButton},
-    Timeline,
+    style_container::{self, StyleContainer},
+    Sinusoidal, Timeline,
 };
 use once_cell::sync::Lazy;
 
 static BUTTON: Lazy<style_button::Id> = Lazy::new(style_button::Id::unique);
+static CONTAINER: Lazy<style_container::Id> = Lazy::new(style_container::Id::unique);
 
 use std::time::{Duration, Instant};
 
@@ -45,9 +49,11 @@ impl Application for Stopwatch {
     type Flags = ();
 
     fn new(_flags: ()) -> (Stopwatch, Command<Message>) {
+        let mut timeline = Timeline::new();
+        timeline.set_chain_paused(anim_background()).start();
         (
             Stopwatch {
-                timeline: Timeline::new(),
+                timeline,
                 duration: Duration::default(),
                 state: State::Idle,
             },
@@ -56,7 +62,7 @@ impl Application for Stopwatch {
     }
 
     fn title(&self) -> String {
-        String::from("Stopwatch - Iced")
+        String::from("Stopwatch - Cosmic-Time")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -66,11 +72,17 @@ impl Application for Stopwatch {
                     self.state = State::Ticking {
                         last_tick: Instant::now(),
                     };
-                    self.timeline.set_chain(anim_to_destructive()).start();
+                    self.timeline
+                        .set_chain(anim_to_destructive())
+                        .resume(CONTAINER.clone())
+                        .start();
                 }
                 State::Ticking { .. } => {
                     self.state = State::Idle;
-                    self.timeline.set_chain(anim_to_primary()).start();
+                    self.timeline
+                        .set_chain(anim_to_primary())
+                        .pause(CONTAINER.clone())
+                        .start();
                 }
             },
             Message::Tick(now) => {
@@ -82,6 +94,10 @@ impl Application for Stopwatch {
             }
             Message::Reset => {
                 self.duration = Duration::default();
+                match self.state {
+                    State::Idle => self.timeline.set_chain_paused(anim_background()).start(),
+                    State::Ticking { .. } => self.timeline.set_chain(anim_background()).start(),
+                }
             }
         }
 
@@ -89,13 +105,7 @@ impl Application for Stopwatch {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch(vec![
-            match self.state {
-                State::Idle => Subscription::none(),
-                State::Ticking { .. } => time::every(Duration::from_millis(10)).map(Message::Tick),
-            },
-            self.timeline.as_subscription::<Event>().map(Message::Tick),
-        ])
+        self.timeline.as_subscription::<Event>().map(Message::Tick)
     }
 
     fn view(&self) -> Element<Message> {
@@ -156,31 +166,73 @@ impl Application for Stopwatch {
             .align_items(Alignment::Center)
             .spacing(20);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        StyleContainer::as_widget(
+            CONTAINER.clone(),
+            // Cool! Because we implemented the function on our custom, theme's type, adding
+            // the map argument is easy!
+            theme::Container::map(),
+            &self.timeline,
+            content,
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
+        .center_y()
+        .into()
     }
 }
 
 fn anim_to_primary() -> style_button::Chain {
     style_button::Chain::new(BUTTON.clone())
-        .link(StyleButton::new(Duration::ZERO).style(as_u8(theme::Button::Destructive)))
-        .link(StyleButton::new(Duration::from_millis(500)).style(as_u8(theme::Button::Primary)))
+        .link(StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Destructive)))
+        .link(StyleButton::new(Duration::from_millis(500)).style(button_u8(theme::Button::Primary)))
 }
 
 fn anim_to_destructive() -> style_button::Chain {
     style_button::Chain::new(BUTTON.clone())
-        .link(StyleButton::new(Duration::ZERO).style(as_u8(theme::Button::Primary)))
-        .link(StyleButton::new(Duration::from_millis(500)).style(as_u8(theme::Button::Destructive)))
+        .link(StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Primary)))
+        .link(
+            StyleButton::new(Duration::from_millis(500))
+                .style(button_u8(theme::Button::Destructive)),
+        )
+}
+
+fn anim_background() -> style_container::Chain {
+    style_container::Chain::new(CONTAINER.clone())
+        .link(StyleContainer::new(Duration::ZERO).style(theme::Container::Red))
+        .link(
+            StyleContainer::new(Duration::from_secs(1))
+                // Notice how we can just pass the enum value here, where in the `anim_to_primary/destructive`
+                // we have to use the fucntion `button_u8`? Because we use a implemented a custom iced theme,
+                // we can just impl Into<u8> on the enum, and it works here!
+                .style(theme::Container::Green)
+                .ease(Sinusoidal::In),
+        )
+        .link(
+            StyleContainer::new(Duration::from_secs(2))
+                .style(theme::Container::Blue)
+                .ease(Sinusoidal::In),
+        )
+        .link(
+            StyleContainer::new(Duration::from_secs(3))
+                .style(theme::Container::Red)
+                .ease(Sinusoidal::In),
+        )
+        .loop_forever()
 }
 
 // Style implementations
 
+// Here the button example uses Iced's default theme
+// enum. So we have to have some helper functions to make it work.
+// we also have another closture, `buttons`, in `fn view()`
+//
+// For themining reasons, this actually isn't iced's default
+// button theme, but the implementation here for button is what you
+// would have to do to use the iced type in your project.
+
 // the enum's default must be 0
-fn as_u8(style: theme::Button) -> u8 {
+fn button_u8(style: theme::Button) -> u8 {
     match style {
         theme::Button::Primary => 0,
         theme::Button::Secondary => 1,
@@ -189,4 +241,41 @@ fn as_u8(style: theme::Button) -> u8 {
         theme::Button::Text => 4,
         _ => panic!("Custom is not supported"),
     }
+}
+
+// But! if we are useing a custom theme then
+// the code cleans up quite a bit.
+
+impl From<theme::Container> for u8 {
+    fn from(style: theme::Container) -> Self {
+        match style {
+            theme::Container::White => 0,
+            theme::Container::Red => 1,
+            theme::Container::Green => 2,
+            theme::Container::Blue => 3,
+        }
+    }
+}
+
+impl theme::Container {
+    fn map() -> fn(u8) -> theme::Container {
+        |i: u8| match i {
+            0 => theme::Container::White,
+            1 => theme::Container::Red,
+            2 => theme::Container::Green,
+            3 => theme::Container::Blue,
+            _ => panic!("Impossible"),
+        }
+    }
+}
+
+// Just for themeing, not a part of this example.
+mod widget {
+    #![allow(dead_code)]
+    use crate::theme::Theme;
+
+    pub type Renderer = iced::Renderer<Theme>;
+    pub type Element<'a, Message> = iced::Element<'a, Message, Renderer>;
+    pub type Container<'a, Message> = iced::widget::Container<'a, Message, Renderer>;
+    pub type Button<'a, Message> = iced::widget::Button<'a, Message, Renderer>;
 }

@@ -17,7 +17,7 @@ TODOs before release:
 - [ ] Documentation
 - [ ] Add `Cosmic` cargo feature for compatibility with both iced and System76's temporary fork.
 - [x] optimize for `as_subscription` logic
-- [ ] Add pause for looping animations
+- [x] Add pause for animations
 
 Other TODOs:
 - [x] test for easing

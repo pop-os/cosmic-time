@@ -42,15 +42,36 @@ impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
 }
 
 #[derive(Debug, Clone)]
-struct Pending {
+enum Pending {
+    Chain(PendingChain),
+    Pause(widget::Id),
+    Resume(widget::Id),
+    PauseAll,
+    ResumeAll,
+}
+
+#[derive(Debug, Clone)]
+struct PendingChain {
     id: widget::Id,
     repeat: Repeat,
     tracks: Vec<Vec<DurFrame>>,
+    pause: Pause,
 }
 
-impl Pending {
-    pub fn new(id: widget::Id, repeat: Repeat, tracks: Vec<Vec<DurFrame>>) -> Self {
-        Pending { id, repeat, tracks }
+impl PendingChain {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(
+        id: widget::Id,
+        repeat: Repeat,
+        tracks: Vec<Vec<DurFrame>>,
+        pause: Pause,
+    ) -> Pending {
+        Pending::Chain(PendingChain {
+            id,
+            repeat,
+            tracks,
+            pause,
+        })
     }
 }
 
@@ -81,16 +102,55 @@ pub struct Meta {
     pub start: Instant,
     pub end: Instant,
     pub length: Duration,
+    pub pause: Pause,
 }
 
 impl Meta {
-    pub fn new(repeat: Repeat, start: Instant, end: Instant, length: Duration) -> Self {
+    pub fn new(
+        repeat: Repeat,
+        start: Instant,
+        end: Instant,
+        length: Duration,
+        pause: Pause,
+    ) -> Self {
         Meta {
             repeat,
             start,
             end,
             length,
+            pause,
         }
+    }
+
+    pub fn pause(&mut self, now: Instant) {
+        if let Pause::Resumed(delay) = self.pause {
+            self.pause = Pause::Paused(relative_time(&(now - delay), self));
+        } else {
+            self.pause = Pause::Paused(relative_time(&now, self));
+        }
+    }
+
+    pub fn resume(&mut self, now: Instant) {
+        if let Pause::Paused(start) = self.pause {
+            self.pause = Pause::Resumed(now - start);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Pause {
+    // Currently paused, with the relative instant into the animation it was paused at.
+    Paused(Instant),
+    // Has never been paused
+    NoPause,
+    // The animation was paused, but no longer. The duration is required for the
+    // offset of the animation.
+    Resumed(Duration),
+}
+
+impl Pause {
+    pub fn is_playing(&self) -> bool {
+        !matches!(self, Pause::Paused(_))
     }
 }
 
@@ -156,8 +216,44 @@ impl Timeline {
         self.pendings = Vec::new();
     }
 
-    /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
+    pub fn pause(&mut self, id: impl Into<widget::Id>) -> &mut Self {
+        let id = id.into();
+        self.pendings.push(Pending::Pause(id));
+        self
+    }
+
+    pub fn resume(&mut self, id: impl Into<widget::Id>) -> &mut Self {
+        let id = id.into();
+        self.pendings.push(Pending::Resume(id));
+        self
+    }
+
+    pub fn pause_all(&mut self) -> &mut Self {
+        self.pendings.push(Pending::PauseAll);
+        self
+    }
+
+    pub fn resume_all(&mut self) -> &mut Self {
+        self.pendings.push(Pending::ResumeAll);
+        self
+    }
+
     pub fn set_chain<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
+    where
+        T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+    {
+        self.set_chain_with_options(chain, Pause::NoPause)
+    }
+
+    pub fn set_chain_paused<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
+    where
+        T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+    {
+        self.set_chain_with_options(chain, Pause::Paused(Instant::now()))
+    }
+
+    /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
+    fn set_chain_with_options<T>(&mut self, chain: impl Into<Chain<T>>, pause: Pause) -> &mut Self
     where
         T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
     {
@@ -184,7 +280,14 @@ impl Timeline {
             }
         }
 
-        self.pendings.push(Pending::new(id, repeat, tracks));
+        self.pendings
+            .push(PendingChain::new(id, repeat, tracks, pause));
+        self
+    }
+
+    pub fn clear_chain(&mut self, id: impl Into<widget::Id>) -> &mut Self {
+        let id = id.into();
+        let _ = self.tracks.remove(&id);
         self
     }
 
@@ -198,40 +301,68 @@ impl Timeline {
 
     pub fn start_at(&mut self, now: Instant) {
         self.now(now);
-        for Pending {
-            id,
-            repeat,
-            mut tracks,
-        } in self.pendings.drain(0..)
-        {
-            let mut end = now;
-            let tracks: Vec<Vec<SubFrame>> = tracks
-                .iter_mut()
-                .map(|track| {
-                    track
-                        .iter_mut()
-                        .inspect(
-                            |DurFrame {
-                                 duration,
-                                 value: _,
-                                 ease: _,
-                             }| end = end.max(now + *duration),
-                        )
-                        .map(|durframe| durframe.to_subframe(now))
-                        .collect()
-                })
-                .collect();
+        for pending in self.pendings.drain(0..) {
+            match pending {
+                Pending::Chain(PendingChain {
+                    id,
+                    repeat,
+                    mut tracks,
+                    pause,
+                }) => {
+                    let mut end = now;
+                    // The time that the chain was `set_chain_paused` is not
+                    // necessaritly the same as the atomic pause time used here.
+                    // Fix that here.
+                    let pause = if let Pause::Paused(_instant) = pause {
+                        Pause::Paused(now)
+                    } else {
+                        pause
+                    };
 
-            let meta = Meta::new(repeat, now, end, end - now);
-            let _ = self.tracks.insert(id, (meta, tracks));
+                    let tracks: Vec<Vec<SubFrame>> = tracks
+                        .iter_mut()
+                        .map(|track| {
+                            track
+                                .iter_mut()
+                                .inspect(|durframe| end = end.max(now + durframe.duration))
+                                .map(|durframe| durframe.to_subframe(now))
+                                .collect()
+                        })
+                        .collect();
+
+                    let meta = Meta::new(repeat, now, end, end - now, pause);
+                    let _ = self.tracks.insert(id, (meta, tracks));
+                }
+                Pending::Pause(id) => {
+                    if let Some((meta, _track)) = self.tracks.get_mut(&id) {
+                        meta.pause(now);
+                    }
+                }
+                Pending::Resume(id) => {
+                    if let Some((meta, _track)) = self.tracks.get_mut(&id) {
+                        meta.resume(now);
+                    }
+                }
+                Pending::PauseAll => {
+                    for (meta, _track) in self.tracks.values_mut() {
+                        meta.pause(now);
+                    }
+                }
+                Pending::ResumeAll => {
+                    for (meta, _track) in self.tracks.values_mut() {
+                        meta.resume(now);
+                    }
+                }
+            }
         }
     }
 
     pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
         let now = &self.now;
-        let (meta, mut modifier_chain) = if let Some((meta, chain)) = self.tracks.get(id) {
-            if let Some(modifier_chain) = chain.get(index) {
-                (meta, modifier_chain.iter())
+        // Get requested modifier_timeline or skip
+        let (meta, mut modifier_timeline) = if let Some((meta, chain)) = self.tracks.get(id) {
+            if let Some(modifier_timeline) = chain.get(index) {
+                (meta, modifier_timeline.iter())
             } else {
                 return None;
             }
@@ -239,47 +370,39 @@ impl Timeline {
             return None;
         };
 
+        let relative_now = match meta.pause {
+            Pause::NoPause => relative_time(now, meta),
+            Pause::Resumed(delay) => relative_time(&(*now - delay), meta),
+            Pause::Paused(time) => relative_time(&time, meta),
+        };
+
+        // Loop through modifier_timeline, returning the interpolated value if possible.
         let mut accumulator: Option<&SubFrame> = None;
         loop {
-            match (accumulator, modifier_chain.next()) {
+            match (accumulator, modifier_timeline.next()) {
                 (None, Some(modifier)) => {
-                    let relative_now = if meta.repeat == Repeat::Forever {
-                        let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
-                        let reduce_by = repeat_num * meta.length.as_millis();
-                        now.checked_sub(Duration::from_millis(
-                            reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap(),
-                        ))
-                        .expect("Your animatiion has been runnning for 5.84x10^6 centuries.")
-                    } else {
-                        *now
-                    };
+                    // Found first element in timeline
                     if modifier.at <= relative_now {
                         accumulator = Some(modifier)
                     }
                 }
-                (None, None) => return None,
+                (None, None) => return None, // No elements in timeline
                 (Some(acc), None) => {
+                    // Accumulator found in previous loop, but no greater value. Means animation duration has expired.
                     return Some(Interped {
                         previous: acc.value,
                         next: acc.value,
                         percent: 1.0,
                         value: acc.value,
-                    })
+                    });
                 }
                 (Some(acc), Some(modifier)) => {
-                    let relative_now = if meta.repeat == Repeat::Forever {
-                        let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
-                        let reduce_by = repeat_num * meta.length.as_millis();
-                        now.checked_sub(Duration::from_millis(
-                            reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap(),
-                        ))
-                        .expect("Your animatiion has been runnning for 5.84x10^6 centuries.")
-                    } else {
-                        *now
-                    };
+                    // Found accumulator in middle-ish of timeline
                     if relative_now >= modifier.at || acc.value == modifier.value {
+                        // Can not interpolate between this one and next value?
                         accumulator = Some(modifier);
                     } else {
+                        // Can interpolate between these two, thus calculate and return that value.
                         let elapsed = relative_now.duration_since(acc.at).as_millis() as f32;
                         let duration = (modifier.at - acc.at).as_millis() as f32;
 
@@ -308,15 +431,30 @@ impl Timeline {
         &self,
     ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
     {
-        let now = Instant::now();
-        if self
-            .tracks
-            .values()
-            .any(|track| track.0.repeat == Repeat::Forever || track.0.end >= now)
-        {
+        let now = self.now;
+        if self.tracks.values().any(|track| {
+            (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
+                || (track.0.end >= now && track.0.pause.is_playing())
+        }) {
             iced::window::frames()
         } else {
             Subscription::none()
         }
+    }
+}
+
+// Used for animations that loop.
+// Given the current `Instant`, it returns the relative instant in the animation that
+// corresponds with the first loop of the animation.
+fn relative_time(now: &Instant, meta: &Meta) -> Instant {
+    if meta.repeat == Repeat::Never {
+        *now
+    } else {
+        let repeat_num = (*now - meta.start).as_millis() / meta.length.as_millis();
+        let reduce_by = repeat_num * meta.length.as_millis();
+        now.checked_sub(Duration::from_millis(
+            reduce_by.clamp(0, u64::MAX.into()).try_into().unwrap(),
+        ))
+        .expect("Your animatiion has been runnning for 5.84x10^6 centuries.")
     }
 }
