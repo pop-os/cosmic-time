@@ -150,7 +150,7 @@ pub enum Pause {
 
 impl Pause {
     pub fn is_playing(&self) -> bool {
-      !matches!(self, Pause::Paused(_))
+        !matches!(self, Pause::Paused(_))
     }
 }
 

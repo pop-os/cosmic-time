@@ -201,7 +201,7 @@ fn anim_background() -> style_container::Chain {
     style_container::Chain::new(CONTAINER.clone())
         .link(StyleContainer::new(Duration::ZERO).style(theme::Container::Red))
         .link(
-            StyleContainer::new(Duration::from_secs(3))
+            StyleContainer::new(Duration::from_secs(1))
                 // Notice how we can just pass the enum value here, where in the `anim_to_primary/destructive`
                 // we have to use the fucntion `button_u8`? Because we use a implemented a custom iced theme,
                 // we can just impl Into<u8> on the enum, and it works here!
@@ -209,12 +209,12 @@ fn anim_background() -> style_container::Chain {
                 .ease(Sinusoidal::In),
         )
         .link(
-            StyleContainer::new(Duration::from_secs(6))
+            StyleContainer::new(Duration::from_secs(2))
                 .style(theme::Container::Blue)
                 .ease(Sinusoidal::In),
         )
         .link(
-            StyleContainer::new(Duration::from_secs(9))
+            StyleContainer::new(Duration::from_secs(3))
                 .style(theme::Container::Red)
                 .ease(Sinusoidal::In),
         )
