@@ -8,10 +8,9 @@
  *
  */
 
-use iced::theme::palette::{self, Background};
 use iced::widget::{button, container, text};
 use iced::Background as B;
-use iced::{application, color, Color, Vector};
+use iced::{application, color, Vector};
 
 #[derive(Default)]
 pub struct Theme;
@@ -76,6 +75,7 @@ impl container::StyleSheet for Theme {
 }
 
 #[derive(Default)]
+#[allow(dead_code)]
 pub enum Button {
     #[default]
     Primary,
@@ -98,7 +98,6 @@ impl button::StyleSheet for Theme {
                 border_width: 10.0,
                 shadow_offset: Vector::new(3., 3.),
                 border_color: color!(0x25, 0x63, 0xeb),
-                ..Default::default()
             },
             Button::Secondary => button::Appearance {
                 background: color!(0x3c, 0x38, 0x36).into(),
@@ -114,7 +113,6 @@ impl button::StyleSheet for Theme {
                 shadow_offset: Vector::new(5., 5.),
                 border_color: color!(0xdc, 0x26, 0x26),
                 border_width: 10.0,
-                ..Default::default()
             },
             _ => panic!("This isn't a custom style exmaple, just skipping these for now"),
         }

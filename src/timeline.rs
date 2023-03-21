@@ -59,6 +59,7 @@ struct PendingChain {
 }
 
 impl PendingChain {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         id: widget::Id,
         repeat: Repeat,
@@ -123,9 +124,9 @@ impl Meta {
 
     pub fn pause(&mut self, now: Instant) {
         if let Pause::Resumed(delay) = self.pause {
-            self.pause = Pause::Paused(relative_time(&(now - delay), &self));
+            self.pause = Pause::Paused(relative_time(&(now - delay), self));
         } else {
-            self.pause = Pause::Paused(relative_time(&now, &self));
+            self.pause = Pause::Paused(relative_time(&now, self));
         }
     }
 
@@ -149,10 +150,7 @@ pub enum Pause {
 
 impl Pause {
     pub fn is_playing(&self) -> bool {
-        match self {
-            Pause::Paused(_) => false,
-            _ => true,
-        }
+      !matches!(self, Pause::Paused(_))
     }
 }
 
@@ -298,7 +296,7 @@ impl Timeline {
     }
 
     pub fn start(&mut self) {
-        self.start_at(self.now);
+        self.start_at(Instant::now());
     }
 
     pub fn start_at(&mut self, now: Instant) {
@@ -416,9 +414,6 @@ impl Timeline {
                             modifier.value,
                             modifier.ease.tween(elapsed / duration),
                         );
-                        if index == 8 && meta.length == Duration::from_secs(4) {
-                            println!("({percent}%) relative_now = {:?}", relative_now);
-                        }
 
                         return Some(Interped {
                             previous,

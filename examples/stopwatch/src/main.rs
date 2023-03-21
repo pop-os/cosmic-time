@@ -1,7 +1,6 @@
 use iced::alignment;
 use iced::executor;
-use iced::time;
-use iced::widget::{button, column, container, row, text};
+use iced::widget::{button, column, row, text};
 use iced::{Alignment, Application, Command, Event, Length, Settings, Subscription};
 
 mod theme;
@@ -54,7 +53,7 @@ impl Application for Stopwatch {
         timeline.set_chain_paused(anim_background()).start();
         (
             Stopwatch {
-                timeline: timeline,
+                timeline,
                 duration: Duration::default(),
                 state: State::Idle,
             },
@@ -106,13 +105,7 @@ impl Application for Stopwatch {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch(vec![
-            match self.state {
-                State::Idle => Subscription::none(),
-                State::Ticking { .. } => time::every(Duration::from_millis(10)).map(Message::Tick),
-            },
-            self.timeline.as_subscription::<Event>().map(Message::Tick),
-        ])
+        self.timeline.as_subscription::<Event>().map(Message::Tick)
     }
 
     fn view(&self) -> Element<Message> {
