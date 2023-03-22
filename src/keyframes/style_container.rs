@@ -87,7 +87,7 @@ pub struct StyleContainer {
 
 impl StyleContainer {
     pub fn new(at: impl Into<MovementType>) -> StyleContainer {
-      let at = at.into();
+        let at = at.into();
         StyleContainer {
             index: 0,
             at,

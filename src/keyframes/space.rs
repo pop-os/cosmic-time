@@ -116,14 +116,14 @@ impl Space {
     }
 
     // does nothing if lazy
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = Some(width);
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = Some(width.into());
         self
     }
 
     // does nothing if lazy
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = Some(height);
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = Some(height.into());
         self
     }
 

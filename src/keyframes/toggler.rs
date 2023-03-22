@@ -1,4 +1,3 @@
-use iced_native::time::Duration;
 use iced_native::widget;
 
 use crate::keyframes::Repeat;
@@ -82,7 +81,7 @@ pub struct Toggler {
 
 impl Toggler {
     pub fn new(at: impl Into<MovementType>) -> Toggler {
-      let at = at.into();
+        let at = at.into();
         Toggler {
             index: 0,
             at,

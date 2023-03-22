@@ -44,30 +44,30 @@ impl Application for Counter {
             // .loop_forever() // Uncomment this line to loop the animation!
             .link(
                 keyframes::Container::new(Duration::ZERO)
-                    .width(Length::Fixed(0.))
-                    .height(Length::Fixed(100.)),
+                    .width(0.)
+                    .height(100.),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(2))
-                    .width(Length::Fixed(200.))
-                    .height(Length::Fixed(100.)),
+                    .width(200.)
+                    .height(100.),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(4))
-                    .width(Length::Fixed(200.))
-                    .height(Length::Fixed(300.))
+                    .width(200.)
+                    .height(300.)
                     .padding([0, 0, 0, 0]),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(6))
-                    .width(Length::Fixed(700.))
-                    .height(Length::Fixed(300.))
+                    .width(700.)
+                    .height(300.)
                     .padding([0, 0, 0, 500]),
             )
             .link(
                 keyframes::Container::new(Duration::from_secs(8))
-                    .width(Length::Fixed(150.))
-                    .height(Length::Fixed(150.))
+                    .width(150.)
+                    .height(150.)
                     .padding([0, 0, 0, 0]),
             );
 

@@ -85,7 +85,7 @@ pub struct Container {
 
 impl Container {
     pub fn new(at: impl Into<MovementType>) -> Container {
-      let at = at.into();
+        let at = at.into();
         Container {
             index: 0,
             at,

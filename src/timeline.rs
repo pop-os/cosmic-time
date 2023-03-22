@@ -358,17 +358,15 @@ impl Timeline {
                             track
                                 .iter_mut()
                                 .map(|frame| {
-                                    let subframe = frame.to_subframe(
-                                        value_acc,
-                                        time_acc,
-                                        self.get_now(),
-                                        i,
-                                        &id,
-                                        &self,
-                                    );
+                                    let subframe =
+                                        frame.to_subframe(value_acc, time_acc, now, i, &id, &self);
                                     value_acc = Some(subframe.value);
                                     time_acc = Some(subframe.at);
                                     end = end.max(subframe.at);
+                                    println!(
+                                        "({i}): value:{} at:{:?}",
+                                        subframe.value, subframe.at
+                                    );
                                     subframe
                                 })
                                 .collect()

@@ -167,11 +167,11 @@ impl Pong {
                 .link(keyframes::Space::lazy(Duration::ZERO))
                 .link(
                     keyframes::Space::new(Speed::per_secs(100.))
-                        .height(Length::Fixed(self.window.height as f32 - 100.)),
+                        .height(self.window.height as f32 - 100.),
                 ),
             Direction::Up => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
                 .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(keyframes::Space::new(Speed::per_secs(100.)).height(Length::Fixed(0.))),
+                .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
         }
     }
 
@@ -181,11 +181,11 @@ impl Pong {
                 .link(keyframes::Space::lazy(Duration::ZERO))
                 .link(
                     keyframes::Space::new(Speed::per_secs(100.))
-                        .height(Length::Fixed(self.window.height as f32 - 100.)),
+                        .height(self.window.height as f32 - 100.),
                 ),
             Direction::Up => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
                 .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(keyframes::Space::new(Speed::per_secs(100.)).height(Length::Fixed(0.))),
+                .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
         }
     }
 }
