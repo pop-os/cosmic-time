@@ -2152,6 +2152,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pong"
+version = "0.1.0"
+dependencies = [
+ "cosmic-time",
+ "iced",
+ "iced_native",
+ "once_cell",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -5,6 +5,8 @@ pub mod widget;
 pub use crate::keyframes::{button, container, space, style_button, style_container, toggler};
 pub use crate::timeline::Timeline;
 
+pub use iced::time::{Duration, Instant};
+
 const PI: f32 = std::f32::consts::PI;
 
 // p = percent_complete in decimal form
@@ -19,6 +21,71 @@ pub fn flip(num: f32) -> f32 {
 pub trait Tween: std::fmt::Debug + Copy {
     // p = percent complete as decimal
     fn tween(&self, p: f32) -> f32;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Speed {
+    PerSecond(f32),
+    PerMillis(f32),
+    PerMicros(f32),
+    PerNanoSe(f32),
+}
+
+impl Speed {
+    pub fn per_secs(speed: f32) -> Self {
+        Speed::PerSecond(speed)
+    }
+
+    pub fn per_millis(speed: f32) -> Self {
+        Speed::PerMillis(speed)
+    }
+
+    pub fn per_micros(speed: f32) -> Self {
+        Speed::PerMicros(speed)
+    }
+
+    pub fn per_nanos(speed: f32) -> Self {
+        Speed::PerNanoSe(speed)
+    }
+
+    fn calc_duration(self, first: Option<f32>, second: f32) -> Duration {
+        if let Some(f) = first {
+            match self {
+                Speed::PerSecond(speed) => {
+                    ((f - second) / speed).round() as u32 * Duration::from_secs(1)
+                }
+                Speed::PerMillis(speed) => {
+                    ((f - second) / speed).round() as u32 * Duration::from_millis(1)
+                }
+                Speed::PerMicros(speed) => {
+                    ((f - second) / speed).round() as u32 * Duration::from_micros(1)
+                }
+                Speed::PerNanoSe(speed) => {
+                    ((f - second) / speed).round() as u32 * Duration::from_nanos(1)
+                }
+            }
+        } else {
+            Duration::ZERO
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum MovementType {
+    Duration(Duration),
+    Speed(Speed),
+}
+
+impl From<Duration> for MovementType {
+    fn from(duration: Duration) -> Self {
+        MovementType::Duration(duration)
+    }
+}
+
+impl From<Speed> for MovementType {
+    fn from(speed: Speed) -> Self {
+        MovementType::Speed(speed)
+    }
 }
 
 macro_rules! tween {

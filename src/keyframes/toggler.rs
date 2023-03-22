@@ -2,8 +2,8 @@ use iced_native::time::Duration;
 use iced_native::widget;
 
 use crate::keyframes::Repeat;
-use crate::timeline::DurFrame;
-use crate::{Ease, Linear};
+use crate::timeline::Frame;
+use crate::{Ease, Linear, MovementType};
 
 /// A Toggler's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -63,7 +63,7 @@ impl Chain {
 
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+    T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     Vec<T>: From<Vec<Toggler>>,
 {
     fn from(chain: Chain) -> Self {
@@ -75,13 +75,14 @@ where
 #[derive(Debug, Clone)]
 pub struct Toggler {
     index: usize,
-    at: Duration,
+    at: MovementType,
     ease: Ease,
     percent: f32,
 }
 
 impl Toggler {
-    pub fn new(at: Duration) -> Toggler {
+    pub fn new(at: impl Into<MovementType>) -> Toggler {
+      let at = at.into();
         Toggler {
             index: 0,
             at,
@@ -123,12 +124,12 @@ impl Toggler {
 
 // 0 = animation percent completion
 impl Iterator for Toggler {
-    type Item = Option<DurFrame>;
+    type Item = Option<Frame>;
 
-    fn next(&mut self) -> Option<Option<DurFrame>> {
+    fn next(&mut self) -> Option<Option<Frame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(Some(DurFrame::new(self.at, self.percent, self.ease))),
+            0 => Some(Some(Frame::eager(self.at, self.percent, self.ease))),
             _ => None,
         }
     }

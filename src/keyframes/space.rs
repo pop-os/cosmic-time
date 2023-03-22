@@ -1,9 +1,8 @@
-use iced_native::time::Duration;
 use iced_native::{widget, Length};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
-use crate::timeline::DurFrame;
-use crate::{Ease, Linear};
+use crate::timeline::Frame;
+use crate::{Ease, Linear, MovementType};
 
 /// A Space's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -63,7 +62,7 @@ impl Chain {
 
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+    T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     Vec<T>: From<Vec<Space>>,
 {
     fn from(chain: Chain) -> Self {
@@ -75,20 +74,35 @@ where
 #[derive(Debug)]
 pub struct Space {
     index: usize,
-    at: Duration,
+    at: MovementType,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
+    is_eager: bool,
 }
 
 impl Space {
-    pub fn new(at: Duration) -> Self {
+    pub fn new(at: impl Into<MovementType>) -> Self {
+        let at = at.into();
         Space {
             index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
             height: None,
+            is_eager: true,
+        }
+    }
+
+    pub fn lazy(at: impl Into<MovementType>) -> Self {
+        let at = at.into();
+        Space {
+            index: 0,
+            at,
+            ease: Linear::InOut.into(),
+            width: None,
+            height: None,
+            is_eager: false,
         }
     }
 
@@ -101,11 +115,13 @@ impl Space {
         )
     }
 
+    // does nothing if lazy
     pub fn width(mut self, width: Length) -> Self {
         self.width = Some(width);
         self
     }
 
+    // does nothing if lazy
     pub fn height(mut self, height: Length) -> Self {
         self.height = Some(height);
         self
@@ -120,13 +136,21 @@ impl Space {
 // 0 = width
 // 1 = height
 impl Iterator for Space {
-    type Item = Option<DurFrame>;
+    type Item = Option<Frame>;
 
-    fn next(&mut self) -> Option<Option<DurFrame>> {
+    fn next(&mut self) -> Option<Option<Frame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
+            0 => Some(if self.is_eager {
+                as_f32(self.width).map(|w| Frame::eager(self.at, w, self.ease))
+            } else {
+                Some(Frame::lazy(self.at, 0.0, self.ease))
+            }),
+            1 => Some(if self.is_eager {
+                as_f32(self.height).map(|h| Frame::eager(self.at, h, self.ease))
+            } else {
+                Some(Frame::lazy(self.at, 0.0, self.ease))
+            }),
             _ => None,
         }
     }

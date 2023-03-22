@@ -1,9 +1,8 @@
-use iced_native::time::Duration;
 use iced_native::{widget, Element, Length, Padding};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
-use crate::timeline::DurFrame;
-use crate::{Ease, Linear};
+use crate::timeline::Frame;
+use crate::{Ease, Linear, MovementType};
 
 /// A Button's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -63,7 +62,7 @@ impl Chain {
 
 impl<T> From<Chain> for crate::timeline::Chain<T>
 where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+    T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     Vec<T>: From<Vec<Button>>,
 {
     fn from(chain: Chain) -> Self {
@@ -75,7 +74,7 @@ where
 #[derive(Debug)]
 pub struct Button {
     index: usize,
-    at: Duration,
+    at: MovementType,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
@@ -83,7 +82,8 @@ pub struct Button {
 }
 
 impl Button {
-    pub fn new(at: Duration) -> Button {
+    pub fn new(at: impl Into<MovementType>) -> Button {
+        let at = at.into();
         Button {
             index: 0,
             at,
@@ -144,28 +144,28 @@ impl Button {
 // 4 = padding[3] (bottom)
 // 5 = padding[4] (left)
 impl Iterator for Button {
-    type Item = Option<DurFrame>;
+    type Item = Option<Frame>;
 
-    fn next(&mut self) -> Option<Option<DurFrame>> {
+    fn next(&mut self) -> Option<Option<Frame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
+            0 => Some(as_f32(self.width).map(|w| Frame::eager(self.at, w, self.ease))),
+            1 => Some(as_f32(self.height).map(|h| Frame::eager(self.at, h, self.ease))),
             2 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.top, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.top, self.ease)),
             ),
             3 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.right, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.right, self.ease)),
             ),
             4 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.bottom, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.bottom, self.ease)),
             ),
             5 => Some(
                 self.padding
-                    .map(|p| DurFrame::new(self.at, p.left, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.left, self.ease)),
             ),
             _ => None,
         }

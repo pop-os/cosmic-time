@@ -1,9 +1,8 @@
 use iced_native::{widget, Element, Length, Padding, Pixels};
-use iced_native::time::Duration;
 
 use crate::keyframes::{get_length, Repeat, as_f32};
 use crate::timeline::DurFrame;
-use crate::{Ease, Linear};
+use crate::{Ease, Linear, MovementType};
 
 /// A Row's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -75,7 +74,7 @@ where
 #[derive(Debug)]
 pub struct Row {
     index: usize,
-    at: Duration,
+    at: MovementType,
     ease: Ease,
     spacing: Option<f32>,
     padding: Option<Padding>,
@@ -84,7 +83,8 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn new(at: Duration) -> Row {
+    pub fn new(at: impl Into<MovementType>) -> Row {
+      let at = at.into();
         Row {
             index: 0,
             at,

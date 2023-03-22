@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::keyframes::Repeat;
-use crate::{lerp, Ease, Tween};
+use crate::{lerp, Ease, MovementType, Tween};
 
 #[derive(Debug, Clone)]
 pub struct Timeline {
@@ -16,7 +16,7 @@ pub struct Timeline {
     pendings: Vec<Pending>,
     // Global animation interp value. Use `timeline.now(instant)`, where instant is the value
     // passed from the `timeline.as_subscription` value.
-    now: Instant,
+    now: Option<Instant>,
 }
 
 impl std::default::Default for Timeline {
@@ -25,13 +25,13 @@ impl std::default::Default for Timeline {
     }
 }
 
-pub struct Chain<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> {
+pub struct Chain<T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug> {
     pub id: widget::Id,
     pub repeat: Repeat,
     links: Vec<T>,
 }
 
-impl<T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug> Chain<T> {
+impl<T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug> Chain<T> {
     pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
         Chain { id, repeat, links }
     }
@@ -54,18 +54,13 @@ enum Pending {
 struct PendingChain {
     id: widget::Id,
     repeat: Repeat,
-    tracks: Vec<Vec<DurFrame>>,
+    tracks: Vec<Vec<Frame>>,
     pause: Pause,
 }
 
 impl PendingChain {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        id: widget::Id,
-        repeat: Repeat,
-        tracks: Vec<Vec<DurFrame>>,
-        pause: Pause,
-    ) -> Pending {
+    pub fn new(id: widget::Id, repeat: Repeat, tracks: Vec<Vec<Frame>>, pause: Pause) -> Pending {
         Pending::Chain(PendingChain {
             id,
             repeat,
@@ -76,23 +71,51 @@ impl PendingChain {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct DurFrame {
-    duration: Duration,
-    ease: Ease,
-    value: f32,
+pub enum Frame {
+    // Keyframe time, value at time, ease type into value
+    Eager(MovementType, f32, Ease),
+    // Keyframe time, DEFAULT FALLBACK VALUE, ease type into value
+    Lazy(MovementType, f32, Ease),
 }
 
-impl DurFrame {
-    pub fn new(duration: Duration, value: f32, ease: Ease) -> Self {
-        DurFrame {
-            duration,
-            value,
-            ease,
-        }
+impl Frame {
+    pub fn eager(movement_type: impl Into<MovementType>, value: f32, ease: Ease) -> Self {
+        let movement_type = movement_type.into();
+        Frame::Eager(movement_type, value, ease)
     }
 
-    pub fn to_subframe(self, now: Instant) -> SubFrame {
-        SubFrame::new(now + self.duration, self.value, self.ease)
+    pub fn lazy(movement_type: impl Into<MovementType>, default: f32, ease: Ease) -> Self {
+        let movement_type = movement_type.into();
+        Frame::Lazy(movement_type, default, ease)
+    }
+
+    pub fn to_subframe(
+        self,
+        previous_value: Option<f32>,
+        prev_time: Option<Instant>,
+        now: Instant,
+        index: usize,
+        id: &widget::Id,
+        timeline: &Timeline,
+    ) -> SubFrame {
+        let (duration, value, ease) = match self {
+            Frame::Eager(movement_type, value, ease) => match movement_type {
+                MovementType::Duration(duration) => (duration, value, ease),
+                MovementType::Speed(speed) => {
+                    (speed.calc_duration(previous_value, value), value, ease)
+                }
+            },
+            Frame::Lazy(movement_type, default, ease) => {
+                let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
+                match movement_type {
+                    MovementType::Duration(duration) => (duration, value, ease),
+                    MovementType::Speed(speed) => {
+                        (speed.calc_duration(previous_value, value), value, ease)
+                    }
+                }
+            }
+        };
+        SubFrame::new(prev_time.unwrap_or(now) + duration, value, ease)
     }
 }
 
@@ -194,6 +217,7 @@ impl PartialOrd for SubFrame {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Interped {
     pub previous: f32,
     pub next: f32,
@@ -206,7 +230,7 @@ impl Timeline {
         Timeline {
             tracks: HashMap::new(),
             pendings: Vec::new(),
-            now: Instant::now(),
+            now: None,
         }
     }
 
@@ -214,6 +238,13 @@ impl Timeline {
     // But potentially a memory leak?
     pub fn remove_pending(&mut self) {
         self.pendings = Vec::new();
+    }
+
+    fn get_now(&self) -> Instant {
+        match self.now {
+            Some(now) => now,
+            None => Instant::now(),
+        }
     }
 
     pub fn pause(&mut self, id: impl Into<widget::Id>) -> &mut Self {
@@ -240,14 +271,14 @@ impl Timeline {
 
     pub fn set_chain<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
     where
-        T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+        T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     {
         self.set_chain_with_options(chain, Pause::NoPause)
     }
 
     pub fn set_chain_paused<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
     where
-        T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+        T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     {
         self.set_chain_with_options(chain, Pause::Paused(Instant::now()))
     }
@@ -255,12 +286,12 @@ impl Timeline {
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
     fn set_chain_with_options<T>(&mut self, chain: impl Into<Chain<T>>, pause: Pause) -> &mut Self
     where
-        T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
+        T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     {
         let chain: Chain<T> = chain.into();
         let id = chain.id.clone();
         let repeat = chain.repeat;
-        let mut tracks: Vec<Vec<DurFrame>> = Vec::new();
+        let mut tracks: Vec<Vec<Frame>> = Vec::new();
         let mut chain = chain.into_iter();
 
         if let Some(modifiers) = chain.next() {
@@ -292,7 +323,7 @@ impl Timeline {
     }
 
     pub fn now(&mut self, now: Instant) {
-        self.now = now;
+        self.now = Some(now);
     }
 
     pub fn start(&mut self) {
@@ -300,8 +331,7 @@ impl Timeline {
     }
 
     pub fn start_at(&mut self, now: Instant) {
-        self.now(now);
-        for pending in self.pendings.drain(0..) {
+        while let Some(pending) = self.pendings.pop() {
             match pending {
                 Pending::Chain(PendingChain {
                     id,
@@ -319,13 +349,28 @@ impl Timeline {
                         pause
                     };
 
+                    let mut value_acc: Option<f32> = None;
+                    let mut time_acc: Option<Instant> = None;
                     let tracks: Vec<Vec<SubFrame>> = tracks
                         .iter_mut()
-                        .map(|track| {
+                        .enumerate()
+                        .map(|(i, track)| {
                             track
                                 .iter_mut()
-                                .inspect(|durframe| end = end.max(now + durframe.duration))
-                                .map(|durframe| durframe.to_subframe(now))
+                                .map(|frame| {
+                                    let subframe = frame.to_subframe(
+                                        value_acc,
+                                        time_acc,
+                                        self.get_now(),
+                                        i,
+                                        &id,
+                                        &self,
+                                    );
+                                    value_acc = Some(subframe.value);
+                                    time_acc = Some(subframe.at);
+                                    end = end.max(subframe.at);
+                                    subframe
+                                })
                                 .collect()
                         })
                         .collect();
@@ -355,10 +400,11 @@ impl Timeline {
                 }
             }
         }
+        self.now(now);
     }
 
     pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
-        let now = &self.now;
+        let now = self.get_now();
         // Get requested modifier_timeline or skip
         let (meta, mut modifier_timeline) = if let Some((meta, chain)) = self.tracks.get(id) {
             if let Some(modifier_timeline) = chain.get(index) {
@@ -371,8 +417,8 @@ impl Timeline {
         };
 
         let relative_now = match meta.pause {
-            Pause::NoPause => relative_time(now, meta),
-            Pause::Resumed(delay) => relative_time(&(*now - delay), meta),
+            Pause::NoPause => relative_time(&now, meta),
+            Pause::Resumed(delay) => relative_time(&(now - delay), meta),
             Pause::Paused(time) => relative_time(&time, meta),
         };
 
@@ -382,9 +428,7 @@ impl Timeline {
             match (accumulator, modifier_timeline.next()) {
                 (None, Some(modifier)) => {
                     // Found first element in timeline
-                    if modifier.at <= relative_now {
-                        accumulator = Some(modifier)
-                    }
+                    accumulator = Some(modifier)
                 }
                 (None, None) => return None, // No elements in timeline
                 (Some(acc), None) => {
@@ -432,10 +476,12 @@ impl Timeline {
     ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
     {
         let now = self.now;
-        if self.tracks.values().any(|track| {
-            (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
-                || (track.0.end >= now && track.0.pause.is_playing())
-        }) {
+        if now.is_some()
+            && self.tracks.values().any(|track| {
+                (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
+                    || (track.0.end >= now.unwrap() && track.0.pause.is_playing())
+            })
+        {
             iced::window::frames()
         } else {
             Subscription::none()
