@@ -71,7 +71,7 @@ where
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Column {
     index: usize,
     at: MovementType,

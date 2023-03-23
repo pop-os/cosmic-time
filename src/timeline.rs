@@ -73,49 +73,68 @@ impl PendingChain {
 #[derive(Debug, Clone, Copy)]
 pub enum Frame {
     // Keyframe time, value at time, ease type into value
-    Eager(MovementType, f32, Ease),
+    Eager(usize, MovementType, f32, Ease),
     // Keyframe time, DEFAULT FALLBACK VALUE, ease type into value
-    Lazy(MovementType, f32, Ease),
+    Lazy(usize, MovementType, f32, Ease),
 }
 
 impl Frame {
-    pub fn eager(movement_type: impl Into<MovementType>, value: f32, ease: Ease) -> Self {
-        let movement_type = movement_type.into();
-        Frame::Eager(movement_type, value, ease)
-    }
-
-    pub fn lazy(movement_type: impl Into<MovementType>, default: f32, ease: Ease) -> Self {
-        let movement_type = movement_type.into();
-        Frame::Lazy(movement_type, default, ease)
-    }
-
-    pub fn to_subframe(
-        self,
-        previous_value: Option<f32>,
-        prev_time: Option<Instant>,
-        now: Instant,
+    pub fn eager(
         index: usize,
-        id: &widget::Id,
-        timeline: &Timeline,
-    ) -> SubFrame {
-        let (duration, value, ease) = match self {
-            Frame::Eager(movement_type, value, ease) => match movement_type {
-                MovementType::Duration(duration) => (duration, value, ease),
-                MovementType::Speed(speed) => {
-                    (speed.calc_duration(previous_value, value), value, ease)
-                }
-            },
-            Frame::Lazy(movement_type, default, ease) => {
-                let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
-                match movement_type {
-                    MovementType::Duration(duration) => (duration, value, ease),
-                    MovementType::Speed(speed) => {
-                        (speed.calc_duration(previous_value, value), value, ease)
-                    }
-                }
-            }
+        movement_type: impl Into<MovementType>,
+        value: f32,
+        ease: Ease,
+    ) -> Self {
+        let movement_type = movement_type.into();
+        Frame::Eager(index, movement_type, value, ease)
+    }
+
+    pub fn lazy(
+        index: usize,
+        movement_type: impl Into<MovementType>,
+        default: f32,
+        ease: Ease,
+    ) -> Self {
+        let movement_type = movement_type.into();
+        Frame::Lazy(index, movement_type, default, ease)
+    }
+
+    pub fn get_chain_index(&self) -> usize {
+        match self {
+            Frame::Eager(index, _movement_type, _value, _ease) => *index,
+            Frame::Lazy(index, _movement_type, _value, _ease) => *index,
+        }
+    }
+
+    pub fn to_subframe(self, time: Instant) -> SubFrame {
+        let (value, ease) = match self {
+            Frame::Eager(_index, _movement_type, value, ease) => (value, ease),
+            _ => panic!("Call 'to_eager' first"),
         };
-        SubFrame::new(prev_time.unwrap_or(now) + duration, value, ease)
+
+        SubFrame::new(time, value, ease)
+    }
+
+    pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, timeline_index: usize) {
+        *self = if let Frame::Lazy(chain_index, movement_type, default, ease) = *self {
+            let value = timeline
+                .get(id, timeline_index)
+                .map(|i| i.value)
+                .unwrap_or(default);
+            Frame::Eager(chain_index, movement_type, value, ease)
+        } else {
+            *self
+        }
+    }
+
+    pub fn get_duration(self, previous_value: Option<f32>) -> Duration {
+        match self {
+            Frame::Eager(_index, movement_type, value, _ease) => match movement_type {
+                MovementType::Duration(duration) => duration,
+                MovementType::Speed(speed) => speed.calc_duration(previous_value, value),
+            },
+            _ => panic!("Call 'to_eager' first"),
+        }
     }
 }
 
@@ -349,24 +368,41 @@ impl Timeline {
                         pause
                     };
 
+                    // Convert timeline::Chain into VECs of Subframes to optimize redraw loop.
+                    // Also converts Lazy and Speed Controlled keyframes.
                     let mut value_acc: Option<f32> = None;
-                    let mut time_acc: Option<Instant> = None;
+                    let mut time_map: HashMap<usize, Instant> = HashMap::new();
+                    time_map.reserve(tracks.len());
                     let tracks: Vec<Vec<SubFrame>> = tracks
                         .iter_mut()
                         .enumerate()
                         .map(|(i, track)| {
                             track
                                 .iter_mut()
-                                .map(|frame| {
-                                    let subframe =
-                                        frame.to_subframe(value_acc, time_acc, now, i, &id, &self);
+                                .enumerate()
+                                .map(|(j, frame)| {
+                                    if j == 0 {
+                                        value_acc = None;
+                                    }
+
+                                    let index = frame.get_chain_index();
+                                    let current = time_map.get(&index);
+                                    frame.to_eager(self, &id, i);
+
+                                    let subframe = if let Some(time) = current {
+                                        frame.to_subframe(*time)
+                                    } else {
+                                        let previous = time_map.get(&index.saturating_sub(1));
+                                        let duration = frame.get_duration(value_acc);
+                                        let time = *previous.unwrap_or(&now) + duration;
+
+                                        end = end.max(time);
+                                        let _ = time_map.insert(index, time);
+
+                                        frame.to_subframe(time)
+                                    };
+
                                     value_acc = Some(subframe.value);
-                                    time_acc = Some(subframe.at);
-                                    end = end.max(subframe.at);
-                                    println!(
-                                        "({i}): value:{} at:{:?}",
-                                        subframe.value, subframe.at
-                                    );
                                     subframe
                                 })
                                 .collect()
@@ -424,13 +460,12 @@ impl Timeline {
         let mut accumulator: Option<&SubFrame> = None;
         loop {
             match (accumulator, modifier_timeline.next()) {
-                (None, Some(modifier)) => {
-                    // Found first element in timeline
-                    accumulator = Some(modifier)
-                }
-                (None, None) => return None, // No elements in timeline
+                // Found first element in timeline
+                (None, Some(modifier)) => accumulator = Some(modifier),
+                // No Elements in timeline
+                (None, None) => return None,
+                // Accumulator found in previous loop, but no greater value. Means animation duration has expired.
                 (Some(acc), None) => {
-                    // Accumulator found in previous loop, but no greater value. Means animation duration has expired.
                     return Some(Interped {
                         previous: acc.value,
                         next: acc.value,
@@ -438,13 +473,13 @@ impl Timeline {
                         value: acc.value,
                     });
                 }
+                // Found accumulator in middle-ish of timeline
                 (Some(acc), Some(modifier)) => {
-                    // Found accumulator in middle-ish of timeline
+                    // Can not interpolate between this one and next value?
                     if relative_now >= modifier.at || acc.value == modifier.value {
-                        // Can not interpolate between this one and next value?
                         accumulator = Some(modifier);
+                    // Can interpolate between these two, thus calculate and return that value.
                     } else {
-                        // Can interpolate between these two, thus calculate and return that value.
                         let elapsed = relative_now.duration_since(acc.at).as_millis() as f32;
                         let duration = (modifier.at - acc.at).as_millis() as f32;
 

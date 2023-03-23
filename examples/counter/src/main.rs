@@ -53,19 +53,19 @@ impl Application for Counter {
                     .height(100.),
             )
             .link(
-                keyframes::Container::new(Duration::from_secs(4))
+                keyframes::Container::new(Duration::from_secs(2))
                     .width(200.)
                     .height(300.)
                     .padding([0, 0, 0, 0]),
             )
             .link(
-                keyframes::Container::new(Duration::from_secs(6))
+                keyframes::Container::new(Duration::from_secs(2))
                     .width(700.)
                     .height(300.)
                     .padding([0, 0, 0, 500]),
             )
             .link(
-                keyframes::Container::new(Duration::from_secs(8))
+                keyframes::Container::new(Duration::from_secs(2))
                     .width(150.)
                     .height(150.)
                     .padding([0, 0, 0, 0]),

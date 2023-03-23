@@ -1,7 +1,7 @@
-use iced::event::{self, Event as E};
+use iced::event;
 use iced::keyboard::{self, KeyCode};
 use iced::subscription;
-use iced::widget::{column, container, row, text, Space};
+use iced::widget::{column, container, row, Space};
 use iced::{executor, Application, Command, Event, Length, Settings, Subscription};
 use iced_native::window;
 
@@ -16,8 +16,8 @@ use theme::{widget::Element, Theme};
 
 static PADDLE_LEFT: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
 static PADDLE_RIGHT: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
-static BALL_X: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
-static BALL_Y: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
+// TODO static BALL_X: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
+// TODO static BALL_Y: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
 
 pub fn main() -> iced::Result {
     Pong::run(Settings::default())
@@ -26,8 +26,6 @@ pub fn main() -> iced::Result {
 struct Pong {
     timeline: Timeline,
     window: Window,
-    paddle_left: Direction,
-    paddle_right: Direction,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,8 +68,6 @@ impl Application for Pong {
                     width: 0,
                     height: 0,
                 },
-                paddle_left: Direction::Up,
-                paddle_right: Direction::Up,
             },
             Command::none(),
         )

@@ -52,16 +52,16 @@ impl Speed {
         if let Some(f) = first {
             match self {
                 Speed::PerSecond(speed) => {
-                    ((f - second) / speed).round() as u32 * Duration::from_secs(1)
+                    ((f - second).abs() / speed).round() as u32 * Duration::from_secs(1)
                 }
                 Speed::PerMillis(speed) => {
-                    ((f - second) / speed).round() as u32 * Duration::from_millis(1)
+                    ((f - second).abs() / speed).round() as u32 * Duration::from_millis(1)
                 }
                 Speed::PerMicros(speed) => {
-                    ((f - second) / speed).round() as u32 * Duration::from_micros(1)
+                    ((f - second).abs() / speed).round() as u32 * Duration::from_micros(1)
                 }
                 Speed::PerNanoSe(speed) => {
-                    ((f - second) / speed).round() as u32 * Duration::from_nanos(1)
+                    ((f - second).abs() / speed).round() as u32 * Duration::from_nanos(1)
                 }
             }
         } else {

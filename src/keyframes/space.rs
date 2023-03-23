@@ -44,7 +44,8 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, space: Space) -> Self {
+    pub fn link(mut self, mut space: Space) -> Self {
+        space.chain_index = self.links.len();
         self.links.push(space);
         self
     }
@@ -71,9 +72,10 @@ where
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Space {
     index: usize,
+    chain_index: usize,
     at: MovementType,
     ease: Ease,
     width: Option<Length>,
@@ -86,6 +88,7 @@ impl Space {
         let at = at.into();
         Space {
             index: 0,
+            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -98,6 +101,7 @@ impl Space {
         let at = at.into();
         Space {
             index: 0,
+            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -142,14 +146,14 @@ impl Iterator for Space {
         self.index += 1;
         match self.index - 1 {
             0 => Some(if self.is_eager {
-                as_f32(self.width).map(|w| Frame::eager(self.at, w, self.ease))
+                as_f32(self.width).map(|w| Frame::eager(self.chain_index, self.at, w, self.ease))
             } else {
-                Some(Frame::lazy(self.at, 0.0, self.ease))
+                Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
             }),
             1 => Some(if self.is_eager {
-                as_f32(self.height).map(|h| Frame::eager(self.at, h, self.ease))
+                as_f32(self.height).map(|h| Frame::eager(self.chain_index, self.at, h, self.ease))
             } else {
-                Some(Frame::lazy(self.at, 0.0, self.ease))
+                Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
             }),
             _ => None,
         }
