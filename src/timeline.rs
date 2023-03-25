@@ -43,29 +43,11 @@ impl<T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug> Chain<T> {
 
 #[derive(Debug, Clone)]
 enum Pending {
-    Chain(PendingChain),
+    Chain(Repeat, Vec<Vec<Option<Frame>>>, Pause),
     Pause,
     Resume,
     PauseAll,
     ResumeAll,
-}
-
-#[derive(Debug, Clone)]
-struct PendingChain {
-    repeat: Repeat,
-    tracks: Vec<Vec<Frame>>,
-    pause: Pause,
-}
-
-impl PendingChain {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(repeat: Repeat, tracks: Vec<Vec<Frame>>, pause: Pause) -> Pending {
-        Pending::Chain(PendingChain {
-            repeat,
-            tracks,
-            pause,
-        })
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -127,12 +109,18 @@ impl Frame {
         }
     }
 
-    pub fn get_duration(self, previous_value: Option<f32>) -> Duration {
-        println!("{previous_value:?}");
+    fn get_value(&self) -> f32 {
+      match self {
+        Frame::Eager(_, _, value, _) => *value,
+        _ => panic!("call 'to_eager' first"),
+      }
+    }
+
+    pub fn get_duration(self, previous: &Self) -> Duration {
         match self {
             Frame::Eager(_index, movement_type, value, _ease) => match movement_type {
                 MovementType::Duration(duration) => duration,
-                MovementType::Speed(speed) => speed.calc_duration(previous_value, value),
+                MovementType::Speed(speed) => speed.calc_duration(previous.get_value(), value),
             },
             _ => panic!("Call 'to_eager' first"),
         }
@@ -312,57 +300,16 @@ impl Timeline {
     where
         T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
     {
-      /*
-        // TODO optimize
-        let chain: Chain<T> = chain.into();
-        let id = chain.id.clone();
-        let repeat = chain.repeat;
-        let mut tracks: Vec<Vec<Frame>> = Vec::new();
-        let mut chain = chain.into_iter();
-
-        if let Some(modifiers) = chain.next() {
-            tracks.resize_with(modifiers.len(), Vec::new);
-            for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
-                if let Some(durframe) = modifier {
-                    track.push(durframe)
-                }
-            }
-        }
-
-        for modifiers in chain {
-            for (track, modifier) in tracks.iter_mut().zip(modifiers.into_iter()) {
-                if let Some(durframe) = modifier {
-                    track.push(durframe)
-                }
-            }
-        }
-      */
-
-        println!("##### CHAIN:");
-
+        // TODO should be removed. Used iterators for pre-release
+        // cosmic-time implementation. Keyframes should just pass a Vec<Vec<Frame>>
         let chain = chain.into();
-        println!("{:#?}", chain.links);
-        let rows = chain.links[0].len();
-
-        let id = chain.id.clone();
+        let id = chain.id;
         let repeat = chain.repeat;
-
-        let transposed = chain.into_iter().enumerate().fold(vec![Vec::new(); rows], |mut acc: Vec<Vec<Frame>>, (i, row)| {
-          row.into_iter().enumerate().for_each(|(j, maybe_item)| {
-            if let Some(item) = maybe_item {
-              println!("i({i})j({j}) {item:?})");
-              acc[j].push(item)
-            }
-          });
-          acc
-        });
-        println!("##### TRANSPOSED:");
-        println!("{:#?}", transposed);
-        println!("##### END");
+        let chain: Vec<Vec<Option<Frame>>> = chain.into_iter().map(|m| m.collect()).collect();
 
         let _ = self
             .pendings
-            .insert(id, PendingChain::new(repeat, transposed, pause));
+            .insert(id, Pending::Chain(repeat, chain, pause));
         println!("{:#?}", self.pendings);
         self
     }
@@ -385,11 +332,7 @@ impl Timeline {
         let mut pendings = std::mem::take(&mut self.pendings);
         for (id, pending) in pendings.drain() {
             match pending {
-                Pending::Chain(PendingChain {
-                    repeat,
-                    mut tracks,
-                    pause,
-                }) => {
+                Pending::Chain(repeat, chain, pause) => {
                     println!("parsing one animation");
                     let mut end = now;
                     // The time that the chain was `set_chain_paused` is not
@@ -401,8 +344,39 @@ impl Timeline {
                         pause
                     };
 
+                    let peekable = chain.into_iter().peekable();
+                    while let Some(current) = peekable.next() {
+                      let time = end;
+                      if let Some(next) = peekable.peek() {
+                        let mut counter = 0;
+                        if let Some((c_frame, n_frame)) = current.iter().zip(next.iter()).find(|(c_frame, n_frame)| {
+                          counter += 1;
+                          c_frame.is_some() && n_frame.is_some()
+                        }) {
+                        let c = c_frame.expect("Previous check guarentees saftey");
+                        let n = n_frame.expect("Previous check guarentees saftey");
+                        c.to_eager(self, &id, counter);
+                        n.to_eager(self, &id, counter);
+                        let duration = n.get_duration(&c);
+                        end = end + duration;
+                        }
+                      }
+
+                      current.iter_mut().enumerate().map(|(i, maybe_frame)| {
+                        if let Some(frame) = maybe_frame {
+                          frame.to_eager(self, &id, i);
+                          Some(frame.to_subframe(time))
+                        } else {
+                          None
+                        }
+                      }).collect();
+                    }
+
+                    // TODO now transpose that bad boi
+
                     // Convert timeline::Chain into VECs of Subframes to optimize redraw loop.
                     // Also converts Lazy and Speed Controlled keyframes.
+                    /*
                     let mut value_acc: Option<f32> = None;
                     let mut time_map: HashMap<usize, Instant> = HashMap::new();
                     time_map.reserve(tracks.len());
@@ -444,11 +418,10 @@ impl Timeline {
                                 .collect()
                         })
                         .collect();
+                    */
 
                     let meta = Meta::new(repeat, now, end, end - now, pause);
-                    println!("    ");
-                    println!("{tracks:#?}");
-                    let _ = self.tracks.insert(id, (meta, tracks));
+                    let _ = self.tracks.insert(id, (meta, chain));
                 }
                 Pending::Pause => {
                     if let Some((meta, _track)) = self.tracks.get_mut(&id) {

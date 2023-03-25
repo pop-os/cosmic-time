@@ -48,24 +48,20 @@ impl Speed {
         Speed::PerNanoSe(speed)
     }
 
-    fn calc_duration(self, first: Option<f32>, second: f32) -> Duration {
-        if let Some(f) = first {
-            match self {
-                Speed::PerSecond(speed) => {
-                    ((f - second).abs() / speed).round() as u32 * Duration::from_secs(1)
-                }
-                Speed::PerMillis(speed) => {
-                    ((f - second).abs() / speed).round() as u32 * Duration::from_millis(1)
-                }
-                Speed::PerMicros(speed) => {
-                    ((f - second).abs() / speed).round() as u32 * Duration::from_micros(1)
-                }
-                Speed::PerNanoSe(speed) => {
-                    ((f - second).abs() / speed).round() as u32 * Duration::from_nanos(1)
-                }
+    fn calc_duration(self, first: f32, second: f32) -> Duration {
+        match self {
+            Speed::PerSecond(speed) => {
+                ((first - second).abs() / speed).round() as u32 * Duration::from_secs(1)
             }
-        } else {
-            Duration::ZERO
+            Speed::PerMillis(speed) => {
+                ((first - second).abs() / speed).round() as u32 * Duration::from_millis(1)
+            }
+            Speed::PerMicros(speed) => {
+                ((first - second).abs() / speed).round() as u32 * Duration::from_micros(1)
+            }
+            Speed::PerNanoSe(speed) => {
+                ((first - second).abs() / speed).round() as u32 * Duration::from_nanos(1)
+            }
         }
     }
 }
