@@ -10,3 +10,4 @@ iced = "0.8.0"
 iced_native = "0.9.1"
 cosmic-time = { path = "../.."}
 once_cell = "1.17"
+rand = "0.8.5"

@@ -2159,6 +2159,7 @@ dependencies = [
  "iced",
  "iced_native",
  "once_cell",
+ "rand 0.8.5",
 ]
 
 [[package]]

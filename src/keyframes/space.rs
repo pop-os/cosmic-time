@@ -67,6 +67,7 @@ where
     Vec<T>: From<Vec<Space>>,
 {
     fn from(chain: Chain) -> Self {
+        println!("len is qeal to = {}", chain.links.len());
         crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
     }
 }
@@ -145,16 +146,24 @@ impl Iterator for Space {
     fn next(&mut self) -> Option<Option<Frame>> {
         self.index += 1;
         match self.index - 1 {
-            0 => Some(if self.is_eager {
-                as_f32(self.width).map(|w| Frame::eager(self.chain_index, self.at, w, self.ease))
-            } else {
-                Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
-            }),
-            1 => Some(if self.is_eager {
-                as_f32(self.height).map(|h| Frame::eager(self.chain_index, self.at, h, self.ease))
-            } else {
-                Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
-            }),
+            0 => {
+                let frame = if self.is_eager {
+                    as_f32(self.width)
+                        .map(|w| Frame::eager(self.chain_index, self.at, w, self.ease))
+                } else {
+                    Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
+                };
+                Some(frame)
+            }
+            1 => {
+                let frame = if self.is_eager {
+                    as_f32(self.height)
+                        .map(|h| Frame::eager(self.chain_index, self.at, h, self.ease))
+                } else {
+                    Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
+                };
+                Some(frame)
+            }
             _ => None,
         }
     }
@@ -162,6 +171,6 @@ impl Iterator for Space {
 
 impl ExactSizeIterator for Space {
     fn len(&self) -> usize {
-        6 - self.index
+        2 - self.index
     }
 }

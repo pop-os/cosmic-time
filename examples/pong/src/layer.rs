@@ -5,7 +5,6 @@
  *
  */
 
-use iced_native::alignment::Alignment;
 use iced_native::widget::{self, Tree};
 use iced_native::{
     event, layout, mouse, overlay, renderer, Clipboard, Color, Element, Event, Layout, Length,
@@ -161,9 +160,7 @@ where
             .width(Length::Fill)
             .height(Length::Fill);
 
-        let mut child = self.content.as_widget().layout(renderer, &limits);
-        child.align(Alignment::Center, Alignment::Center, limits.max());
-
+        let child = self.content.as_widget().layout(renderer, &limits);
         let mut node = layout::Node::with_children(self.size, vec![child]);
         node.move_to(position);
 
