@@ -337,22 +337,32 @@ impl Timeline {
             }
         }
       */
-        let chain: Chain<T> = chain.into();
+
+        println!("##### CHAIN:");
+
+        let chain = chain.into();
+        println!("{:#?}", chain.links);
+        let rows = chain.links[0].len();
+
         let id = chain.id.clone();
         let repeat = chain.repeat;
 
-        let len = chain.links[0].len();
-        let transposed_tracks: Vec<Vec<Option<Frame>>> = chain.into_iter().map(|m| m.into_iter()).collect();
-        (0..len).map(|_| {
-          transposed_tracks.iter_mut()
-            .map(|m| m.next().unwrap())
-            .collect()
-          }).collect();
+        let transposed = chain.into_iter().enumerate().fold(vec![Vec::new(); rows], |mut acc: Vec<Vec<Frame>>, (i, row)| {
+          row.into_iter().enumerate().for_each(|(j, maybe_item)| {
+            if let Some(item) = maybe_item {
+              println!("i({i})j({j}) {item:?})");
+              acc[j].push(item)
+            }
+          });
+          acc
+        });
+        println!("##### TRANSPOSED:");
+        println!("{:#?}", transposed);
+        println!("##### END");
 
-        //println!("set chain tracks len = {}\n{:?}", tracks.len(), tracks);
         let _ = self
             .pendings
-            .insert(id, PendingChain::new(repeat, transposed_tracks, pause));
+            .insert(id, PendingChain::new(repeat, transposed, pause));
         println!("{:#?}", self.pendings);
         self
     }
