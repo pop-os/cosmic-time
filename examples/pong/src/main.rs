@@ -204,14 +204,19 @@ impl Pong {
                     // animation chain. Meaning that you would have an animation start
                     // at the previous animations's interupted location, animate to elsewhere,
                     // then go back to that spot!
+                    //
+                    // Also notice the speed here is per_millis! This is important.
+                    // The animation is only as granular as your definition in the chain.
+                    // If you animation time is not in exact seconds, I highly recommend
+                    // using a smaller unit.
                     .link(keyframes::Space::lazy(Duration::ZERO))
                     .link(
-                        keyframes::Space::new(Speed::per_secs(100.))
+                        keyframes::Space::new(Speed::per_millis(0.3))
                             .height(self.window.height - 100.),
                     ),
                 Direction::Up => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
                     .link(keyframes::Space::lazy(Duration::ZERO))
-                    .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
+                    .link(keyframes::Space::new(Speed::per_millis(0.3)).height(0.)),
             })
         } else {
             None
@@ -225,12 +230,12 @@ impl Pong {
                 Direction::Down => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
                     .link(keyframes::Space::lazy(Duration::ZERO))
                     .link(
-                        keyframes::Space::new(Speed::per_secs(100.))
+                        keyframes::Space::new(Speed::per_millis(0.3))
                             .height(self.window.height - 100.),
                     ),
                 Direction::Up => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
                     .link(keyframes::Space::lazy(Duration::ZERO))
-                    .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
+                    .link(keyframes::Space::new(Speed::per_millis(0.3)).height(0.)),
             })
         } else {
             None

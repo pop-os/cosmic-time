@@ -51,13 +51,13 @@ impl Speed {
     fn calc_duration(self, first: f32, second: f32) -> Duration {
         match self {
             Speed::PerSecond(speed) => {
-                ((first - second).abs() / speed).round() as u32 * Duration::from_secs(1)
+                ((first - second).abs() / speed).round() as u32 * Duration::from_nanos(1e9 as u64)
             }
             Speed::PerMillis(speed) => {
-                ((first - second).abs() / speed).round() as u32 * Duration::from_millis(1)
+                ((first - second).abs() / speed).round() as u32 * Duration::from_nanos(1e6 as u64)
             }
             Speed::PerMicros(speed) => {
-                ((first - second).abs() / speed).round() as u32 * Duration::from_micros(1)
+                ((first - second).abs() / speed).round() as u32 * Duration::from_nanos(1000)
             }
             Speed::PerNanoSe(speed) => {
                 ((first - second).abs() / speed).round() as u32 * Duration::from_nanos(1)
