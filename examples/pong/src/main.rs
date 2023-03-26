@@ -29,6 +29,8 @@ struct Pong {
     window: Window,
     in_play: bool,
     rng: ThreadRng,
+    left: Direction,
+    right: Direction,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,6 +75,8 @@ impl Application for Pong {
                 window: Window::default(),
                 rng: thread_rng(),
                 in_play: false,
+                left: Direction::Up,
+                right: Direction::Up,
             },
             Command::none(),
         )
@@ -129,7 +133,12 @@ impl Application for Pong {
                         .set_chain(vertical_bounce)
                         .set_chain(horizontal_bounce);
                 }
-                self.timeline.set_chain(animation).start();
+                if let Some(a) = animation {
+                    self.timeline.set_chain(a)
+                } else {
+                    &mut self.timeline
+                }
+                .start();
             }
             Message::WindowResized(width, height) => {
                 let width = width as f32;
@@ -141,6 +150,7 @@ impl Application for Pong {
                     paddle_height: height * 0.2,
                 };
 
+                self.in_play = false;
                 let x = self.init_ball_x();
                 let y = self.init_ball_y();
                 self.timeline.set_chain(x).set_chain(y).start();
@@ -181,38 +191,49 @@ impl Application for Pong {
 }
 
 impl Pong {
-    fn anim_left(&mut self, direction: Direction) -> cosmic_time::space::Chain {
-        match direction {
-            Direction::Down => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
-                // OOh here are the lazy keyframes!
-                // This means that this animation will start at wherever the previous
-                // animation left off!
-                // Lazy still takes a duration, this will usually be `Duration::ZERO`
-                // like regular animations, but you can put them anywhere in your
-                // animation chain. Meaning that you would have an animation start
-                // at the previous animations's interupted location, animate to elsewhere,
-                // then go back to that spot!
-                .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(
-                    keyframes::Space::new(Speed::per_secs(100.))
-                        .height(self.window.height - 100.),
-                ),
-            Direction::Up => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
-                .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
+    fn anim_left(&mut self, direction: Direction) -> Option<cosmic_time::space::Chain> {
+        if self.left != direction {
+            self.left = direction;
+            Some(match direction {
+                Direction::Down => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
+                    // OOh here are the lazy keyframes!
+                    // This means that this animation will start at wherever the previous
+                    // animation left off!
+                    // Lazy still takes a duration, this will usually be `Duration::ZERO`
+                    // like regular animations, but you can put them anywhere in your
+                    // animation chain. Meaning that you would have an animation start
+                    // at the previous animations's interupted location, animate to elsewhere,
+                    // then go back to that spot!
+                    .link(keyframes::Space::lazy(Duration::ZERO))
+                    .link(
+                        keyframes::Space::new(Speed::per_secs(100.))
+                            .height(self.window.height - 100.),
+                    ),
+                Direction::Up => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
+                    .link(keyframes::Space::lazy(Duration::ZERO))
+                    .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
+            })
+        } else {
+            None
         }
     }
 
-    fn anim_right(&mut self, direction: Direction) -> cosmic_time::space::Chain {
-        match direction {
-            Direction::Down => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
-                .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(
-                    keyframes::Space::new(Speed::per_secs(100.)).height(self.window.height - 100.),
-                ),
-            Direction::Up => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
-                .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
+    fn anim_right(&mut self, direction: Direction) -> Option<cosmic_time::space::Chain> {
+        if self.right != direction {
+            self.right = direction;
+            Some(match direction {
+                Direction::Down => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
+                    .link(keyframes::Space::lazy(Duration::ZERO))
+                    .link(
+                        keyframes::Space::new(Speed::per_secs(100.))
+                            .height(self.window.height - 100.),
+                    ),
+                Direction::Up => cosmic_time::space::Chain::new(PADDLE_RIGHT.clone())
+                    .link(keyframes::Space::lazy(Duration::ZERO))
+                    .link(keyframes::Space::new(Speed::per_secs(100.)).height(0.)),
+            })
+        } else {
+            None
         }
     }
 
