@@ -44,6 +44,7 @@ pub fn main() -> iced::Result {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Pokedex {
     Loading,
     Loaded { pokemon: Pokemon },

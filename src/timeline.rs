@@ -35,10 +35,6 @@ impl<T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug> Chain<T> {
     pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
         Chain { id, repeat, links }
     }
-
-    fn into_iter(self) -> impl Iterator<Item = T> {
-        self.links.into_iter()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -87,7 +83,6 @@ impl Frame {
     }
 
     pub fn to_subframe(self, time: Instant) -> SubFrame {
-        println!("convert to subframe");
         let (value, ease) = match self {
             Frame::Eager(_index, _movement_type, value, ease) => (value, ease),
             _ => panic!("Call 'to_eager' first"),
@@ -102,7 +97,6 @@ impl Frame {
                 .get(id, timeline_index)
                 .map(|i| i.value)
                 .unwrap_or(default);
-            println!("lazy check {value} {movement_type:?}");
             Frame::Eager(chain_index, movement_type, value, ease)
         } else {
             *self
@@ -110,10 +104,10 @@ impl Frame {
     }
 
     fn get_value(&self) -> f32 {
-      match self {
-        Frame::Eager(_, _, value, _) => *value,
-        _ => panic!("call 'to_eager' first"),
-      }
+        match self {
+            Frame::Eager(_, _, value, _) => *value,
+            _ => panic!("call 'to_eager' first"),
+        }
     }
 
     pub fn get_duration(self, previous: &Self) -> Duration {
@@ -305,12 +299,11 @@ impl Timeline {
         let chain = chain.into();
         let id = chain.id;
         let repeat = chain.repeat;
-        let chain: Vec<Vec<Option<Frame>>> = chain.into_iter().map(|m| m.collect()).collect();
+        let chain: Vec<Vec<Option<Frame>>> = chain.links.into_iter().map(|m| m.collect()).collect();
 
         let _ = self
             .pendings
             .insert(id, Pending::Chain(repeat, chain, pause));
-        println!("{:#?}", self.pendings);
         self
     }
 
@@ -333,7 +326,6 @@ impl Timeline {
         for (id, pending) in pendings.drain() {
             match pending {
                 Pending::Chain(repeat, chain, pause) => {
-                    println!("parsing one animation");
                     let mut end = now;
                     // The time that the chain was `set_chain_paused` is not
                     // necessaritly the same as the atomic pause time used here.
@@ -344,84 +336,57 @@ impl Timeline {
                         pause
                     };
 
-                    let peekable = chain.into_iter().peekable();
+                    let cols = chain[0].len();
+                    let rows = chain.len();
+                    let mut peekable = chain.into_iter().peekable();
+                    let mut specific_chain = Vec::with_capacity(rows);
                     while let Some(current) = peekable.next() {
-                      let time = end;
-                      if let Some(next) = peekable.peek() {
-                        let mut counter = 0;
-                        if let Some((c_frame, n_frame)) = current.iter().zip(next.iter()).find(|(c_frame, n_frame)| {
-                          counter += 1;
-                          c_frame.is_some() && n_frame.is_some()
-                        }) {
-                        let c = c_frame.expect("Previous check guarentees saftey");
-                        let n = n_frame.expect("Previous check guarentees saftey");
-                        c.to_eager(self, &id, counter);
-                        n.to_eager(self, &id, counter);
-                        let duration = n.get_duration(&c);
-                        end = end + duration;
-                        }
-                      }
-
-                      current.iter_mut().enumerate().map(|(i, maybe_frame)| {
-                        if let Some(frame) = maybe_frame {
-                          frame.to_eager(self, &id, i);
-                          Some(frame.to_subframe(time))
-                        } else {
-                          None
-                        }
-                      }).collect();
-                    }
-
-                    // TODO now transpose that bad boi
-
-                    // Convert timeline::Chain into VECs of Subframes to optimize redraw loop.
-                    // Also converts Lazy and Speed Controlled keyframes.
-                    /*
-                    let mut value_acc: Option<f32> = None;
-                    let mut time_map: HashMap<usize, Instant> = HashMap::new();
-                    time_map.reserve(tracks.len());
-                    let tracks: Vec<Vec<SubFrame>> = tracks
-                        .iter_mut()
-                        .enumerate()
-                        .map(|(i, track)| {
-                            println!("track len = {}\n{track:?}", track.len());
-                            track
-                                .iter_mut()
-                                .enumerate()
-                                .map(|(j, frame)| {
-                                    if j == 0 {
-                                        value_acc = None;
-                                    }
-
-                                    let index = frame.get_chain_index();
-                                    println!("index = {index}");
-                                    let current = time_map.get(&index);
-                                    frame.to_eager(self, &id, i);
-
-                                    let subframe = if let Some(time) = current {
-                                        frame.to_subframe(*time)
-                                    } else {
-                                        let previous = time_map.get(&index.saturating_sub(1));
-                                        let duration = frame.get_duration(value_acc);
-                                        let time = *previous.unwrap_or(&now) + duration;
-                                        println!("time = {time:?}");
-
-                                        end = end.max(time);
-                                        let _ = time_map.insert(index, time);
-
-                                        frame.to_subframe(time)
-                                    };
-
-                                    value_acc = Some(subframe.value);
-                                    subframe
+                        let time = end;
+                        if let Some(next) = peekable.peek() {
+                            let mut counter = 0;
+                            if let Some((c_frame, n_frame)) =
+                                current.iter().zip(next.iter()).find(|(c_frame, n_frame)| {
+                                    counter += 1;
+                                    c_frame.is_some() && n_frame.is_some()
                                 })
-                                .collect()
-                        })
-                        .collect();
-                    */
+                            {
+                                let mut c = c_frame.expect("Previous check guarentees saftey");
+                                let mut n = n_frame.expect("Previous check guarentees saftey");
+                                c.to_eager(self, &id, counter - 1);
+                                n.to_eager(self, &id, counter - 1);
+                                let duration = n.get_duration(&c);
+                                end += duration;
+                            }
+                        }
+
+                        let specific_row = current.into_iter().enumerate().fold(
+                            Vec::with_capacity(cols),
+                            |mut acc, (i, maybe_frame)| {
+                                if let Some(mut frame) = maybe_frame {
+                                    frame.to_eager(self, &id, i);
+                                    acc.push(Some(frame.to_subframe(time)))
+                                } else {
+                                    acc.push(None)
+                                }
+                                acc
+                            },
+                        );
+                        specific_chain.push(specific_row);
+                    }
+                    let transposed = specific_chain.into_iter().fold(
+                        vec![Vec::new(); cols],
+                        |mut acc: Vec<Vec<SubFrame>>, row| {
+                            row.into_iter().enumerate().for_each(|(j, maybe_item)| {
+                                if let Some(item) = maybe_item {
+                                    acc[j].push(item)
+                                }
+                            });
+                            acc
+                        },
+                    );
 
                     let meta = Meta::new(repeat, now, end, end - now, pause);
-                    let _ = self.tracks.insert(id, (meta, chain));
+                    let _ = self.tracks.insert(id, (meta, transposed));
                 }
                 Pending::Pause => {
                     if let Some((meta, _track)) = self.tracks.get_mut(&id) {

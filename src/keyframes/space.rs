@@ -67,7 +67,6 @@ where
     Vec<T>: From<Vec<Space>>,
 {
     fn from(chain: Chain) -> Self {
-        println!("len is qeal to = {}", chain.links.len());
         crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
     }
 }

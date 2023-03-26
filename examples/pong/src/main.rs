@@ -123,7 +123,11 @@ impl Application for Pong {
                 if !self.in_play {
                     self.in_play = true;
                     let vertical_bounce = self.rand_vertical_bounce();
-                    let _ = self.timeline.set_chain(vertical_bounce);
+                    let horizontal_bounce = self.rand_horizontal_bounce();
+                    let _ = self
+                        .timeline
+                        .set_chain(vertical_bounce)
+                        .set_chain(horizontal_bounce);
                 }
                 self.timeline.set_chain(animation).start();
             }
@@ -191,7 +195,7 @@ impl Pong {
                 .link(keyframes::Space::lazy(Duration::ZERO))
                 .link(
                     keyframes::Space::new(Speed::per_secs(100.))
-                        .height(self.window.height as f32 - 100.),
+                        .height(self.window.height - 100.),
                 ),
             Direction::Up => cosmic_time::space::Chain::new(PADDLE_LEFT.clone())
                 .link(keyframes::Space::lazy(Duration::ZERO))
@@ -227,25 +231,51 @@ impl Pong {
     }
 
     fn rand_vertical_bounce(&mut self) -> cosmic_time::space::Chain {
-        if random() {
+        let speed = 100. * self.rng.gen_range(0.9..1.1);
+        if self.rng.gen() {
             cosmic_time::space::Chain::new(BALL_Y.clone())
                 .link(keyframes::Space::lazy(Duration::ZERO))
                 .link(
-                    keyframes::Space::new(Speed::per_secs(105.))
+                    keyframes::Space::new(Speed::per_secs(speed))
                         .height(self.window.height - self.window.paddle_width),
                 )
-                .link(keyframes::Space::new(Speed::per_secs(105.)).height(0.))
-                .link(keyframes::Space::lazy(Speed::per_secs(105.)))
+                .link(keyframes::Space::new(Speed::per_secs(speed)).height(0.))
+                .link(keyframes::Space::lazy(Speed::per_secs(speed)))
                 .loop_forever()
         } else {
             cosmic_time::space::Chain::new(BALL_Y.clone())
                 .link(keyframes::Space::lazy(Duration::ZERO))
-                .link(keyframes::Space::new(Speed::per_secs(105.)).height(0.))
+                .link(keyframes::Space::new(Speed::per_secs(speed)).height(0.))
                 .link(
-                    keyframes::Space::new(Speed::per_secs(105.))
+                    keyframes::Space::new(Speed::per_secs(speed))
                         .height(self.window.height - self.window.paddle_width),
                 )
-                .link(keyframes::Space::lazy(Speed::per_secs(105.)))
+                .link(keyframes::Space::lazy(Speed::per_secs(speed)))
+                .loop_forever()
+        }
+    }
+
+    fn rand_horizontal_bounce(&mut self) -> cosmic_time::space::Chain {
+        let speed = 100. * self.rng.gen_range(0.9..1.1);
+        if self.rng.gen() {
+            cosmic_time::space::Chain::new(BALL_X.clone())
+                .link(keyframes::Space::lazy(Duration::ZERO))
+                .link(
+                    keyframes::Space::new(Speed::per_secs(speed))
+                        .width(self.window.width - self.window.paddle_width),
+                )
+                .link(keyframes::Space::new(Speed::per_secs(speed)).width(0.))
+                .link(keyframes::Space::lazy(Speed::per_secs(speed)))
+                .loop_forever()
+        } else {
+            cosmic_time::space::Chain::new(BALL_X.clone())
+                .link(keyframes::Space::lazy(Duration::ZERO))
+                .link(keyframes::Space::new(Speed::per_secs(speed)).width(0.))
+                .link(
+                    keyframes::Space::new(Speed::per_secs(speed))
+                        .width(self.window.width - self.window.paddle_width),
+                )
+                .link(keyframes::Space::lazy(Speed::per_secs(speed)))
                 .loop_forever()
         }
     }
