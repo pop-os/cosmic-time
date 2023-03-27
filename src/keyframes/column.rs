@@ -80,6 +80,7 @@ pub struct Column {
     padding: Option<Padding>,
     width: Option<Length>,
     height: Option<Length>,
+    is_eager: bool,
 }
 
 impl Column {
@@ -94,6 +95,22 @@ impl Column {
             padding: None,
             max_width: None,
             max_height: None,
+            is_eager: true,
+        }
+    }
+
+    pub fn lazy(at: impl Into<MovementType>) -> Column {
+      let at = at.into();
+        Column {
+            index: 0,
+            at,
+            ease: Linear::InOut.into(),
+            width: None,
+            height: None,
+            padding: None,
+            max_width: None,
+            max_height: None,
+            is_eager: false,
         }
     }
 
@@ -107,23 +124,22 @@ impl Column {
         Renderer::Theme: widget::container::StyleSheet,
     {
         let id: widget::Id = id.into();
-        let now = Instant::now();
 
         widget::Column::new(content)
             .spacing(
                 timeline
-                    .get(&id, &now, 0)
+                    .get(&id, 0)
                     .map(|m| m.value)
                     .unwrap_or(0.),
             )
             .padding([
-                timeline.get(&id, &now, 1).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 2).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 3).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, &now, 4).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 3).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 4).map(|m| m.value).unwrap_or(0.),
             ])
-            .width(get_length(&id, timeline, &now, 5, Length::Shrink))
-            .height(get_length(&id, timeline, &now, 6, Length::Shrink))
+            .width(get_length(&id, timeline, 5, Length::Shrink))
+            .height(get_length(&id, timeline, 6, Length::Shrink))
     }
 
     pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
@@ -152,45 +168,20 @@ impl Column {
     }
 }
 
-// 0 = spacing
-// 1 = padding[1] (top)
-// 2 = padding[2] (right)
-// 3 = padding[3] (bottom)
-// 4 = padding[4] (left)
-// 5 = width
-// 6 = height
-impl Iterator for Column {
-    type Item = Option<DurFrame>;
-
-    fn next(&mut self) -> Option<Option<DurFrame>> {
-        self.index += 1;
-        match self.index - 1 {
-            0 => Some(self.spacing.map(|s| DurFrame::new(self.at, s, self.ease))),
-            1 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.top, self.ease)),
-            ),
-            2 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.right, self.ease)),
-            ),
-            3 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.bottom, self.ease)),
-            ),
-            4 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.left, self.ease)),
-            ),
-            5 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            6 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
-            _ => None,
-        }
-    }
-}
-
-impl ExactSizeIterator for Column {
-    fn len(&self) -> usize {
-        7 - self.index
+#[rustfmt::skip]
+impl From<Column> for Vec<Option<Frame>> {
+    fn from(column: Column) -> Vec<Option<Frame>> {
+      if column.is_eager {
+        vec![self.spacing.map(|s| Frame::eager(column.at, s, column.ease)),          // 0 = spacing
+             column.padding.map(|p| Frame::eager(column.at, p.top, column.ease)),    // 1 = padding[0] (top)
+             column.padding.map(|p| Frame::eager(column.at, p.right, column.ease)),  // 2 = padding[1] (right)
+             column.padding.map(|p| Frame::eager(column.at, p.bottom, column.ease)), // 3 = padding[2] (bottom)
+             column.padding.map(|p| Frame::eager(column.at, p.left, column.ease)),   // 4 = padding[3] (left)
+             as_f32(column.width).map(|w| Frame::eager(column.at, w, column.ease)),  // 5 = width
+             as_f32(column.height).map(|h| Frame::eager(column.at, h, column.ease)), // 6 = height
+        ]
+      } else {
+        vec![Some(Frame::lazy(column.at, 0., column.ease)); 7] // lazy evaluates for all values
+      }
     }
 }

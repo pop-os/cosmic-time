@@ -60,37 +60,53 @@ impl Chain {
     }
 }
 
-impl<T> From<Chain> for crate::timeline::Chain<T>
-where
-    T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Button>>,
-{
+impl From<Chain> for crate::timeline::Chain {
     fn from(chain: Chain) -> Self {
-        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+        crate::timeline::Chain::new(
+            chain.id.into(),
+            chain.repeat,
+            chain
+                .links
+                .into_iter()
+                .map(|b| b.into())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
 pub struct Button {
-    index: usize,
     at: MovementType,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
     padding: Option<Padding>,
+    is_eager: bool,
 }
 
 impl Button {
     pub fn new(at: impl Into<MovementType>) -> Button {
         let at = at.into();
         Button {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
             height: None,
             padding: None,
+            is_eager: true,
+        }
+    }
+
+    pub fn lazy(at: impl Into<MovementType>) -> Button {
+        let at = at.into();
+        Button {
+            at,
+            ease: Linear::InOut.into(),
+            width: None,
+            height: None,
+            padding: None,
+            is_eager: false,
         }
     }
 
@@ -137,47 +153,25 @@ impl Button {
     }
 }
 
-// 0 = width
-// 1 = height
-// 2 = padding[1] (top)
-// 3 = padding[2] (right)
-// 4 = padding[3] (bottom)
-// 5 = padding[4] (left)
-impl Iterator for Button {
-    type Item = Option<Frame>;
-
-    fn next(&mut self) -> Option<Option<Frame>> {
-        self.index += 1;
-        match self.index - 1 {
-            0 => Some(
-                as_f32(self.width).map(|w| Frame::eager(self.at, w, self.ease)),
-            ),
-            1 => Some(
-                as_f32(self.height).map(|h| Frame::eager(self.at, h, self.ease)),
-            ),
-            2 => Some(
-                self.padding
-                    .map(|p| Frame::eager(self.at, p.top, self.ease)),
-            ),
-            3 => Some(
-                self.padding
-                    .map(|p| Frame::eager(self.at, p.right, self.ease)),
-            ),
-            4 => Some(
-                self.padding
-                    .map(|p| Frame::eager(self.at, p.bottom, self.ease)),
-            ),
-            5 => Some(
-                self.padding
-                    .map(|p| Frame::eager(self.at, p.left, self.ease)),
-            ),
-            _ => None,
-        }
-    }
-}
-
-impl ExactSizeIterator for Button {
-    fn len(&self) -> usize {
-        6 - self.index
+#[rustfmt::skip]
+impl From<Button> for Vec<Option<Frame>> {
+    fn from(button: Button) -> Vec<Option<Frame>> {
+      if button.is_eager {
+        vec![as_f32(button.width).map(|w| Frame::eager(button.at, w, button.ease)),  // 0 = width
+             as_f32(button.height).map(|h| Frame::eager(button.at, h, button.ease)), // 1 = height
+             button.padding.map(|p| Frame::eager(button.at, p.top, button.ease)),    // 2 = padding[0] (top)
+             button.padding.map(|p| Frame::eager(button.at, p.right, button.ease)),  // 3 = padding[1] (right)
+             button.padding.map(|p| Frame::eager(button.at, p.bottom, button.ease)), // 4 = padding[2] (bottom)
+             button.padding.map(|p| Frame::eager(button.at, p.left, button.ease)),   // 5 = padding[3] (left)
+        ]
+      } else {
+        vec![Some(Frame::lazy(button.at, 0., button.ease)), // 0 = width
+             Some(Frame::lazy(button.at, 0., button.ease)), // 1 = height
+             Some(Frame::lazy(button.at, 5., button.ease)), // 2 = padding[0] (top)
+             Some(Frame::lazy(button.at, 5., button.ease)), // 3 = padding[1] (right)
+             Some(Frame::lazy(button.at, 5., button.ease)), // 4 = padding[2] (bottom)
+             Some(Frame::lazy(button.at, 5., button.ease)), // 5 = padding[3] (left)
+        ]
+      }
     }
 }

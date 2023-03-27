@@ -25,14 +25,16 @@ impl std::default::Default for Timeline {
     }
 }
 
-pub struct Chain<T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug> {
+#[derive(Debug, Clone)]
+pub struct Chain {
     pub id: widget::Id,
     pub repeat: Repeat,
-    links: Vec<T>,
+    links: Vec<Vec<Option<Frame>>>,
 }
 
-impl<T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug> Chain<T> {
-    pub fn new(id: widget::Id, repeat: Repeat, links: Vec<T>) -> Self {
+impl Chain {
+    pub fn new(id: widget::Id, repeat: Repeat, links: impl Into<Vec<Vec<Option<Frame>>>>) -> Self {
+        let links = links.into();
         Chain { id, repeat, links }
     }
 }
@@ -55,20 +57,12 @@ pub enum Frame {
 }
 
 impl Frame {
-    pub fn eager(
-        movement_type: impl Into<MovementType>,
-        value: f32,
-        ease: Ease,
-    ) -> Self {
+    pub fn eager(movement_type: impl Into<MovementType>, value: f32, ease: Ease) -> Self {
         let movement_type = movement_type.into();
         Frame::Eager(movement_type, value, ease)
     }
 
-    pub fn lazy(
-        movement_type: impl Into<MovementType>,
-        default: f32,
-        ease: Ease,
-    ) -> Self {
+    pub fn lazy(movement_type: impl Into<MovementType>, default: f32, ease: Ease) -> Self {
         let movement_type = movement_type.into();
         Frame::Lazy(movement_type, default, ease)
     }
@@ -84,10 +78,7 @@ impl Frame {
 
     pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, index: usize) {
         *self = if let Frame::Lazy(movement_type, default, ease) = *self {
-            let value = timeline
-                .get(id, index)
-                .map(|i| i.value)
-                .unwrap_or(default);
+            let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
             Frame::Eager(movement_type, value, ease)
         } else {
             *self
@@ -266,35 +257,25 @@ impl Timeline {
         self
     }
 
-    pub fn set_chain<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
-    where
-        T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
-    {
+    pub fn set_chain(&mut self, chain: impl Into<Chain>) -> &mut Self {
         self.set_chain_with_options(chain, Pause::NoPause)
     }
 
-    pub fn set_chain_paused<T>(&mut self, chain: impl Into<Chain<T>>) -> &mut Self
-    where
-        T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
-    {
+    pub fn set_chain_paused(&mut self, chain: impl Into<Chain>) -> &mut Self {
         self.set_chain_with_options(chain, Pause::Paused(Instant::now()))
     }
 
     /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
-    fn set_chain_with_options<T>(&mut self, chain: impl Into<Chain<T>>, pause: Pause) -> &mut Self
-    where
-        T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
-    {
+    fn set_chain_with_options(&mut self, chain: impl Into<Chain>, pause: Pause) -> &mut Self {
         // TODO should be removed. Used iterators for pre-release
         // cosmic-time implementation. Keyframes should just pass a Vec<Vec<Frame>>
         let chain = chain.into();
         let id = chain.id;
         let repeat = chain.repeat;
-        let chain: Vec<Vec<Option<Frame>>> = chain.links.into_iter().map(|m| m.collect()).collect();
 
         let _ = self
             .pendings
-            .insert(id, Pending::Chain(repeat, chain, pause));
+            .insert(id, Pending::Chain(repeat, chain.links, pause));
         self
     }
 

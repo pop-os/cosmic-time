@@ -60,33 +60,47 @@ impl Chain {
     }
 }
 
-impl<T> From<Chain> for crate::timeline::Chain<T>
-where
-    T: ExactSizeIterator<Item = Option<Frame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Toggler>>,
-{
+impl From<Chain> for crate::timeline::Chain {
     fn from(chain: Chain) -> Self {
-        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+        crate::timeline::Chain::new(
+            chain.id.into(),
+            chain.repeat,
+            chain
+                .links
+                .into_iter()
+                .map(|t| t.into())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
 pub struct Toggler {
-    index: usize,
     at: MovementType,
     ease: Ease,
     percent: f32,
+    is_eager: bool,
 }
 
 impl Toggler {
     pub fn new(at: impl Into<MovementType>) -> Toggler {
         let at = at.into();
         Toggler {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
             percent: 1.0,
+            is_eager: true,
+        }
+    }
+
+    pub fn lazy(at: impl Into<MovementType>) -> Toggler {
+        let at = at.into();
+        Toggler {
+            at,
+            ease: Linear::InOut.into(),
+            percent: 1.0,
+            is_eager: false,
         }
     }
 
@@ -121,25 +135,13 @@ impl Toggler {
     }
 }
 
-// 0 = animation percent completion
-impl Iterator for Toggler {
-    type Item = Option<Frame>;
-
-    fn next(&mut self) -> Option<Option<Frame>> {
-        self.index += 1;
-        match self.index - 1 {
-            0 => Some(Some(Frame::eager(
-                self.at,
-                self.percent,
-                self.ease,
-            ))),
-            _ => None,
-        }
-    }
-}
-
-impl ExactSizeIterator for Toggler {
-    fn len(&self) -> usize {
-        1 - self.index
+#[rustfmt::skip]
+impl From<Toggler> for Vec<Option<Frame>> {
+    fn from(toggler: Toggler) -> Vec<Option<Frame>> {
+      if toggler.is_eager {
+        vec![Some(Frame::eager(toggler.at, toggler.percent, toggler.ease))]  // 0 = animation percent completion
+      } else {
+        vec![Some(Frame::lazy(toggler.at, 0., toggler.ease))] // lazy evaluates for all values
+      }
     }
 }
