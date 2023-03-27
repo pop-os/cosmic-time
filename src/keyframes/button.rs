@@ -44,8 +44,7 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, mut button: Button) -> Self {
-        button.chain_index = self.links.len();
+    pub fn link(mut self, button: Button) -> Self {
         self.links.push(button);
         self
     }
@@ -75,7 +74,6 @@ where
 #[derive(Debug, Clone, Copy)]
 pub struct Button {
     index: usize,
-    chain_index: usize,
     at: MovementType,
     ease: Ease,
     width: Option<Length>,
@@ -88,7 +86,6 @@ impl Button {
         let at = at.into();
         Button {
             index: 0,
-            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -153,26 +150,26 @@ impl Iterator for Button {
         self.index += 1;
         match self.index - 1 {
             0 => Some(
-                as_f32(self.width).map(|w| Frame::eager(self.chain_index, self.at, w, self.ease)),
+                as_f32(self.width).map(|w| Frame::eager(self.at, w, self.ease)),
             ),
             1 => Some(
-                as_f32(self.height).map(|h| Frame::eager(self.chain_index, self.at, h, self.ease)),
+                as_f32(self.height).map(|h| Frame::eager(self.at, h, self.ease)),
             ),
             2 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.top, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.top, self.ease)),
             ),
             3 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.right, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.right, self.ease)),
             ),
             4 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.bottom, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.bottom, self.ease)),
             ),
             5 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.left, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.left, self.ease)),
             ),
             _ => None,
         }

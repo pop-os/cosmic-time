@@ -44,8 +44,7 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, mut container: Container) -> Self {
-        container.chain_index = self.links.len();
+    pub fn link(mut self, container: Container) -> Self {
         self.links.push(container);
         self
     }
@@ -75,7 +74,6 @@ where
 #[derive(Debug, Clone, Copy)]
 pub struct Container {
     index: usize,
-    chain_index: usize,
     at: MovementType,
     ease: Ease,
     width: Option<Length>,
@@ -90,7 +88,6 @@ impl Container {
         let at = at.into();
         Container {
             index: 0,
-            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -181,34 +178,34 @@ impl Iterator for Container {
         self.index += 1;
         match self.index - 1 {
             0 => Some(
-                as_f32(self.width).map(|w| Frame::eager(self.chain_index, self.at, w, self.ease)),
+                as_f32(self.width).map(|w| Frame::eager(self.at, w, self.ease)),
             ),
             1 => Some(
-                as_f32(self.height).map(|h| Frame::eager(self.chain_index, self.at, h, self.ease)),
+                as_f32(self.height).map(|h| Frame::eager(self.at, h, self.ease)),
             ),
             2 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.top, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.top, self.ease)),
             ),
             3 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.right, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.right, self.ease)),
             ),
             4 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.bottom, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.bottom, self.ease)),
             ),
             5 => Some(
                 self.padding
-                    .map(|p| Frame::eager(self.chain_index, self.at, p.left, self.ease)),
+                    .map(|p| Frame::eager(self.at, p.left, self.ease)),
             ),
             6 => Some(
                 self.max_width
-                    .map(|w| Frame::eager(self.chain_index, self.at, w, self.ease)),
+                    .map(|w| Frame::eager(self.at, w, self.ease)),
             ),
             7 => Some(
                 self.max_height
-                    .map(|h| Frame::eager(self.chain_index, self.at, h, self.ease)),
+                    .map(|h| Frame::eager(self.at, h, self.ease)),
             ),
             _ => None,
         }

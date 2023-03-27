@@ -49,55 +49,46 @@ enum Pending {
 #[derive(Debug, Clone, Copy)]
 pub enum Frame {
     // Keyframe time, value at time, ease type into value
-    Eager(usize, MovementType, f32, Ease),
+    Eager(MovementType, f32, Ease),
     // Keyframe time, DEFAULT FALLBACK VALUE, ease type into value
-    Lazy(usize, MovementType, f32, Ease),
+    Lazy(MovementType, f32, Ease),
 }
 
 impl Frame {
     pub fn eager(
-        index: usize,
         movement_type: impl Into<MovementType>,
         value: f32,
         ease: Ease,
     ) -> Self {
         let movement_type = movement_type.into();
-        Frame::Eager(index, movement_type, value, ease)
+        Frame::Eager(movement_type, value, ease)
     }
 
     pub fn lazy(
-        index: usize,
         movement_type: impl Into<MovementType>,
         default: f32,
         ease: Ease,
     ) -> Self {
         let movement_type = movement_type.into();
-        Frame::Lazy(index, movement_type, default, ease)
-    }
-
-    pub fn get_chain_index(&self) -> usize {
-        match self {
-            Frame::Eager(index, _movement_type, _value, _ease) => *index,
-            Frame::Lazy(index, _movement_type, _value, _ease) => *index,
-        }
+        Frame::Lazy(movement_type, default, ease)
     }
 
     pub fn to_subframe(self, time: Instant) -> SubFrame {
         let (value, ease) = match self {
-            Frame::Eager(_index, _movement_type, value, ease) => (value, ease),
+            Frame::Eager(_movement_type, value, ease) => (value, ease),
             _ => panic!("Call 'to_eager' first"),
         };
 
         SubFrame::new(time, value, ease)
     }
 
-    pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, timeline_index: usize) {
-        *self = if let Frame::Lazy(chain_index, movement_type, default, ease) = *self {
+    pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, index: usize) {
+        *self = if let Frame::Lazy(movement_type, default, ease) = *self {
             let value = timeline
-                .get(id, timeline_index)
+                .get(id, index)
                 .map(|i| i.value)
                 .unwrap_or(default);
-            Frame::Eager(chain_index, movement_type, value, ease)
+            Frame::Eager(movement_type, value, ease)
         } else {
             *self
         }
@@ -105,14 +96,14 @@ impl Frame {
 
     fn get_value(&self) -> f32 {
         match self {
-            Frame::Eager(_, _, value, _) => *value,
+            Frame::Eager(_, value, _) => *value,
             _ => panic!("call 'to_eager' first"),
         }
     }
 
     pub fn get_duration(self, previous: &Self) -> Duration {
         match self {
-            Frame::Eager(_index, movement_type, value, _ease) => match movement_type {
+            Frame::Eager(movement_type, value, _ease) => match movement_type {
                 MovementType::Duration(duration) => duration,
                 MovementType::Speed(speed) => speed.calc_duration(previous.get_value(), value),
             },

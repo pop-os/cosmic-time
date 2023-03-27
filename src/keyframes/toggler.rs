@@ -44,8 +44,7 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, mut toggler: Toggler) -> Self {
-        toggler.chain_index = self.links.len();
+    pub fn link(mut self, toggler: Toggler) -> Self {
         self.links.push(toggler);
         self
     }
@@ -75,7 +74,6 @@ where
 #[derive(Debug, Clone, Copy)]
 pub struct Toggler {
     index: usize,
-    chain_index: usize,
     at: MovementType,
     ease: Ease,
     percent: f32,
@@ -86,7 +84,6 @@ impl Toggler {
         let at = at.into();
         Toggler {
             index: 0,
-            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             percent: 1.0,
@@ -132,7 +129,6 @@ impl Iterator for Toggler {
         self.index += 1;
         match self.index - 1 {
             0 => Some(Some(Frame::eager(
-                self.chain_index,
                 self.at,
                 self.percent,
                 self.ease,

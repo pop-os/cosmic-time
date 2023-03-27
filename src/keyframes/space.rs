@@ -44,8 +44,7 @@ impl Chain {
         }
     }
 
-    pub fn link(mut self, mut space: Space) -> Self {
-        space.chain_index = self.links.len();
+    pub fn link(mut self, space: Space) -> Self {
         self.links.push(space);
         self
     }
@@ -75,7 +74,6 @@ where
 #[derive(Debug, Clone, Copy)]
 pub struct Space {
     index: usize,
-    chain_index: usize,
     at: MovementType,
     ease: Ease,
     width: Option<Length>,
@@ -88,7 +86,6 @@ impl Space {
         let at = at.into();
         Space {
             index: 0,
-            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -101,7 +98,6 @@ impl Space {
         let at = at.into();
         Space {
             index: 0,
-            chain_index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -148,18 +144,18 @@ impl Iterator for Space {
             0 => {
                 let frame = if self.is_eager {
                     as_f32(self.width)
-                        .map(|w| Frame::eager(self.chain_index, self.at, w, self.ease))
+                        .map(|w| Frame::eager(self.at, w, self.ease))
                 } else {
-                    Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
+                    Some(Frame::lazy(self.at, 0.0, self.ease))
                 };
                 Some(frame)
             }
             1 => {
                 let frame = if self.is_eager {
                     as_f32(self.height)
-                        .map(|h| Frame::eager(self.chain_index, self.at, h, self.ease))
+                        .map(|h| Frame::eager(self.at, h, self.ease))
                 } else {
-                    Some(Frame::lazy(self.chain_index, self.at, 0.0, self.ease))
+                    Some(Frame::lazy(self.at, 0.0, self.ease))
                 };
                 Some(frame)
             }
