@@ -8,6 +8,10 @@ use std::time::{Duration, Instant};
 use crate::keyframes::Repeat;
 use crate::{lerp, Ease, MovementType, Tween};
 
+/// This holds all the data for your animations.
+/// tracks: this holds all data for active animations
+/// pendings: this holds all data that hasn't been `.start()`ed yet.
+/// now: This is the instant that is used to calculate animation interpolations.
 #[derive(Debug, Clone)]
 pub struct Timeline {
     // Hash map of widget::id to track, where each track is made of subtracks<isize>
@@ -25,14 +29,20 @@ impl std::default::Default for Timeline {
     }
 }
 
+/// All "keyframes" have their own chain to make the API friendly.
+/// But all chain types need to `impl Into<>` this chain type, so that
+/// the [`Timeline`] can hold and manipulate that data.
 #[derive(Debug, Clone)]
 pub struct Chain {
+    /// The Id that refers to this animation. Same Id type that Iced uses.
     pub id: widget::Id,
+    /// Should we loop this animation? This field decides that.
     pub repeat: Repeat,
     links: Vec<Vec<Option<Frame>>>,
 }
 
 impl Chain {
+    /// Create a new chain.
     pub fn new(id: widget::Id, repeat: Repeat, links: impl Into<Vec<Vec<Option<Frame>>>>) -> Self {
         let links = links.into();
         Chain { id, repeat, links }
@@ -48,25 +58,37 @@ enum Pending {
     ResumeAll,
 }
 
+/// A Frame is the exact value of the modifier at a given time.
+/// Advanced use only.
+/// You do not need this type unless you are making your own custom animate-able widget.
+/// A `Frame::Eager` refers to a known widget's modifier state. This is for most cases
+/// like "animate to width 10".
+/// A `Frame::Lazy` is for continueing a previous animation, either midway through
+/// the animation, or even after the animation was completed.
 #[derive(Debug, Clone, Copy)]
 pub enum Frame {
-    // Keyframe time, value at time, ease type into value
+    /// Keyframe time, !!VALUE AT TIME!!, ease type into value
     Eager(MovementType, f32, Ease),
-    // Keyframe time, DEFAULT FALLBACK VALUE, ease type into value
+    /// Keyframe time, !!DEFAULT FALLBACK VALUE!!, ease type into value
     Lazy(MovementType, f32, Ease),
 }
 
 impl Frame {
+    /// Create an Eager Frame.
     pub fn eager(movement_type: impl Into<MovementType>, value: f32, ease: Ease) -> Self {
         let movement_type = movement_type.into();
         Frame::Eager(movement_type, value, ease)
     }
 
+    /// Create an Lazy Frame.
     pub fn lazy(movement_type: impl Into<MovementType>, default: f32, ease: Ease) -> Self {
         let movement_type = movement_type.into();
         Frame::Lazy(movement_type, default, ease)
     }
 
+    /// You almost certainly do not need this function.
+    /// Used in timeline::start to guarentee that we have the same
+    /// time of an animation, not the API convinient [`MovementType`].
     pub fn to_subframe(self, time: Instant) -> SubFrame {
         let (value, ease) = match self {
             Frame::Eager(_movement_type, value, ease) => (value, ease),
@@ -76,6 +98,8 @@ impl Frame {
         SubFrame::new(time, value, ease)
     }
 
+    /// You almost certainly do not need this function.
+    /// Converts a Lazy [`Frame`] to an Eager [`Frame`].
     pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, index: usize) {
         *self = if let Frame::Lazy(movement_type, default, ease) = *self {
             let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
@@ -92,6 +116,8 @@ impl Frame {
         }
     }
 
+    /// You almost certainly do not need this function.
+    /// Get the duration of a [`Frame`]
     pub fn get_duration(self, previous: &Self) -> Duration {
         match self {
             Frame::Eager(movement_type, value, _ease) => match movement_type {
@@ -103,16 +129,24 @@ impl Frame {
     }
 }
 
+/// The metadata of an animation. Used by [`Timeline`].
 #[derive(Clone, Debug)]
 pub struct Meta {
+    /// Does the animation repeat? The decides that.
     pub repeat: Repeat,
+    /// The specific time the animation started at.
     pub start: Instant,
+    /// The time that the animation will end.
+    /// Used to optimize [`Timeline::as_subscription`]
     pub end: Instant,
+    /// The length of time the animation will last
     pub length: Duration,
+    /// Is the animation paused? This decides that.
     pub pause: Pause,
 }
 
 impl Meta {
+    /// Creates new metadata for an animation.
     pub fn new(
         repeat: Repeat,
         start: Instant,
@@ -129,6 +163,9 @@ impl Meta {
         }
     }
 
+    /// Sets the animation to be paused.
+    /// If you are an end user of Cosmic Time, you do not want this.
+    /// You want the `pause` function on [`Timeline`].
     pub fn pause(&mut self, now: Instant) {
         if let Pause::Resumed(delay) = self.pause {
             self.pause = Pause::Paused(relative_time(&(now - delay), self));
@@ -137,6 +174,9 @@ impl Meta {
         }
     }
 
+    /// Sets the animation to be resumed.
+    /// If you are an end user of Cosmic Time, you do not want this.
+    /// You want the `resume` function on [`Timeline`].
     pub fn resume(&mut self, now: Instant) {
         if let Pause::Paused(start) = self.pause {
             self.pause = Pause::Resumed(now - start);
@@ -144,35 +184,44 @@ impl Meta {
     }
 }
 
+/// A type to help guarentee that a paused animation has the correct data
+/// to be resumed and/or continue animating.
 #[derive(Debug, Clone, Copy)]
 pub enum Pause {
-    // Currently paused, with the relative instant into the animation it was paused at.
+    /// Currently paused, with the relative instant into the animation it was paused at.
     Paused(Instant),
-    // Has never been paused
+    /// Has never been paused
     NoPause,
-    // The animation was paused, but no longer. The duration is required for the
-    // offset of the animation.
+    /// The animation was paused, but no longer. The duration is required for the
+    /// offset of the animation.
     Resumed(Duration),
 }
 
 impl Pause {
+    /// A conviniece function to check if an animation is playing.
     pub fn is_playing(&self) -> bool {
         !matches!(self, Pause::Paused(_))
     }
 }
 
+/// A Cosmic Time internal type to make animation interpolation
+/// calculations more efficient.
+/// an intermediary type. This lets the timeline easily
+/// interpolate between keyframes. Keyframe implementations
+/// shouldn't have to know about this type. The Instant for this
+/// (and thus the keyframe itself) is applied with `start`
 #[derive(Debug, Clone)]
 pub struct SubFrame {
+    /// The value, same as a [`Frame`]
     pub value: f32,
+    /// The ease used to interpolate into this.
     pub ease: Ease,
+    /// The Instant of this. Converted from duration in [`Frame`]
     pub at: Instant,
 }
 
-// an intermediary type. This lets the timeline easily
-// interpolate between keyframes. Keyframe implementations
-// shouldn't have to know about this type. The Instant for this
-// (and thus the keyframe itself) is applied with `start`
 impl SubFrame {
+    /// Creates a new SubFrame.
     pub fn new(at: Instant, value: f32, ease: Ease) -> Self {
         SubFrame { value, at, ease }
     }
@@ -201,15 +250,25 @@ impl PartialOrd for SubFrame {
     }
 }
 
+/// Returned from [`Timeline::get`]
+/// Has all the data needed for simple animtions,
+/// and for style-like animations where some data
+/// is held in the widget, and not passed to [`Timeline`].
 #[derive(Debug, Clone, Copy)]
 pub struct Interped {
+    /// The previous ['Frame']'s value
     pub previous: f32,
+    /// The nexy ['Frame']'s value
     pub next: f32,
+    /// The interpolated value.
     pub value: f32,
+    /// The percent done of this link in the chain.
     pub percent: f32,
 }
 
 impl Timeline {
+    /// Creates a new [`Timeline`]. If you don't find this function you are going
+    /// to have a bad time.
     pub fn new() -> Self {
         Timeline {
             tracks: HashMap::new(),
@@ -218,8 +277,8 @@ impl Timeline {
         }
     }
 
-    // Does using clear make more sense? Would be more efficent,
-    // But potentially a memory leak?
+    /// If you accidently manage to `set_chain`, but then decide to undo that.
+    /// If you need this there is probably a better way to re-write your code.
     pub fn remove_pending(&mut self) {
         self.pendings.clear();
     }
@@ -231,18 +290,23 @@ impl Timeline {
         }
     }
 
+    /// Need to pause an animation? Use this! Pass the same widget Id
+    /// used to create the chain.
     pub fn pause(&mut self, id: impl Into<widget::Id>) -> &mut Self {
         let id = id.into();
         let _ = self.pendings.insert(id, Pending::Pause);
         self
     }
 
+    /// Need to resume an animation? Use this! Pass the same widget Id
+    /// used to pause the chain.
     pub fn resume(&mut self, id: impl Into<widget::Id>) -> &mut Self {
         let id = id.into();
         let _ = self.pendings.insert(id, Pending::Resume);
         self
     }
 
+    /// Hammer Time? Pause all animations with this.
     pub fn pause_all(&mut self) -> &mut Self {
         let _ = self
             .pendings
@@ -250,6 +314,7 @@ impl Timeline {
         self
     }
 
+    /// Resume all animations.
     pub fn resume_all(&mut self) -> &mut Self {
         let _ = self
             .pendings
@@ -257,15 +322,18 @@ impl Timeline {
         self
     }
 
+    /// Add an animation chain to the timeline!
+    /// Each animation Id is unique. It is imposible to use the same Id
+    /// for two animations.
     pub fn set_chain(&mut self, chain: impl Into<Chain>) -> &mut Self {
         self.set_chain_with_options(chain, Pause::NoPause)
     }
 
+    /// Like `set_chain` but the animation will start paused on it's first frame.
     pub fn set_chain_paused(&mut self, chain: impl Into<Chain>) -> &mut Self {
         self.set_chain_with_options(chain, Pause::Paused(Instant::now()))
     }
 
-    /// Destructure keyframe into subtracks (via impl ExactSizeIterator) and add to timeline.
     fn set_chain_with_options(&mut self, chain: impl Into<Chain>, pause: Pause) -> &mut Self {
         // TODO should be removed. Used iterators for pre-release
         // cosmic-time implementation. Keyframes should just pass a Vec<Vec<Frame>>
@@ -279,20 +347,26 @@ impl Timeline {
         self
     }
 
+    /// Remove's any animation. Usually not necessary, unless you may have
+    /// a very large animation that needs to be "garage collected" when done.
     pub fn clear_chain(&mut self, id: impl Into<widget::Id>) -> &mut Self {
         let id = id.into();
         let _ = self.tracks.remove(&id);
         self
     }
 
+    /// Use this in your `update()`.
+    /// Updates the timeline's time so that animations can continue atomically.
     pub fn now(&mut self, now: Instant) {
         self.now = Some(now);
     }
 
+    /// Starts all pending animations.
     pub fn start(&mut self) {
         self.start_at(Instant::now());
     }
 
+    /// Starts all pending animations at some other time that isn't now.
     pub fn start_at(&mut self, now: Instant) {
         let mut pendings = std::mem::take(&mut self.pendings);
         for (id, pending) in pendings.drain() {
@@ -385,6 +459,10 @@ impl Timeline {
         self.now(now);
     }
 
+    /// Get the [`Interped`] value for an animation.
+    /// Use internaly by Cosmic Time.
+    /// index is the index that the keyframe arbitratily assigns to each
+    /// widget modifier (think width/height).
     pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
         let now = self.get_now();
         // Get requested modifier_timeline or skip
@@ -452,6 +530,8 @@ impl Timeline {
         }
     }
 
+    /// Efficiently request redraws for animations.
+    /// Automatically checks if animations are in a state where redraws arn't necessary.
     pub fn as_subscription<Event>(
         &self,
     ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>

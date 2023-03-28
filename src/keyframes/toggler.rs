@@ -21,10 +21,12 @@ impl Id {
         Self(widget::Id::unique())
     }
 
+    /// Used by [`chain!`] macro
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
+    /// Used by [`chain!`] macro
     pub fn into_chain_with_children(self, children: Vec<Toggler>) -> Chain {
         Chain::with_children(self, children)
     }

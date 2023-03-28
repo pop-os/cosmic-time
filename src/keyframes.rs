@@ -25,6 +25,8 @@ pub use toggler::Toggler;
 
 use crate::Timeline;
 
+/// The macro used to cleanly and efficently build an animation chain.
+/// Works for ann Id's that implement `into_chain` and `into_chain_with_children`
 #[macro_export]
 macro_rules! chain{
   ($id:expr) => {
@@ -35,6 +37,7 @@ macro_rules! chain{
   };
 }
 
+/// The macro used to clean up animation's view code.
 #[macro_export]
 macro_rules! anim{
   ($id:expr, $($x:expr),+ $(,)?) => {
