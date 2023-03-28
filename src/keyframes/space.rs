@@ -20,6 +20,14 @@ impl Id {
     pub fn unique() -> Self {
         Self(widget::Id::unique())
     }
+
+    pub fn to_chain(self) -> Chain {
+        Chain::new(self)
+    }
+
+    pub fn to_chain_with_children(self, children: Vec<Space>) -> Chain {
+        Chain::with_children(self, children)
+    }
 }
 
 impl From<Id> for widget::Id {
@@ -40,6 +48,14 @@ impl Chain {
         Chain {
             id,
             links: Vec::new(),
+            repeat: Repeat::Never,
+        }
+    }
+
+    pub fn with_children(id: Id, children: Vec<Space>) -> Self {
+        Chain {
+            id,
+            links: children,
             repeat: Repeat::Never,
         }
     }

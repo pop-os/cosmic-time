@@ -5,7 +5,7 @@ use iced::{
     Alignment, Application, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
-use cosmic_time::{self, keyframes, Timeline};
+use cosmic_time::{self, chain, keyframes, Timeline};
 
 use once_cell::sync::Lazy;
 
@@ -40,36 +40,27 @@ impl Application for Counter {
         // timeline Struct and the "timeline" itself here.
         // Though more complicated applications will likely do this in the `update`
         let mut timeline = Timeline::new();
-        let animation = cosmic_time::container::Chain::new(CONTAINER.clone())
-            // .loop_forever() // Uncomment this line to loop the animation!
-            .link(
-                keyframes::Container::new(Duration::ZERO)
-                    .width(0.)
-                    .height(100.),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(2))
-                    .width(200.)
-                    .height(100.),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(2))
-                    .width(200.)
-                    .height(300.)
-                    .padding([0, 0, 0, 0]),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(2))
-                    .width(700.)
-                    .height(300.)
-                    .padding([0, 0, 0, 500]),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(2))
-                    .width(150.)
-                    .height(150.)
-                    .padding([0, 0, 0, 0]),
-            );
+        let animation = chain![
+            CONTAINER,
+            keyframes::Container::new(Duration::ZERO)
+                .width(0.)
+                .height(100.),
+            keyframes::Container::new(Duration::from_secs(2))
+                .width(200.)
+                .height(100.),
+            keyframes::Container::new(Duration::from_secs(2))
+                .width(200.)
+                .height(300.)
+                .padding([0, 0, 0, 0]),
+            keyframes::Container::new(Duration::from_secs(2))
+                .width(700.)
+                .height(300.)
+                .padding([0, 0, 0, 500]),
+            keyframes::Container::new(Duration::from_secs(2))
+                .width(150.)
+                .height(150.)
+                .padding([0, 0, 0, 0]),
+        ];
 
         // Notice how we had to specify the start and end of the widget dimensions?
         // Iced's default values for widgets are usually not animatable, because

@@ -6,7 +6,7 @@ use iced::{
 };
 
 use cosmic_time::{
-    self, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
+    self, chain, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
     Quartic, Quintic, Sinusoidal, Timeline,
 };
 use once_cell::sync::Lazy;
@@ -246,19 +246,17 @@ impl Pokemon {
             EASE_IN[rand], EASE_OUT[rand]
         );
 
-        let animation = cosmic_time::space::Chain::new(SPACE.clone())
-            .link(keyframes::Space::new(Duration::ZERO).height(50.))
-            .link(
-                keyframes::Space::new(Duration::from_millis(1500))
-                    .height(250.)
-                    .ease(EASE_IN[rand]),
-            )
-            .link(
-                keyframes::Space::new(Duration::from_millis(3000))
-                    .height(50.)
-                    .ease(EASE_OUT[rand]),
-            )
-            .loop_forever();
+        let animation = chain![
+            SPACE,
+            keyframes::Space::new(Duration::ZERO).height(50.),
+            keyframes::Space::new(Duration::from_millis(1500))
+                .height(250.)
+                .ease(EASE_IN[rand]),
+            keyframes::Space::new(Duration::from_millis(3000))
+                .height(50.)
+                .ease(EASE_OUT[rand])
+        ]
+        .loop_forever();
 
         timeline.set_chain(animation).start();
 

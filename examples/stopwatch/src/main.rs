@@ -8,7 +8,7 @@ use self::widget::Element;
 use theme::Theme;
 
 use cosmic_time::{
-    self,
+    self, chain,
     style_button::{self, StyleButton},
     style_container::{self, StyleContainer},
     Sinusoidal, Timeline,
@@ -183,42 +183,39 @@ impl Application for Stopwatch {
 }
 
 fn anim_to_primary() -> style_button::Chain {
-    style_button::Chain::new(BUTTON.clone())
-        .link(StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Destructive)))
-        .link(StyleButton::new(Duration::from_millis(500)).style(button_u8(theme::Button::Primary)))
+    chain![
+        BUTTON,
+        StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Destructive)),
+        StyleButton::new(Duration::from_millis(500)).style(button_u8(theme::Button::Primary))
+    ]
 }
 
 fn anim_to_destructive() -> style_button::Chain {
-    style_button::Chain::new(BUTTON.clone())
-        .link(StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Primary)))
-        .link(
-            StyleButton::new(Duration::from_millis(500))
-                .style(button_u8(theme::Button::Destructive)),
-        )
+    chain![
+        BUTTON,
+        StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Primary)),
+        StyleButton::new(Duration::from_millis(500)).style(button_u8(theme::Button::Destructive))
+    ]
 }
 
 fn anim_background() -> style_container::Chain {
-    style_container::Chain::new(CONTAINER.clone())
-        .link(StyleContainer::new(Duration::ZERO).style(theme::Container::Red))
-        .link(
-            StyleContainer::new(Duration::from_secs(1))
-                // Notice how we can just pass the enum value here, where in the `anim_to_primary/destructive`
-                // we have to use the fucntion `button_u8`? Because we use a implemented a custom iced theme,
-                // we can just impl Into<u8> on the enum, and it works here!
-                .style(theme::Container::Green)
-                .ease(Sinusoidal::In),
-        )
-        .link(
-            StyleContainer::new(Duration::from_secs(2))
-                .style(theme::Container::Blue)
-                .ease(Sinusoidal::In),
-        )
-        .link(
-            StyleContainer::new(Duration::from_secs(3))
-                .style(theme::Container::Red)
-                .ease(Sinusoidal::In),
-        )
-        .loop_forever()
+    chain![
+        CONTAINER,
+        StyleContainer::new(Duration::ZERO).style(theme::Container::Red),
+        StyleContainer::new(Duration::from_secs(1))
+            // Notice how we can just pass the enum value here, where in the `anim_to_primary/destructive`
+            // we have to use the fucntion `button_u8`? Because we use a implemented a custom iced theme,
+            // we can just impl Into<u8> on the enum, and it works here!
+            .style(theme::Container::Green)
+            .ease(Sinusoidal::In),
+        StyleContainer::new(Duration::from_secs(2))
+            .style(theme::Container::Blue)
+            .ease(Sinusoidal::In),
+        StyleContainer::new(Duration::from_secs(3))
+            .style(theme::Container::Red)
+            .ease(Sinusoidal::In)
+    ]
+    .loop_forever()
 }
 
 // Style implementations
