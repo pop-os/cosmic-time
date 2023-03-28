@@ -1,14 +1,23 @@
-pub mod button;
-pub mod container;
-pub mod space;
-pub mod style_button;
-pub mod style_container;
 pub mod toggler;
+
+mod button;
+mod column;
+mod container;
+mod helpers;
+mod row;
+mod space;
+mod style_button;
+mod style_container;
 
 use iced_native::{widget, Length};
 
 pub use button::Button;
+pub use column::Column;
 pub use container::Container;
+pub use helpers::id;
+pub use helpers::lazy;
+pub use helpers::{button, column, container, row, space, style_button, style_container};
+pub use row::Row;
 pub use space::Space;
 pub use style_button::StyleButton;
 pub use style_container::StyleContainer;

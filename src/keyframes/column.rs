@@ -1,7 +1,7 @@
-use iced_native::{widget, Element, Length, Padding, Pixels};
+use iced_native::{widget, Length, Padding, Pixels};
 
-use crate::keyframes::{get_length, Repeat, as_f32};
-use crate::timeline::DurFrame;
+use crate::keyframes::{as_f32, get_length, Repeat};
+use crate::timeline::Frame;
 use crate::{Ease, Linear, MovementType};
 
 /// A Column's animation Id. Used for linking animation built in `update()` with widget output in `view()`
@@ -22,11 +22,22 @@ impl Id {
     }
 
     pub fn to_chain(self) -> Chain {
-      Chain::new(self)
+        Chain::new(self)
     }
 
     pub fn to_chain_with_children(self, children: Vec<Column>) -> Chain {
-      Chain::with_children(self, children)
+        Chain::with_children(self, children)
+    }
+
+    pub fn as_widget<'a, Message, Renderer>(
+        self,
+        timeline: &crate::Timeline,
+    ) -> widget::Column<'a, Message, Renderer>
+    where
+        Renderer: iced_native::Renderer,
+        Renderer::Theme: widget::container::StyleSheet,
+    {
+        Column::as_widget(self, timeline)
     }
 }
 
@@ -76,20 +87,23 @@ impl Chain {
     }
 }
 
-impl<T> From<Chain> for crate::timeline::Chain<T>
-where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Column>>,
-{
+impl From<Chain> for crate::timeline::Chain {
     fn from(chain: Chain) -> Self {
-        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+        crate::timeline::Chain::new(
+            chain.id.into(),
+            chain.repeat,
+            chain
+                .links
+                .into_iter()
+                .map(|c| c.into())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
 pub struct Column {
-    index: usize,
     at: MovementType,
     ease: Ease,
     spacing: Option<f32>,
@@ -101,31 +115,27 @@ pub struct Column {
 
 impl Column {
     pub fn new(at: impl Into<MovementType>) -> Column {
-      let at = at.into();
+        let at = at.into();
         Column {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
+            spacing: None,
             width: None,
             height: None,
             padding: None,
-            max_width: None,
-            max_height: None,
             is_eager: true,
         }
     }
 
     pub fn lazy(at: impl Into<MovementType>) -> Column {
-      let at = at.into();
+        let at = at.into();
         Column {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
+            spacing: None,
             width: None,
             height: None,
             padding: None,
-            max_width: None,
-            max_height: None,
             is_eager: false,
         }
     }
@@ -133,7 +143,6 @@ impl Column {
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
-        content: impl Into<Element<'a, Message, Renderer>>,
     ) -> widget::Column<'a, Message, Renderer>
     where
         Renderer: iced_native::Renderer,
@@ -141,13 +150,8 @@ impl Column {
     {
         let id: widget::Id = id.into();
 
-        widget::Column::new(content)
-            .spacing(
-                timeline
-                    .get(&id, 0)
-                    .map(|m| m.value)
-                    .unwrap_or(0.),
-            )
+        widget::Column::new()
+            .spacing(timeline.get(&id, 0).map(|m| m.value).unwrap_or(0.))
             .padding([
                 timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),
                 timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
@@ -159,8 +163,8 @@ impl Column {
     }
 
     pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
-      self.spacing = spacing.into().0;
-      self
+        self.spacing = Some(spacing.into().0);
+        self
     }
 
     pub fn width(mut self, width: impl Into<Length>) -> Self {
@@ -188,7 +192,7 @@ impl Column {
 impl From<Column> for Vec<Option<Frame>> {
     fn from(column: Column) -> Vec<Option<Frame>> {
       if column.is_eager {
-        vec![self.spacing.map(|s| Frame::eager(column.at, s, column.ease)),          // 0 = spacing
+        vec![column.spacing.map(|s| Frame::eager(column.at, s, column.ease)),        // 0 = spacing
              column.padding.map(|p| Frame::eager(column.at, p.top, column.ease)),    // 1 = padding[0] (top)
              column.padding.map(|p| Frame::eager(column.at, p.right, column.ease)),  // 2 = padding[1] (right)
              column.padding.map(|p| Frame::eager(column.at, p.bottom, column.ease)), // 3 = padding[2] (bottom)

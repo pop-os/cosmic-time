@@ -6,12 +6,12 @@ use iced::{
 };
 
 use cosmic_time::{
-    self, anim, chain, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear,
-    Quadratic, Quartic, Quintic, Sinusoidal, Timeline,
+    self, anim, chain, id, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
+    Quartic, Quintic, Sinusoidal, Timeline,
 };
 use once_cell::sync::Lazy;
 
-static SPACE: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
+static SPACE: Lazy<id::Space> = Lazy::new(id::Space::unique);
 
 const EASE_IN: [Ease; 10] = [
     Ease::Linear(Linear::InOut),
@@ -188,6 +188,7 @@ impl Pokemon {
     }
 
     async fn search() -> Result<Pokemon, Error> {
+        use cosmic_time::space;
         use rand::Rng;
         use serde::Deserialize;
 
@@ -248,11 +249,11 @@ impl Pokemon {
 
         let animation = chain![
             SPACE,
-            keyframes::Space::new(Duration::ZERO).height(50.),
-            keyframes::Space::new(Duration::from_millis(1500))
+            space(Duration::ZERO).height(50.),
+            space(Duration::from_millis(1500))
                 .height(250.)
                 .ease(EASE_IN[rand]),
-            keyframes::Space::new(Duration::from_millis(3000))
+            space(Duration::from_millis(3000))
                 .height(50.)
                 .ease(EASE_OUT[rand])
         ]

@@ -7,16 +7,11 @@ mod theme;
 use self::widget::Element;
 use theme::Theme;
 
-use cosmic_time::{
-    self, anim, chain,
-    style_button::{self, StyleButton},
-    style_container::{self, StyleContainer},
-    Sinusoidal, Timeline,
-};
+use cosmic_time::{self, anim, chain, id, Sinusoidal, Timeline};
 use once_cell::sync::Lazy;
 
-static BUTTON: Lazy<style_button::Id> = Lazy::new(style_button::Id::unique);
-static CONTAINER: Lazy<style_container::Id> = Lazy::new(style_container::Id::unique);
+static BUTTON: Lazy<id::StyleButton> = Lazy::new(id::StyleButton::unique);
+static CONTAINER: Lazy<id::StyleContainer> = Lazy::new(id::StyleContainer::unique);
 
 use std::time::{Duration, Instant};
 
@@ -182,40 +177,46 @@ impl Application for Stopwatch {
     }
 }
 
-fn anim_to_primary() -> style_button::Chain {
+fn anim_to_primary() -> cosmic_time::Chain {
+    use cosmic_time::style_button;
     chain![
         BUTTON,
-        StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Destructive)),
-        StyleButton::new(Duration::from_millis(500)).style(button_u8(theme::Button::Primary))
+        style_button(Duration::ZERO).style(button_u8(theme::Button::Destructive)),
+        style_button(Duration::from_millis(500)).style(button_u8(theme::Button::Primary))
     ]
+    .into()
 }
 
-fn anim_to_destructive() -> style_button::Chain {
+fn anim_to_destructive() -> cosmic_time::Chain {
+    use cosmic_time::style_button;
     chain![
         BUTTON,
-        StyleButton::new(Duration::ZERO).style(button_u8(theme::Button::Primary)),
-        StyleButton::new(Duration::from_millis(500)).style(button_u8(theme::Button::Destructive))
+        style_button(Duration::ZERO).style(button_u8(theme::Button::Primary)),
+        style_button(Duration::from_millis(500)).style(button_u8(theme::Button::Destructive))
     ]
+    .into()
 }
 
-fn anim_background() -> style_container::Chain {
+fn anim_background() -> cosmic_time::Chain {
+    use cosmic_time::style_container;
     chain![
         CONTAINER,
-        StyleContainer::new(Duration::ZERO).style(theme::Container::Red),
-        StyleContainer::new(Duration::from_secs(1))
+        style_container(Duration::ZERO).style(theme::Container::Red),
+        style_container(Duration::from_secs(1))
             // Notice how we can just pass the enum value here, where in the `anim_to_primary/destructive`
             // we have to use the fucntion `button_u8`? Because we use a implemented a custom iced theme,
             // we can just impl Into<u8> on the enum, and it works here!
             .style(theme::Container::Green)
             .ease(Sinusoidal::In),
-        StyleContainer::new(Duration::from_secs(2))
+        style_container(Duration::from_secs(2))
             .style(theme::Container::Blue)
             .ease(Sinusoidal::In),
-        StyleContainer::new(Duration::from_secs(3))
+        style_container(Duration::from_secs(3))
             .style(theme::Container::Red)
             .ease(Sinusoidal::In)
     ]
     .loop_forever()
+    .into()
 }
 
 // Style implementations

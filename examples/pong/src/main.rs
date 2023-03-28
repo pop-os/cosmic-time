@@ -5,7 +5,7 @@ use iced::widget::{column, container, row, Space};
 use iced::{executor, Application, Command, Event, Length, Settings, Subscription};
 use iced_native::window;
 
-use cosmic_time::{self, anim, chain, keyframes, Duration, Instant, Speed, Timeline};
+use cosmic_time::{self, anim, chain, id, Duration, Instant, Speed, Timeline};
 
 use once_cell::sync::Lazy;
 use rand::prelude::*;
@@ -15,10 +15,10 @@ mod theme;
 use layer::Layer;
 use theme::{widget::Element, Theme};
 
-static PADDLE_LEFT: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
-static PADDLE_RIGHT: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
-static BALL_X: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
-static BALL_Y: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
+static PADDLE_LEFT: Lazy<id::Space> = Lazy::new(id::Space::unique);
+static PADDLE_RIGHT: Lazy<id::Space> = Lazy::new(id::Space::unique);
+static BALL_X: Lazy<id::Space> = Lazy::new(id::Space::unique);
+static BALL_Y: Lazy<id::Space> = Lazy::new(id::Space::unique);
 
 pub fn main() -> iced::Result {
     Pong::run(Settings::default())
@@ -185,122 +185,142 @@ impl Application for Pong {
 }
 
 impl Pong {
-    fn anim_left(&mut self, direction: Direction) -> Option<cosmic_time::space::Chain> {
+    fn anim_left(&mut self, direction: Direction) -> Option<cosmic_time::Chain> {
+        use cosmic_time::lazy::space as lazy;
+        use cosmic_time::space;
+        let height = self.window.height - self.window.paddle_height;
+
         if self.left != direction {
             self.left = direction;
-            Some(match direction {
-                Direction::Down => chain![
-                    PADDLE_LEFT,
-                    // OOh here are the lazy keyframes!
-                    // This means that this animation will start at wherever the previous
-                    // animation left off!
-                    // Lazy still takes a duration, this will usually be `Duration::ZERO`
-                    // like regular animations, but you can put them anywhere in your
-                    // animation chain. Meaning that you would have an animation start
-                    // at the previous animations's interupted location, animate to elsewhere,
-                    // then go back to that spot!
-                    //
-                    // Also notice the speed here is per_millis! This is important.
-                    // The animation is only as granular as your definition in the chain.
-                    // If you animation time is not in exact seconds, I highly recommend
-                    // using a smaller unit.
-                    keyframes::Space::lazy(Duration::ZERO),
-                    keyframes::Space::new(Speed::per_millis(0.3)).height(self.window.height - 100.),
-                ],
-                Direction::Up => chain![
-                    PADDLE_LEFT,
-                    keyframes::Space::lazy(Duration::ZERO),
-                    keyframes::Space::new(Speed::per_millis(0.3)).height(0.)
-                ],
-            })
+            Some(
+                match direction {
+                    Direction::Down => chain![
+                        PADDLE_LEFT,
+                        // OOh here are the lazy keyframes!
+                        // This means that this animation will start at wherever the previous
+                        // animation left off!
+                        // Lazy still takes a duration, this will usually be `Duration::ZERO`
+                        // like regular animations, but you can put them anywhere in your
+                        // animation chain. Meaning that you would have an animation start
+                        // at the previous animations's interupted location, animate to elsewhere,
+                        // then go back to that spot!
+                        //
+                        // Also notice the speed here is per_millis! This is important.
+                        // The animation is only as granular as your definition in the chain.
+                        // If you animation time is not in exact seconds, I highly recommend
+                        // using a smaller unit.
+                        lazy(Duration::ZERO),
+                        space(Speed::per_millis(0.3)).height(height),
+                    ],
+                    Direction::Up => chain![
+                        PADDLE_LEFT,
+                        lazy(Duration::ZERO),
+                        space(Speed::per_millis(0.3)).height(0.)
+                    ],
+                }
+                .into(),
+            )
         } else {
             None
         }
     }
 
-    fn anim_right(&mut self, direction: Direction) -> Option<cosmic_time::space::Chain> {
+    fn anim_right(&mut self, direction: Direction) -> Option<cosmic_time::Chain> {
+        use cosmic_time::lazy::space as lazy;
+        use cosmic_time::space;
+        let height = self.window.height - self.window.paddle_height;
+
         if self.right != direction {
             self.right = direction;
-            Some(match direction {
-                Direction::Down => chain![
-                    PADDLE_RIGHT,
-                    keyframes::Space::lazy(Duration::ZERO),
-                    keyframes::Space::new(Speed::per_millis(0.3)).height(self.window.height - 100.),
-                ],
-                Direction::Up => chain![
-                    PADDLE_RIGHT,
-                    keyframes::Space::lazy(Duration::ZERO),
-                    keyframes::Space::new(Speed::per_millis(0.3)).height(0.)
-                ],
-            })
+            Some(
+                match direction {
+                    Direction::Down => chain![
+                        PADDLE_RIGHT,
+                        lazy(Duration::ZERO),
+                        space(Speed::per_millis(0.3)).height(height),
+                    ],
+                    Direction::Up => chain![
+                        PADDLE_RIGHT,
+                        lazy(Duration::ZERO),
+                        space(Speed::per_millis(0.3)).height(0.)
+                    ],
+                }
+                .into(),
+            )
         } else {
             None
         }
     }
 
-    fn init_ball_y(&mut self) -> cosmic_time::space::Chain {
+    fn init_ball_y(&mut self) -> cosmic_time::Chain {
+        use cosmic_time::space;
         let min = self.window.height * 0.3;
         let max = self.window.height - min - self.window.paddle_height;
         let height = self.rng.gen_range(min..max);
 
-        chain![BALL_Y, keyframes::Space::new(Duration::ZERO).height(height)]
+        chain![BALL_Y, space(Duration::ZERO).height(height)].into()
     }
 
-    fn init_ball_x(&mut self) -> cosmic_time::space::Chain {
+    fn init_ball_x(&mut self) -> cosmic_time::Chain {
+        use cosmic_time::space;
         let min = self.window.width * 0.3;
         let max = self.window.width - min - self.window.paddle_width;
         let width = self.rng.gen_range(min..max);
 
-        chain![BALL_X, keyframes::Space::new(Duration::ZERO).width(width)]
+        chain![BALL_X, space(Duration::ZERO).width(width)].into()
     }
 
-    fn rand_vertical_bounce(&mut self) -> cosmic_time::space::Chain {
+    fn rand_vertical_bounce(&mut self) -> cosmic_time::Chain {
+        use cosmic_time::lazy::space as lazy;
+        use cosmic_time::space;
         let speed = 100. * self.rng.gen_range(0.9..1.1);
+        let height = self.window.height - self.window.paddle_width;
+
         if self.rng.gen() {
             chain![
                 BALL_Y,
-                keyframes::Space::lazy(Duration::ZERO),
-                keyframes::Space::new(Speed::per_secs(speed))
-                    .height(self.window.height - self.window.paddle_width),
-                keyframes::Space::new(Speed::per_secs(speed)).height(0.),
-                keyframes::Space::lazy(Speed::per_secs(speed))
+                lazy(Duration::ZERO),
+                space(Speed::per_secs(speed)).height(height),
+                space(Speed::per_secs(speed)).height(0.),
+                lazy(Speed::per_secs(speed))
             ]
-            .loop_forever()
         } else {
             chain![
                 BALL_Y,
-                keyframes::Space::lazy(Duration::ZERO),
-                keyframes::Space::new(Speed::per_secs(speed)).height(0.),
-                keyframes::Space::new(Speed::per_secs(speed))
-                    .height(self.window.height - self.window.paddle_width),
-                keyframes::Space::lazy(Speed::per_secs(speed))
+                lazy(Duration::ZERO),
+                space(Speed::per_secs(speed)).height(0.),
+                space(Speed::per_secs(speed)).height(height),
+                lazy(Speed::per_secs(speed))
             ]
-            .loop_forever()
         }
+        .loop_forever()
+        .into()
     }
 
-    fn rand_horizontal_bounce(&mut self) -> cosmic_time::space::Chain {
+    fn rand_horizontal_bounce(&mut self) -> cosmic_time::Chain {
+        use cosmic_time::lazy::space as lazy;
+        use cosmic_time::space;
         let speed = 100. * self.rng.gen_range(0.9..1.1);
+        let width = self.window.width - self.window.paddle_width;
+
         if self.rng.gen() {
             chain![
                 BALL_X,
-                keyframes::Space::lazy(Duration::ZERO),
-                keyframes::Space::new(Speed::per_secs(speed))
-                    .width(self.window.width - self.window.paddle_width),
-                keyframes::Space::new(Speed::per_secs(speed)).width(0.),
-                keyframes::Space::lazy(Speed::per_secs(speed))
+                lazy(Duration::ZERO),
+                space(Speed::per_secs(speed)).width(width),
+                space(Speed::per_secs(speed)).width(0.),
+                lazy(Speed::per_secs(speed))
             ]
-            .loop_forever()
         } else {
             chain![
                 BALL_X,
-                keyframes::Space::lazy(Duration::ZERO),
-                keyframes::Space::new(Speed::per_secs(speed)).width(0.),
-                keyframes::Space::new(Speed::per_secs(speed))
-                    .width(self.window.width - self.window.paddle_width),
-                keyframes::Space::lazy(Speed::per_secs(speed))
+                lazy(Duration::ZERO),
+                space(Speed::per_secs(speed)).width(0.),
+                space(Speed::per_secs(speed)).width(width),
+                lazy(Speed::per_secs(speed))
             ]
-            .loop_forever()
         }
+        .loop_forever()
+        .into()
     }
 }

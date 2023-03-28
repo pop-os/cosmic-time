@@ -5,11 +5,11 @@ use iced::{
     Alignment, Application, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
-use cosmic_time::{self, chain, keyframes, Timeline};
+use cosmic_time::{self, anim, chain, id, Timeline};
 
 use once_cell::sync::Lazy;
 
-static CONTAINER: Lazy<keyframes::container::Id> = Lazy::new(keyframes::container::Id::unique);
+static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
 
 pub fn main() -> iced::Result {
     Counter::run(Settings::default())
@@ -34,6 +34,7 @@ impl Application for Counter {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
+        use cosmic_time::container;
         // This is new! This is how we build a timeline!
         // These values can be created at anytime, but because this example is
         // simple and we want to animate from application init, we will build the
@@ -42,21 +43,17 @@ impl Application for Counter {
         let mut timeline = Timeline::new();
         let animation = chain![
             CONTAINER,
-            keyframes::Container::new(Duration::ZERO)
-                .width(0.)
-                .height(100.),
-            keyframes::Container::new(Duration::from_secs(2))
-                .width(200.)
-                .height(100.),
-            keyframes::Container::new(Duration::from_secs(2))
+            container(Duration::ZERO).width(0.).height(100.),
+            container(Duration::from_secs(2)).width(200.).height(100.),
+            container(Duration::from_secs(2))
                 .width(200.)
                 .height(300.)
                 .padding([0, 0, 0, 0]),
-            keyframes::Container::new(Duration::from_secs(2))
+            container(Duration::from_secs(2))
                 .width(700.)
                 .height(300.)
                 .padding([0, 0, 0, 500]),
-            keyframes::Container::new(Duration::from_secs(2))
+            container(Duration::from_secs(2))
                 .width(150.)
                 .height(150.)
                 .padding([0, 0, 0, 0]),
@@ -119,8 +116,8 @@ impl Application for Counter {
         // just define the width with a `width` method like any other widget, then
         // animate the height in your view! Only control the animatable values with
         // cosmic-time, all others should be in your view!
-        keyframes::Container::as_widget(
-            CONTAINER.clone(),
+        anim!(
+            CONTAINER,
             &self.timeline,
             column![
                 button("Increment")

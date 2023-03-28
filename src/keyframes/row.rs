@@ -1,7 +1,7 @@
-use iced_native::{widget, Element, Length, Padding, Pixels};
+use iced_native::{widget, Length, Padding, Pixels};
 
-use crate::keyframes::{get_length, Repeat, as_f32};
-use crate::timeline::DurFrame;
+use crate::keyframes::{as_f32, get_length, Repeat};
+use crate::timeline::Frame;
 use crate::{Ease, Linear, MovementType};
 
 /// A Row's animation Id. Used for linking animation built in `update()` with widget output in `view()`
@@ -22,11 +22,22 @@ impl Id {
     }
 
     pub fn to_chain(self) -> Chain {
-      Chain::new(self)
+        Chain::new(self)
     }
 
     pub fn to_chain_with_children(self, children: Vec<Row>) -> Chain {
-      Chain::with_children(self, children)
+        Chain::with_children(self, children)
+    }
+
+    pub fn as_widget<'a, Message, Renderer>(
+        self,
+        timeline: &crate::Timeline,
+    ) -> widget::Row<'a, Message, Renderer>
+    where
+        Renderer: iced_native::Renderer,
+        Renderer::Theme: widget::container::StyleSheet,
+    {
+        Row::as_widget(self, timeline)
     }
 }
 
@@ -76,20 +87,23 @@ impl Chain {
     }
 }
 
-impl<T> From<Chain> for crate::timeline::Chain<T>
-where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Row>>,
-{
+impl From<Chain> for crate::timeline::Chain {
     fn from(chain: Chain) -> Self {
-        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+        crate::timeline::Chain::new(
+            chain.id.into(),
+            chain.repeat,
+            chain
+                .links
+                .into_iter()
+                .map(|r| r.into())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
 pub struct Row {
-    index: usize,
     at: MovementType,
     ease: Ease,
     spacing: Option<f32>,
@@ -101,31 +115,27 @@ pub struct Row {
 
 impl Row {
     pub fn new(at: impl Into<MovementType>) -> Row {
-      let at = at.into();
+        let at = at.into();
         Row {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
+            spacing: None,
             width: None,
             height: None,
             padding: None,
-            max_width: None,
-            max_height: None,
             is_eager: true,
         }
     }
 
     pub fn lazy(at: impl Into<MovementType>) -> Row {
-      let at = at.into();
+        let at = at.into();
         Row {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
+            spacing: None,
             width: None,
             height: None,
             padding: None,
-            max_width: None,
-            max_height: None,
             is_eager: false,
         }
     }
@@ -133,7 +143,6 @@ impl Row {
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
-        content: impl Into<Element<'a, Message, Renderer>>,
     ) -> widget::Row<'a, Message, Renderer>
     where
         Renderer: iced_native::Renderer,
@@ -141,13 +150,8 @@ impl Row {
     {
         let id: widget::Id = id.into();
 
-        widget::Row::new(content)
-            .spacing(
-                timeline
-                    .get(&id, &now, 0)
-                    .map(|m| m.value)
-                    .unwrap_or(0.),
-            )
+        widget::Row::new()
+            .spacing(timeline.get(&id, 0).map(|m| m.value).unwrap_or(0.))
             .padding([
                 timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),
                 timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
@@ -159,8 +163,8 @@ impl Row {
     }
 
     pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
-      self.spacing = spacing.into().0;
-      self
+        self.spacing = Some(spacing.into().0);
+        self
     }
 
     pub fn width(mut self, width: impl Into<Length>) -> Self {
@@ -188,7 +192,7 @@ impl Row {
 impl From<Row> for Vec<Option<Frame>> {
     fn from(row: Row) -> Vec<Option<Frame>> {
       if row.is_eager {
-        vec![self.spacing.map(|s| Frame::eager(row.at, s, row.ease)),       // 0 = spacing
+        vec![row.spacing.map(|s| Frame::eager(row.at, s, row.ease)),        // 0 = spacing
              row.padding.map(|p| Frame::eager(row.at, p.top, row.ease)),    // 1 = padding[0] (top)
              row.padding.map(|p| Frame::eager(row.at, p.right, row.ease)),  // 2 = padding[1] (right)
              row.padding.map(|p| Frame::eager(row.at, p.bottom, row.ease)), // 3 = padding[2] (bottom)
