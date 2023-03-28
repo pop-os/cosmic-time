@@ -127,7 +127,7 @@ where
         self
     }
 
-    /// Sets the animatable style variant of this [`Button`].
+    /// Sets the animatable style variant of this [`Container`].
     pub fn blend_style(
         mut self,
         style1: <Renderer::Theme as StyleSheet>::Style,

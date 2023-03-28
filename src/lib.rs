@@ -51,12 +51,12 @@
 //!
 //!   > let animation = chain![
 //!   Cosmic Time refers to animations as [`Chain`]s because of how we build then.
-//!   Each [`Keyframe`] is linked together like a chain. The Cosmic Time API doesn't
+//!   Each Keyframe is linked together like a chain. The Cosmic Time API doesn't
 //!   say "change your width from 10 to 100". We define each state we want the
 //!   widget to have `.width(10)` at `Duration::ZERO` then `.width(100)` at
 //!   `Duration::from_secs(10)`. Where the `Duration` is the time after the previous
-//!   [`keyframe`]. This is why we call the animations chains. We cannot get to the
-//!   next state without animating though all previous [`Keyframe`]s.
+//!   keyframe. This is why we call the animations chains. We cannot get to the
+//!   next state without animating though all previous Keyframes.
 //!
 //!   > self.timeline.set_chain(animation).start();
 //!   Then we need to add the animation to the [`Timeline`]. We call this `.set_chain`,
