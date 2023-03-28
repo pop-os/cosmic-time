@@ -18,7 +18,7 @@ pub struct Layer<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> Layer<'a, Message, Renderer> {
-    /// Returns a new [`Modal`]
+    /// Returns a new [`Layer`]
     pub fn new(
         base: impl Into<Element<'a, Message, Renderer>>,
         layer: impl Into<Element<'a, Message, Renderer>>,
