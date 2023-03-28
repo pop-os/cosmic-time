@@ -6,8 +6,8 @@ use iced::{
 };
 
 use cosmic_time::{
-    self, chain, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
-    Quartic, Quintic, Sinusoidal, Timeline,
+    self, anim, chain, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear,
+    Quadratic, Quartic, Quintic, Sinusoidal, Timeline,
 };
 use once_cell::sync::Lazy;
 
@@ -165,7 +165,7 @@ impl Pokemon {
     fn view(&self) -> Element<Message> {
         row![
             column![
-                keyframes::Space::as_widget(SPACE.clone(), &self.timeline),
+                anim!(SPACE, &self.timeline),
                 image::viewer(self.image.clone())
             ],
             column![

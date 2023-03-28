@@ -8,7 +8,7 @@ use self::widget::Element;
 use theme::Theme;
 
 use cosmic_time::{
-    self, chain,
+    self, anim, chain,
     style_button::{self, StyleButton},
     style_container::{self, StyleContainer},
     Sinusoidal, Timeline,
@@ -145,8 +145,8 @@ impl Application for Stopwatch {
                 State::Ticking { .. } => "Stop",
             };
 
-            StyleButton::as_widget(
-                BUTTON.clone(),
+            anim!(
+                BUTTON,
                 buttons,
                 &self.timeline,
                 text(label).horizontal_alignment(alignment::Horizontal::Center),
@@ -166,8 +166,8 @@ impl Application for Stopwatch {
             .align_items(Alignment::Center)
             .spacing(20);
 
-        StyleContainer::as_widget(
-            CONTAINER.clone(),
+        anim!(
+            CONTAINER,
             // Cool! Because we implemented the function on our custom, theme's type, adding
             // the map argument is easy!
             theme::Container::map(),

@@ -28,6 +28,10 @@ impl Id {
     pub fn to_chain_with_children(self, children: Vec<Space>) -> Chain {
         Chain::with_children(self, children)
     }
+
+    pub fn as_widget(self, timeline: &crate::Timeline) -> widget::Space {
+        Space::as_widget(self, timeline)
+    }
 }
 
 impl From<Id> for widget::Id {

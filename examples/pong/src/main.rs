@@ -5,7 +5,7 @@ use iced::widget::{column, container, row, Space};
 use iced::{executor, Application, Command, Event, Length, Settings, Subscription};
 use iced_native::window;
 
-use cosmic_time::{self, chain, keyframes, Duration, Instant, Speed, Timeline};
+use cosmic_time::{self, anim, chain, keyframes, Duration, Instant, Speed, Timeline};
 
 use once_cell::sync::Lazy;
 use rand::prelude::*;
@@ -167,21 +167,15 @@ impl Application for Pong {
         let paddle_right = container(Space::new(width, height)).style(theme::Container::Paddle);
 
         let content = row![
-            column![
-                keyframes::Space::as_widget(PADDLE_LEFT.clone(), &self.timeline),
-                paddle_left
-            ],
+            column![anim!(PADDLE_LEFT, &self.timeline), paddle_left],
             Space::new(Length::Fill, Length::Fill),
-            column![
-                keyframes::Space::as_widget(PADDLE_RIGHT.clone(), &self.timeline),
-                paddle_right
-            ],
+            column![anim!(PADDLE_RIGHT, &self.timeline), paddle_right],
         ];
 
         let ball = column![
-            keyframes::Space::as_widget(BALL_Y.clone(), &self.timeline),
+            anim!(BALL_Y, &self.timeline),
             row![
-                keyframes::Space::as_widget(BALL_X.clone(), &self.timeline),
+                anim!(BALL_X, &self.timeline),
                 container(Space::new(width, width)).style(theme::Container::Ball)
             ]
         ];

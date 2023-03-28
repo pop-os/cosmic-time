@@ -26,6 +26,13 @@ macro_rules! chain{
   };
 }
 
+#[macro_export]
+macro_rules! anim{
+  ($id:expr, $($x:expr),+ $(,)?) => {
+    $id.clone().as_widget($($x),+)
+  };
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub enum Repeat {
     #[default]

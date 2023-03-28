@@ -28,6 +28,18 @@ impl Id {
     pub fn to_chain_with_children(self, children: Vec<Button>) -> Chain {
         Chain::with_children(self, children)
     }
+
+    pub fn as_widget<'a, Message, Renderer>(
+        self,
+        timeline: &crate::Timeline,
+        content: impl Into<Element<'a, Message, Renderer>>,
+    ) -> widget::Button<'a, Message, Renderer>
+    where
+        Renderer: iced_native::Renderer,
+        Renderer::Theme: widget::button::StyleSheet,
+    {
+        Button::as_widget(self, timeline, content)
+    }
 }
 
 impl From<Id> for widget::Id {

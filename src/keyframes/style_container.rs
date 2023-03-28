@@ -29,6 +29,19 @@ impl Id {
     pub fn to_chain_with_children(self, children: Vec<StyleContainer>) -> Chain {
         Chain::with_children(self, children)
     }
+
+    pub fn as_widget<'a, Message, Renderer>(
+        self,
+        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
+        timeline: &crate::Timeline,
+        content: impl Into<Element<'a, Message, Renderer>>,
+    ) -> crate::widget::Container<'a, Message, Renderer>
+    where
+        Renderer: iced_native::Renderer,
+        Renderer::Theme: widget::container::StyleSheet,
+    {
+        StyleContainer::as_widget(self, style, timeline, content)
+    }
 }
 
 impl From<Id> for widget::Id {
