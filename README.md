@@ -140,6 +140,9 @@ Done:
 - [x] Lazy keyframes. (Keyframes that can use the position of a previous (active or not) animation to start another animation.)
 
 TODOs:
+- [ ] Add container and space animiations between arbitraty length units.
+      Example: Length::Shrink to Length::Fixed(10.) and/or Length::Fill to Length::Shrink
+      Only fixed Length::Fixed(_) are supported currently.
 - [ ] Add `Cosmic` cargo feature for compatibility with both iced and System76's temporary fork.
 - [ ] Low motion accesability detection to disable animations.
 - [ ] general animation logic tests
