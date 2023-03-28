@@ -1,6 +1,117 @@
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
-)]
+//! An animation toolkit for Iced-rs/Iced
+//!
+//! The goal of this project is to provide a simple API to build and show
+//! complex animations efficiently in applications built with Iced-rs/Iced.
+//!
+//! # Projec Goals:
+//! * Full compatibility with Iced and Elm Architechture
+//! * Ease of use
+//! * No math required for any animation
+//! * No heap allocations in render loop.
+//! * Provide additional animatable widgets
+//! * Custom widget support (create your own!)
+//!
+//! # Overview
+//! To wire cosmic-time into Iced there are four steps to do.
+//!
+//! 1. Create a [`Timeline`] This is the type that controls the animations.
+//! ```ignore
+//! struct Counter {
+//!       timeline: Timeline
+//! }
+//!
+//! // SNIP
+//!
+//! impl Application for Counter {
+//!      // SNIP
+//!      fn new(_flags: ()) -> (Self, Command<Message>) {
+//!         (Self { timeline: Timeline::new()}, Command::none())
+//!      }
+//! }
+//!
+//! ```
+//! 2. Add at least one animation to your timeline. This can be done in your
+//!    Application's `new()` or `update()`, or both!
+//! ```ignore
+//! static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
+//!
+//! let animation = chain![
+//!   CONTAINER,
+//!   container(Duration::ZERO).width(10),
+//!   container(Duration::from_secs(10)).width(100)
+//! ];
+//! self.timeline.set_chain(animation).start();
+//!
+//! ```
+//! There are some different things here!
+//!   > static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
+//!   Cosmic Time refers to each animation with an Id. We export our own, but they are
+//!   Identical to the widget Id's Iced uses for widget operations.
+//!   Each animatable widget needs an Id. And each Id can only refer to one animation.
+//!
+//!   > let animation = chain![
+//!   Cosmic Time refers to animations as [`Chain`]s because of how we build then.
+//!   Each [`Keyframe`] is linked together like a chain. The Cosmic Time API doesn't
+//!   say "change your width from 10 to 100". We define each state we want the
+//!   widget to have `.width(10)` at `Duration::ZERO` then `.width(100)` at
+//!   `Duration::from_secs(10)`. Where the `Duration` is the time after the previous
+//!   [`keyframe`]. This is why we call the animations chains. We cannot get to the
+//!   next state without animating though all previous [`Keyframe`]s.
+//!
+//!   > self.timeline.set_chain(animation).start();
+//!   Then we need to add the animation to the [`Timeline`]. We call this `.set_chain`,
+//!   because there can only be one chain per Id.
+//!   If we `set_chain` with a different animation with the same Id, the first one is
+//!   replaced. This a actually a feature not a bug!
+//!   As well you can set multiple animations at once:
+//!   `self.timeline.set_chain(animation1).set_chain(animation2).start()`
+//!
+//!   > .start()
+//!   This one function call is important enough that we should look at it specifically.
+//!   Cosmic Time is atomic, given the animation state held in the [`Timeline`] at any
+//!   given time the global animations will be the exact same. The value used to
+//!   calculate any animation's interpolation is global. And we use `.start()` to
+//!   sync them together.
+//!   Say you have two 5 seconds animations running at the same time. They should end
+//!   at the same time right? That all depends on when the widget thinks it's animation
+//!   should start. `.start()` tells all pending animations to start at the moment that
+//!   `.start()` is called. This guarentees they stay in sync.
+//!   IMPORTANT! Be sure to only call `.start()` once per call to `update()`.
+//!   The below is incorrect!
+//!   ```ignore
+//!   self.timeline.set_chain(animation1).start();
+//!   self.timeline.set_chain(animation2).start();
+//!   ```
+//!   That code will compile, but will result in the animations not being in sync.
+//!
+//! 3. Add the Cosmic time Subscription
+//! ```ignore
+//!   fn subscription(&self) -> Subscription<Message> {
+//!        self.timeline.as_subscription::<Event>().map(Message::Tick)
+//!    }
+//! ```
+//!
+//! 4. Map the subscription to update the timeline's state:
+//! ```ignore
+//! use iced::Command;
+//! fn update(&mut self, message: Message) -> Command<Message> {
+//!        match message {
+//!            Message::Tick(now) => self.timeline.now(now),
+//!        }
+//!    }
+//! ```
+//!   If you skip this step your animations will not progress!
+//!
+//! 5. Show the widget in your `view()`!
+//! ```ignore
+//! anim!(CONTIANER, &self.timeline, contents)
+//! ```
+//!
+//! All done!
+//! There is a bit of wireing to get Cosmic Time working, but after that it's only
+//! a few lines to create rather complex animations!
+//! See the Pong example to see how a full game of pong can be implemented in
+//! only a few lines!
 #![deny(
     missing_debug_implementations,
     missing_docs,
@@ -14,7 +125,9 @@
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+/// The main timeline for your animations!
 pub mod timeline;
+/// Additional Widgets that Cosmic Time uses for more advanced animations.
 pub mod widget;
 
 mod keyframes;
@@ -28,41 +141,59 @@ pub use iced::time::{Duration, Instant};
 
 const PI: f32 = std::f32::consts::PI;
 
-// p = percent_complete in decimal form
+/// A simple linear interpolation calculation function.
+/// p = percent_complete in decimal form
 pub fn lerp(start: f32, end: f32, p: f32) -> f32 {
     (1.0 - p) * start + p * end
 }
 
+/// A simple animation percentage flip calculation function.
 pub fn flip(num: f32) -> f32 {
     1.0 - num
 }
 
+/// A trait that all ease's need to implement to be used.
 pub trait Tween: std::fmt::Debug + Copy {
-    // p = percent complete as decimal
+    /// Takes a linear percentage, and returns tweened value.
+    /// p = percent complete as decimal
     fn tween(&self, p: f32) -> f32;
 }
 
+/// Speed Controlled Animation use this type.
+/// Rather than specifying the time (`Duration`)
+/// between links in the animation chain, this
+/// type auto-calculates the time for you.
+/// Very useful with lazy keyframes.
+/// Designed to have an API very similar to std::time::Duration
 #[derive(Debug, Copy, Clone)]
 pub enum Speed {
+    /// Whole number of seconds to move per second.
     PerSecond(f32),
+    /// Whole number of millisseconds to move per millisecond.
     PerMillis(f32),
+    /// Whole number of microseconds to move per microseconds.
     PerMicros(f32),
+    /// Whole number of nanoseconds to move per nanosecond.
     PerNanoSe(f32),
 }
 
 impl Speed {
+    /// Creates a new `Speed` from the specified number of whole seconds.
     pub fn per_secs(speed: f32) -> Self {
         Speed::PerSecond(speed)
     }
 
+    /// Creates a new `Speed` from the specified number of whole milliseconds.
     pub fn per_millis(speed: f32) -> Self {
         Speed::PerMillis(speed)
     }
 
+    /// Creates a new `Speed` from the specified number of whole microseconds.
     pub fn per_micros(speed: f32) -> Self {
         Speed::PerMicros(speed)
     }
 
+    /// Creates a new `Speed` from the specified number of whole nanoseconds.
     pub fn per_nanos(speed: f32) -> Self {
         Speed::PerNanoSe(speed)
     }
@@ -85,9 +216,13 @@ impl Speed {
     }
 }
 
+/// A container type so that the API user can specify Either
+/// Time controlled animations, or speed controlled animations.
 #[derive(Debug, Copy, Clone)]
 pub enum MovementType {
+    /// Keyframe is time controlled.
     Duration(Duration),
+    /// keyframe is speed controlled.
     Speed(Speed),
 }
 
@@ -106,8 +241,10 @@ impl From<Speed> for MovementType {
 macro_rules! tween {
     ($($x:ident),*) => {
         #[derive(Debug, Copy, Clone)]
+        /// A container type for all types of animations easings.
         pub enum Ease {
             $(
+                /// A container for $x
                 $x($x),
             )*
         }
@@ -138,13 +275,15 @@ tween!(
     Bounce
 );
 
+/// Used to set a linear animation easing.
+/// The default for most animations.
 #[derive(Debug, Copy, Clone)]
 pub enum Linear {
+    /// Modeled after the line y = x
     InOut,
 }
 
 impl Tween for Linear {
-    // Modeled after the line y = x
     fn tween(&self, p: f32) -> f32 {
         p
     }
@@ -156,24 +295,26 @@ impl From<Linear> for Ease {
     }
 }
 
+/// Used to set a quadratic animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Quadratic {
+    /// Modeled after the parabola y = x^2
     In,
+    /// Modeled after the parabola y = -x^2 + 2x
     Out,
+    /// Modeled after the piecewise quadratic
+    /// y = (1/2)((2x)^2)             ; [0, 0.5)
+    /// y = -(1/2)((2x-1)*(2x-3) - 1) ; [0.5, 1]
     InOut,
+    /// A Bezier Curve TODO
     Bezier(i32),
 }
 
 impl Tween for Quadratic {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the parabola y = x^2
             Quadratic::In => p.powi(2),
-            // Modeled after the parabola y = -x^2 + 2x
             Quadratic::Out => -(p * (p - 2.)),
-            // Modeled after the piecewise quadratic
-            // y = (1/2)((2x)^2)             ; [0, 0.5)
-            // y = -(1/2)((2x-1)*(2x-3) - 1) ; [0.5, 1]
             Quadratic::InOut => {
                 if p < 0.5 {
                     2. * p.powi(2)
@@ -181,7 +322,6 @@ impl Tween for Quadratic {
                     (-2. * p.powi(2)) + p.mul_add(4., -1.)
                 }
             }
-            // A Bezier Curve TODO
             Quadratic::Bezier(_n) => p,
         }
     }
@@ -193,26 +333,27 @@ impl From<Quadratic> for Ease {
     }
 }
 
+/// Used to set a cubic animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Cubic {
+    /// Modeled after the cubic y = x^3
     In,
+    /// Modeled after the cubic y = (x-1)^3 + 1
     Out,
+    /// Modeled after the piecewise cubic
+    /// y = (1/2)((2x)^3)       ; [0, 0.5]
+    /// y = (1/2)((2x-2)^3 + 2) ; [0.5, 1]
     InOut,
 }
 
 impl Tween for Cubic {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the cubic y = x^3
             Cubic::In => p.powi(3),
-            // Modeled after the cubic y = (x-1)^3 + 1
             Cubic::Out => {
                 let q = p - 1.;
                 q.powi(3) + 1.
             }
-            // Modeled after the piecewise cubic
-            // y = (1/2)((2x)^3)       ; [0, 0.5]
-            // y = (1/2)((2x-2)^3 + 2) ; [0.5, 1]
             Cubic::InOut => {
                 if p < 0.5 {
                     4. * p.powi(3)
@@ -231,26 +372,27 @@ impl From<Cubic> for Ease {
     }
 }
 
+/// Used to set a quartic animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Quartic {
+    /// Modeled after the quartic y = x^4
     In,
+    /// Modeled after the quartic y = 1 - (x - 1)^4
     Out,
+    /// Modeled after the piecewise quartic
+    /// y = (1/2)((2x)^4)       ; [0, 0.5]
+    /// y = -(1/2)((2x-2)^4 -2) ; [0.5, 1]
     InOut,
 }
 
 impl Tween for Quartic {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the quartic y = x^4
             Quartic::In => p.powi(4),
-            // Modeled after the quartic y = 1 - (x - 1)^4
             Quartic::Out => {
                 let q = p - 1.;
                 (q.powi(3)).mul_add(1. - p, 1.)
             }
-            // Modeled after the piecewise quartic
-            // y = (1/2)((2x)^4)       ; [0, 0.5]
-            // y = -(1/2)((2x-2)^4 -2) ; [0.5, 1]
             Quartic::InOut => {
                 if p < 0.5 {
                     8. * p.powi(4)
@@ -269,26 +411,27 @@ impl From<Quartic> for Ease {
     }
 }
 
+/// Used to set a quintic animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Quintic {
+    /// Modeled after the quintic y = x^5
     In,
+    /// Modeled after the quintic y = (x - 1)^5 + 1
     Out,
+    /// Modeled after the piecewise quintic
+    /// y = (1/2)((2x)^5)       ; [0, 0.5]
+    /// y = (1/2)((2x-2)^5 + 2) ; [0.5, 1]
     InOut,
 }
 
 impl Tween for Quintic {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the quintic y = x^5
             Quintic::In => p.powi(5),
-            // Modeled after the quintic y = (x - 1)^5 + 1
             Quintic::Out => {
                 let q = p - 1.;
                 q.powi(5) + 1.
             }
-            // Modeled after the piecewise quintic
-            // y = (1/2)((2x)^5)       ; [0, 0.5]
-            // y = (1/2)((2x-2)^5 + 2) ; [0.5, 1]
             Quintic::InOut => {
                 if p < 0.5 {
                     16. * p.powi(5)
@@ -307,21 +450,22 @@ impl From<Quintic> for Ease {
     }
 }
 
+/// Used to set a sinusoildal animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Sinusoidal {
+    /// Modeled after eighth sinusoidal wave y = 1 - cos((x * PI) / 2)
     In,
+    /// Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
     Out,
+    /// Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
     InOut,
 }
 
 impl Tween for Sinusoidal {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after eighth sinusoidal wave y = 1 - cos((x * PI) / 2)
             Sinusoidal::In => 1. - ((p * PI) / 2.).cos(),
-            // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
             Sinusoidal::Out => ((p * PI) / 2.).sin(),
-            // Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
             Sinusoidal::InOut => -0.5 * ((p * PI).cos() - 1.),
         }
     }
@@ -333,19 +477,28 @@ impl From<Sinusoidal> for Ease {
     }
 }
 
+/// Used to set an exponential animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Exponential {
+    /// Modeled after the piecewise exponential
+    /// y = 0            ; [0, 0]
+    /// y = 2^(10x-10)   ; [0, 1]
     In,
+    /// Modeled after the piecewise exponential
+    /// y = 1 - 2^(-10x)  ; [0, 1]
+    /// y = 1             ; [1, 1]
     Out,
+    /// Modeled after the piecewise exponential
+    /// y = 0                        ; [0, 0  ]
+    /// y = 2^(20x - 10) / 2         ; [0, 0.5]
+    /// y = 1 - 0.5*2^(-10(2x - 1))  ; [0.5, 1]
+    /// y = 1                        ; [1, 1  ]
     InOut,
 }
 
 impl Tween for Exponential {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the piecewise exponential
-            // y = 0            ; [0, 0]
-            // y = 2^(10x-10)   ; [0, 1]
             Exponential::In => {
                 if p == 0. {
                     0.
@@ -353,9 +506,6 @@ impl Tween for Exponential {
                     2_f32.powf(10. * p - 10.)
                 }
             }
-            // Modeled after the piecewise exponential
-            // y = 1 - 2^(-10x)  ; [0, 1]
-            // y = 1             ; [1, 1]
             Exponential::Out => {
                 if p == 1. {
                     1.
@@ -363,11 +513,6 @@ impl Tween for Exponential {
                     1. - 2_f32.powf(-10. * p)
                 }
             }
-            // Modeled after the piecewise exponential
-            // y = 0                        ; [0, 0  ]
-            // y = 2^(20x - 10) / 2         ; [0, 0.5]
-            // y = 1 - 0.5*2^(-10(2x - 1))  ; [0.5, 1]
-            // y = 1                        ; [1, 1  ]
             Exponential::InOut => {
                 if p == 0. {
                     0.
@@ -389,23 +534,24 @@ impl From<Exponential> for Ease {
     }
 }
 
+/// Used to set an circular animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Circular {
+    /// Modeled after shifted quadrant IV of unit circle. y = 1 - sqrt(1 - x^2)
     In,
+    /// Modeled after shifted quadrant II of unit circle. y = sqrt(1 - (x - 1)^ 2)
     Out,
+    /// Modeled after the piecewise circular function
+    /// y = (1/2)(1 - sqrt(1 - 2x^2))           ; [0, 0.5)
+    /// y = (1/2)(sqrt(1 - ((-2x + 2)^2)) + 1) ; [0.5, 1]
     InOut,
 }
 
 impl Tween for Circular {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after shifted quadrant IV of unit circle. y = 1 - sqrt(1 - x^2)
             Circular::In => 1.0 - (1. - (p.powi(2))).sqrt(),
-            // Modeled after shifted quadrant II of unit circle. y = sqrt(1 - (x - 1)^ 2)
             Circular::Out => ((2. - p) * p).sqrt(),
-            // Modeled after the piecewise circular function
-            // y = (1/2)(1 - sqrt(1 - 2x^2))           ; [0, 0.5)
-            // y = (1/2)(sqrt(1 - ((-2x + 2)^2)) + 1) ; [0.5, 1]
             Circular::InOut => {
                 if p < 0.5 {
                     0.5 * (1. - (1. - (2. * p).powi(2)).sqrt())
@@ -423,21 +569,25 @@ impl From<Circular> for Ease {
     }
 }
 
+/// Used to set an elastic animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Elastic {
+    /// Modeled after damped sin wave: y = sin(13×π/2 x)×2^(10 (x - 1))
     In,
+    /// Modeled after damped piecewise sin wave:
+    /// y = 2^(-10 x) sin((x×10 - 0.75) (2×π/3)) + 1 [0, 1]
+    /// y = 1 [1, 1]
     Out,
+    /// Modeled after the piecewise exponentially-damped sine wave:
+    /// y = 2^(10 (2 x - 1) - 1) sin(13 π x) [0, 0.5]
+    /// y = 1/2 (2 - 2^(-10 (2 x - 1)) sin(13 π x)) [0.5, 1]
     InOut,
 }
 
 impl Tween for Elastic {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after damped sin wave: y = sin(13×π/2 x)×2^(10 (x - 1))
             Elastic::In => (13. * (PI / 2.) * p).sin() * 2_f32.powf(10. * (p - 1.)),
-            // Modeled after damped piecewise sin wave:
-            // y = 2^(-10 x) sin((x×10 - 0.75) (2×π/3)) + 1 [0, 1]
-            // y = 1 [1, 1]
             Elastic::Out => {
                 if p == 1. {
                     1.
@@ -445,9 +595,6 @@ impl Tween for Elastic {
                     2_f32.powf(-10. * p) * ((10. * p - 0.75) * ((2. * PI) / 3.)).sin() + 1.
                 }
             }
-            // Modeled after the piecewise exponentially-damped sine wave:
-            // y = 2^(10 (2 x - 1) - 1) sin(13 π x) [0, 0.5]
-            // y = 1/2 (2 - 2^(-10 (2 x - 1)) sin(13 π x)) [0.5, 1]
             Elastic::InOut => {
                 if p < 0.5 {
                     2_f32.powf(10. * (2. * p - 1.) - 1.) * (13. * PI * p).sin()
@@ -465,26 +612,27 @@ impl From<Elastic> for Ease {
     }
 }
 
+/// Used to set a back animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Back {
+    /// Modeled after the function: y = 2.70158 * x^3 + x^2 * (-1.70158)
     In,
+    /// Modeled after the function: y = 1 + 2.70158 (x - 1)^3 + 1.70158 (x - 1)^2
     Out,
+    /// Modeled after the piecewise function:
+    /// y = (2x)^2 * (1/2 * ((2.5949095 + 1) * 2x - 2.5949095)) [0, 0.5]
+    /// y = 1/2 * ((2 x - 2)^2 * ((2.5949095 + 1) * (2x - 2) + 2.5949095) + 2) [0.5, 1]
     InOut,
 }
 
 impl Tween for Back {
     fn tween(&self, p: f32) -> f32 {
         match self {
-            // Modeled after the function: y = 2.70158 * x^3 + x^2 * (-1.70158)
             Back::In => 2.70158 * p.powi(3) - 1.70158 * p.powi(2),
-            // Modeled after the function: y = 1 + 2.70158 (x - 1)^3 + 1.70158 (x - 1)^2
             Back::Out => {
                 let q: f32 = p - 1.;
                 1. + 2.70158 * q.powi(3) + 1.70158 * q.powi(2)
             }
-            // Modeled after the piecewise function:
-            // y = (2x)^2 * (1/2 * ((2.5949095 + 1) * 2x - 2.5949095)) [0, 0.5]
-            // y = 1/2 * ((2 x - 2)^2 * ((2.5949095 + 1) * (2x - 2) + 2.5949095) + 2) [0.5, 1]
             Back::InOut => {
                 let c = 2.5949095;
                 if p < 0.5 {
@@ -505,10 +653,14 @@ impl From<Back> for Ease {
     }
 }
 
+/// Used to set a bounce animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Bounce {
+    /// Bounce before animating in.
     In,
+    /// Bounce against end point.
     Out,
+    /// Bounce before animating in, then against the end point.
     InOut,
 }
 

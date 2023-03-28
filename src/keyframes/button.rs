@@ -21,14 +21,17 @@ impl Id {
         Self(widget::Id::unique())
     }
 
+    /// Used by [`chain!`] macro
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
+    /// Used by [`chain!`] macro
     pub fn into_chain_with_children(self, children: Vec<Button>) -> Chain {
         Chain::with_children(self, children)
     }
 
+    /// Used by [`anim!`] macro
     pub fn as_widget<'a, Message, Renderer>(
         self,
         timeline: &crate::Timeline,
