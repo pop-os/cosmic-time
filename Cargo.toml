@@ -2,6 +2,8 @@
 name = "cosmic-time"
 version = "0.1.0"
 edition = "2021"
+description = "An animation Crate for Iced and Cosmic DE"
+license = "MIT"
 
 [workspace]
 members = [
