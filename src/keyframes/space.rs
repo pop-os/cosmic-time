@@ -1,9 +1,8 @@
-use iced_native::time::Duration;
 use iced_native::{widget, Length};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
-use crate::timeline::DurFrame;
-use crate::{Ease, Linear};
+use crate::timeline::Frame;
+use crate::{Ease, Linear, MovementType};
 
 /// A Space's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -20,6 +19,18 @@ impl Id {
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
         Self(widget::Id::unique())
+    }
+
+    pub fn into_chain(self) -> Chain {
+        Chain::new(self)
+    }
+
+    pub fn into_chain_with_children(self, children: Vec<Space>) -> Chain {
+        Chain::with_children(self, children)
+    }
+
+    pub fn as_widget(self, timeline: &crate::Timeline) -> widget::Space {
+        Space::as_widget(self, timeline)
     }
 }
 
@@ -45,6 +56,14 @@ impl Chain {
         }
     }
 
+    pub fn with_children(id: Id, children: Vec<Space>) -> Self {
+        Chain {
+            id,
+            links: children,
+            repeat: Repeat::Never,
+        }
+    }
+
     pub fn link(mut self, space: Space) -> Self {
         self.links.push(space);
         self
@@ -61,34 +80,50 @@ impl Chain {
     }
 }
 
-impl<T> From<Chain> for crate::timeline::Chain<T>
-where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<Space>>,
-{
+impl From<Chain> for crate::timeline::Chain {
     fn from(chain: Chain) -> Self {
-        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+        crate::timeline::Chain::new(
+            chain.id.into(),
+            chain.repeat,
+            chain
+                .links
+                .into_iter()
+                .map(|s| s.into())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Space {
-    index: usize,
-    at: Duration,
+    at: MovementType,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
+    is_eager: bool,
 }
 
 impl Space {
-    pub fn new(at: Duration) -> Self {
+    pub fn new(at: impl Into<MovementType>) -> Self {
+        let at = at.into();
         Space {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
             height: None,
+            is_eager: true,
+        }
+    }
+
+    pub fn lazy(at: impl Into<MovementType>) -> Self {
+        let at = at.into();
+        Space {
+            at,
+            ease: Linear::InOut.into(),
+            width: None,
+            height: None,
+            is_eager: false,
         }
     }
 
@@ -101,13 +136,15 @@ impl Space {
         )
     }
 
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = Some(width);
+    // does nothing if lazy
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = Some(width.into());
         self
     }
 
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = Some(height);
+    // does nothing if lazy
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = Some(height.into());
         self
     }
 
@@ -117,23 +154,15 @@ impl Space {
     }
 }
 
-// 0 = width
-// 1 = height
-impl Iterator for Space {
-    type Item = Option<DurFrame>;
-
-    fn next(&mut self) -> Option<Option<DurFrame>> {
-        self.index += 1;
-        match self.index - 1 {
-            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
-            _ => None,
-        }
-    }
-}
-
-impl ExactSizeIterator for Space {
-    fn len(&self) -> usize {
-        6 - self.index
+#[rustfmt::skip]
+impl From<Space> for Vec<Option<Frame>> {
+    fn from(space: Space) -> Vec<Option<Frame>> {
+      if space.is_eager {
+        vec![as_f32(space.width).map(|w| Frame::eager(space.at, w, space.ease)), // 0 = width
+          as_f32(space.height).map(|h| Frame::eager(space.at, h, space.ease)) // 1 = height
+        ]
+      } else {
+        vec![Some(Frame::lazy(space.at, 0., space.ease)); 2] // lazy calculates for both width & height
+      }
     }
 }

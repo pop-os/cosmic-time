@@ -1,10 +1,9 @@
-use iced_native::time::Duration;
 use iced_native::{widget, Element, Length, Padding, Pixels};
 use iced_style::container::StyleSheet;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
-use crate::timeline::{DurFrame, Interped};
-use crate::{Ease, Linear};
+use crate::timeline::{Frame, Interped};
+use crate::{Ease, Linear, MovementType};
 
 /// A StyleContainer's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -21,6 +20,27 @@ impl Id {
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
         Self(widget::Id::unique())
+    }
+
+    pub fn into_chain(self) -> Chain {
+        Chain::new(self)
+    }
+
+    pub fn into_chain_with_children(self, children: Vec<StyleContainer>) -> Chain {
+        Chain::with_children(self, children)
+    }
+
+    pub fn as_widget<'a, Message, Renderer>(
+        self,
+        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
+        timeline: &crate::Timeline,
+        content: impl Into<Element<'a, Message, Renderer>>,
+    ) -> crate::widget::Container<'a, Message, Renderer>
+    where
+        Renderer: iced_native::Renderer,
+        Renderer::Theme: widget::container::StyleSheet,
+    {
+        StyleContainer::as_widget(self, style, timeline, content)
     }
 }
 
@@ -46,6 +66,14 @@ impl Chain {
         }
     }
 
+    pub fn with_children(id: Id, children: Vec<StyleContainer>) -> Self {
+        Chain {
+            id,
+            links: children,
+            repeat: Repeat::Never,
+        }
+    }
+
     pub fn link(mut self, container: StyleContainer) -> Self {
         self.links.push(container);
         self
@@ -62,21 +90,24 @@ impl Chain {
     }
 }
 
-impl<T> From<Chain> for crate::timeline::Chain<T>
-where
-    T: ExactSizeIterator<Item = Option<DurFrame>> + std::fmt::Debug,
-    Vec<T>: From<Vec<StyleContainer>>,
-{
+impl From<Chain> for crate::timeline::Chain {
     fn from(chain: Chain) -> Self {
-        crate::timeline::Chain::new(chain.id.into(), chain.repeat, chain.links.into())
+        crate::timeline::Chain::new(
+            chain.id.into(),
+            chain.repeat,
+            chain
+                .links
+                .into_iter()
+                .map(|c| c.into())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct StyleContainer {
-    index: usize,
-    at: Duration,
+    at: MovementType,
     ease: Ease,
     width: Option<Length>,
     height: Option<Length>,
@@ -84,12 +115,13 @@ pub struct StyleContainer {
     max_width: Option<f32>,
     max_height: Option<f32>,
     style: Option<u8>,
+    is_eager: bool,
 }
 
 impl StyleContainer {
-    pub fn new(at: Duration) -> StyleContainer {
+    pub fn new(at: impl Into<MovementType>) -> StyleContainer {
+        let at = at.into();
         StyleContainer {
-            index: 0,
             at,
             ease: Linear::InOut.into(),
             width: None,
@@ -98,6 +130,22 @@ impl StyleContainer {
             max_width: None,
             max_height: None,
             style: None,
+            is_eager: true,
+        }
+    }
+
+    pub fn lazy(at: impl Into<MovementType>) -> StyleContainer {
+        let at = at.into();
+        StyleContainer {
+            at,
+            ease: Linear::InOut.into(),
+            width: None,
+            height: None,
+            padding: None,
+            max_width: None,
+            max_height: None,
+            style: None,
+            is_eager: false,
         }
     }
 
@@ -187,55 +235,22 @@ impl StyleContainer {
     }
 }
 
-// 0 = width
-// 1 = height
-// 2 = padding[1] (top)
-// 3 = padding[2] (right)
-// 4 = padding[3] (bottom)
-// 5 = padding[4] (left)
-// 6 = max_width
-// 7 = max_height
-// 8 = style blend (passed to widget to mix values at `draw` time)
-impl Iterator for StyleContainer {
-    type Item = Option<DurFrame>;
-
-    fn next(&mut self) -> Option<Option<DurFrame>> {
-        self.index += 1;
-        match self.index - 1 {
-            0 => Some(as_f32(self.width).map(|w| DurFrame::new(self.at, w, self.ease))),
-            1 => Some(as_f32(self.height).map(|h| DurFrame::new(self.at, h, self.ease))),
-            2 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.top, self.ease)),
-            ),
-            3 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.right, self.ease)),
-            ),
-            4 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.bottom, self.ease)),
-            ),
-            5 => Some(
-                self.padding
-                    .map(|p| DurFrame::new(self.at, p.left, self.ease)),
-            ),
-            6 => Some(self.max_width.map(|w| DurFrame::new(self.at, w, self.ease))),
-            7 => Some(
-                self.max_height
-                    .map(|h| DurFrame::new(self.at, h, self.ease)),
-            ),
-            8 => Some(
-                self.style
-                    .map(|s| DurFrame::new(self.at, s as f32, self.ease)),
-            ),
-            _ => None,
-        }
-    }
-}
-
-impl ExactSizeIterator for StyleContainer {
-    fn len(&self) -> usize {
-        9 - self.index
+#[rustfmt::skip]
+impl From<StyleContainer> for Vec<Option<Frame>> {
+    fn from(container: StyleContainer) -> Vec<Option<Frame>> {
+      if container.is_eager {
+        vec![as_f32(container.width).map(|w| Frame::eager(container.at, w, container.ease)),  // 0 = width
+             as_f32(container.height).map(|h| Frame::eager(container.at, h, container.ease)), // 1 = height
+             container.padding.map(|p| Frame::eager(container.at, p.top, container.ease)),    // 2 = padding[0] (top)
+             container.padding.map(|p| Frame::eager(container.at, p.right, container.ease)),  // 3 = padding[1] (right)
+             container.padding.map(|p| Frame::eager(container.at, p.bottom, container.ease)), // 4 = padding[2] (bottom)
+             container.padding.map(|p| Frame::eager(container.at, p.left, container.ease)),   // 5 = padding[3] (left)
+             container.max_width.map(|w| Frame::eager(container.at, w, container.ease)),      // 6 = max_width
+             container.max_height.map(|h| Frame::eager(container.at, h, container.ease)),     // 7 = max_height
+             container.style.map(|s| Frame::eager(container.at, s as f32, container.ease)),   // 6 = style blend (passed to widget to mix values at `draw` time)
+        ]
+      } else {
+        vec![Some(Frame::lazy(container.at, 0., container.ease)); 9] // lazy evaluates for all values
+      }
     }
 }

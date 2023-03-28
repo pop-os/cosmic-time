@@ -1,20 +1,46 @@
-pub mod button;
-pub mod container;
-pub mod space;
-pub mod style_button;
-pub mod style_container;
 pub mod toggler;
+
+mod button;
+mod column;
+mod container;
+mod helpers;
+mod row;
+mod space;
+mod style_button;
+mod style_container;
 
 use iced_native::{widget, Length};
 
 pub use button::Button;
+pub use column::Column;
 pub use container::Container;
+pub use helpers::id;
+pub use helpers::lazy;
+pub use helpers::{button, column, container, row, space, style_button, style_container};
+pub use row::Row;
 pub use space::Space;
 pub use style_button::StyleButton;
 pub use style_container::StyleContainer;
 pub use toggler::Toggler;
 
 use crate::Timeline;
+
+#[macro_export]
+macro_rules! chain{
+  ($id:expr) => {
+    $id.clone().into_chain()
+  };
+  ($id:expr, $($x:expr),+ $(,)?) => {
+    $id.clone().into_chain_with_children(vec![$($x),+])
+  };
+}
+
+#[macro_export]
+macro_rules! anim{
+  ($id:expr, $($x:expr),+ $(,)?) => {
+    $id.clone().as_widget($($x),+)
+  };
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub enum Repeat {

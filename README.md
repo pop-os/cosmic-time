@@ -18,6 +18,7 @@ TODOs before release:
 - [ ] Add `Cosmic` cargo feature for compatibility with both iced and System76's temporary fork.
 - [x] optimize for `as_subscription` logic
 - [x] Add pause for animations
+- [ ] Lazy keyframes. (Keyframes that can use the position of a previous (active or not) animation to start another animation.)
 
 Other TODOs:
 - [x] test for easing

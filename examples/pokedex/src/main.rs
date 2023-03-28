@@ -6,12 +6,12 @@ use iced::{
 };
 
 use cosmic_time::{
-    self, keyframes, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
+    self, anim, chain, id, Back, Bounce, Circular, Ease, Elastic, Exponential, Linear, Quadratic,
     Quartic, Quintic, Sinusoidal, Timeline,
 };
 use once_cell::sync::Lazy;
 
-static SPACE: Lazy<keyframes::space::Id> = Lazy::new(keyframes::space::Id::unique);
+static SPACE: Lazy<id::Space> = Lazy::new(id::Space::unique);
 
 const EASE_IN: [Ease; 10] = [
     Ease::Linear(Linear::InOut),
@@ -44,6 +44,7 @@ pub fn main() -> iced::Result {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Pokedex {
     Loading,
     Loaded { pokemon: Pokemon },
@@ -164,7 +165,7 @@ impl Pokemon {
     fn view(&self) -> Element<Message> {
         row![
             column![
-                keyframes::Space::as_widget(SPACE.clone(), &self.timeline),
+                anim!(SPACE, &self.timeline),
                 image::viewer(self.image.clone())
             ],
             column![
@@ -180,13 +181,14 @@ impl Pokemon {
             ]
             .spacing(20),
         ]
-        .height(Length::Fixed(400.))
+        .height(400.)
         .spacing(20)
         .align_items(Alignment::Center)
         .into()
     }
 
     async fn search() -> Result<Pokemon, Error> {
+        use cosmic_time::space;
         use rand::Rng;
         use serde::Deserialize;
 
@@ -245,21 +247,18 @@ impl Pokemon {
             EASE_IN[rand], EASE_OUT[rand]
         );
 
-        let animation = cosmic_time::space::Chain::new(SPACE.clone())
-            .link(keyframes::Space::new(Duration::ZERO).height(Length::Fixed(50.)))
-            .link(
-                keyframes::Space::new(Duration::from_millis(1500))
-                    .height(Length::Fixed(250.))
-                    .ease(EASE_IN[rand]),
-            )
-            .link(
-                keyframes::Space::new(Duration::from_millis(3000))
-                    .height(Length::Fixed(50.))
-                    .ease(EASE_OUT[rand]),
-            )
-            .loop_forever();
+        let animation = chain![
+            SPACE,
+            space(Duration::ZERO).height(50.),
+            space(Duration::from_millis(1500))
+                .height(250.)
+                .ease(EASE_IN[rand]),
+            space(Duration::from_millis(3000))
+                .height(50.)
+                .ease(EASE_OUT[rand])
+        ]
+        .loop_forever();
 
-        // println!("Animating wth ease: {ease:?}"); // Uncomment to see the type of easing
         timeline.set_chain(animation).start();
 
         Ok(Pokemon {

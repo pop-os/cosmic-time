@@ -5,11 +5,11 @@ use iced::{
     Alignment, Application, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
-use cosmic_time::{self, keyframes, Timeline};
+use cosmic_time::{self, anim, chain, id, Timeline};
 
 use once_cell::sync::Lazy;
 
-static CONTAINER: Lazy<keyframes::container::Id> = Lazy::new(keyframes::container::Id::unique);
+static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
 
 pub fn main() -> iced::Result {
     Counter::run(Settings::default())
@@ -34,42 +34,30 @@ impl Application for Counter {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
+        use cosmic_time::container;
         // This is new! This is how we build a timeline!
         // These values can be created at anytime, but because this example is
         // simple and we want to animate from application init, we will build the
         // timeline Struct and the "timeline" itself here.
         // Though more complicated applications will likely do this in the `update`
         let mut timeline = Timeline::new();
-        let animation = cosmic_time::container::Chain::new(CONTAINER.clone())
-            // .loop_forever() // Uncomment this line to loop the animation!
-            .link(
-                keyframes::Container::new(Duration::ZERO)
-                    .width(Length::Fixed(0.))
-                    .height(Length::Fixed(100.)),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(2))
-                    .width(Length::Fixed(200.))
-                    .height(Length::Fixed(100.)),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(4))
-                    .width(Length::Fixed(200.))
-                    .height(Length::Fixed(300.))
-                    .padding([0, 0, 0, 0]),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(6))
-                    .width(Length::Fixed(700.))
-                    .height(Length::Fixed(300.))
-                    .padding([0, 0, 0, 500]),
-            )
-            .link(
-                keyframes::Container::new(Duration::from_secs(8))
-                    .width(Length::Fixed(150.))
-                    .height(Length::Fixed(150.))
-                    .padding([0, 0, 0, 0]),
-            );
+        let animation = chain![
+            CONTAINER,
+            container(Duration::ZERO).width(0.).height(100.),
+            container(Duration::from_secs(2)).width(200.).height(100.),
+            container(Duration::from_secs(2))
+                .width(200.)
+                .height(300.)
+                .padding([0, 0, 0, 0]),
+            container(Duration::from_secs(2))
+                .width(700.)
+                .height(300.)
+                .padding([0, 0, 0, 500]),
+            container(Duration::from_secs(2))
+                .width(150.)
+                .height(150.)
+                .padding([0, 0, 0, 0]),
+        ];
 
         // Notice how we had to specify the start and end of the widget dimensions?
         // Iced's default values for widgets are usually not animatable, because
@@ -128,8 +116,8 @@ impl Application for Counter {
         // just define the width with a `width` method like any other widget, then
         // animate the height in your view! Only control the animatable values with
         // cosmic-time, all others should be in your view!
-        keyframes::Container::as_widget(
-            CONTAINER.clone(),
+        anim!(
+            CONTAINER,
             &self.timeline,
             column![
                 button("Increment")
