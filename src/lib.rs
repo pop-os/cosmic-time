@@ -1,18 +1,21 @@
-//! An animation toolkit for Iced-rs/Iced
+//! An animation toolkit for [Iced](https://github.com/iced-rs/iced)
 //!
-//! The goal of this project is to provide a simple API to build and show
-//! complex animations efficiently in applications built with Iced-rs/Iced.
+//! > This Project was build for [Cosmic DE](https://github.com/pop-os/cosmic-epoch). Though this will work for any project that depends on [Iced](https://github.com/iced-rs/iced).
 //!
-//! # Projec Goals:
-//! * Full compatibility with Iced and Elm Architechture
-//! * Ease of use
-//! * No math required for any animation
+//!
+//!  The goal of this project is to provide a simple API to build and show
+//!  complex animations efficiently in applications built with Iced-rs/Iced.
+//!
+//! # Project Goals:
+//! * Full compatibility with Iced and The Elm Architecture.
+//! * Ease of use.
+//! * No math required for any animation.
 //! * No heap allocations in render loop.
-//! * Provide additional animatable widgets
-//! * Custom widget support (create your own!)
+//! * Provide additional animatable widgets.
+//! * Custom widget support (create your own!).
 //!
 //! # Overview
-//! To wire cosmic-time into Iced there are four steps to do.
+//! To wire cosmic-time into Iced there are five steps to do.
 //!
 //! 1. Create a [`Timeline`] This is the type that controls the animations.
 //! ```ignore
@@ -20,15 +23,14 @@
 //!       timeline: Timeline
 //! }
 //!
-//! // SNIP
+//! // ~ SNIP
 //!
 //! impl Application for Counter {
-//!      // SNIP
+//!     // ~ SNIP
 //!      fn new(_flags: ()) -> (Self, Command<Message>) {
 //!         (Self { timeline: Timeline::new()}, Command::none())
 //!      }
 //! }
-//!
 //! ```
 //! 2. Add at least one animation to your timeline. This can be done in your
 //!    Application's `new()` or `update()`, or both!
@@ -45,11 +47,13 @@
 //! ```
 //! There are some different things here!
 //!   > static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
+//!
 //!   Cosmic Time refers to each animation with an Id. We export our own, but they are
 //!   Identical to the widget Id's Iced uses for widget operations.
 //!   Each animatable widget needs an Id. And each Id can only refer to one animation.
 //!
 //!   > let animation = chain![
+//!
 //!   Cosmic Time refers to animations as [`Chain`]s because of how we build then.
 //!   Each Keyframe is linked together like a chain. The Cosmic Time API doesn't
 //!   say "change your width from 10 to 100". We define each state we want the
@@ -59,6 +63,7 @@
 //!   next state without animating though all previous Keyframes.
 //!
 //!   > self.timeline.set_chain(animation).start();
+//!
 //!   Then we need to add the animation to the [`Timeline`]. We call this `.set_chain`,
 //!   because there can only be one chain per Id.
 //!   If we `set_chain` with a different animation with the same Id, the first one is
@@ -67,6 +72,7 @@
 //!   `self.timeline.set_chain(animation1).set_chain(animation2).start()`
 //!
 //!   > .start()
+//!
 //!   This one function call is important enough that we should look at it specifically.
 //!   Cosmic Time is atomic, given the animation state held in the [`Timeline`] at any
 //!   given time the global animations will be the exact same. The value used to
@@ -75,7 +81,7 @@
 //!   Say you have two 5 seconds animations running at the same time. They should end
 //!   at the same time right? That all depends on when the widget thinks it's animation
 //!   should start. `.start()` tells all pending animations to start at the moment that
-//!   `.start()` is called. This guarentees they stay in sync.
+//!   `.start()` is called. This guarantees they stay in sync.
 //!   IMPORTANT! Be sure to only call `.start()` once per call to `update()`.
 //!   The below is incorrect!
 //!   ```ignore
@@ -93,7 +99,6 @@
 //!
 //! 4. Map the subscription to update the timeline's state:
 //! ```ignore
-//! use iced::Command;
 //! fn update(&mut self, message: Message) -> Command<Message> {
 //!        match message {
 //!            Message::Tick(now) => self.timeline.now(now),
@@ -108,7 +113,7 @@
 //! ```
 //!
 //! All done!
-//! There is a bit of wireing to get Cosmic Time working, but after that it's only
+//! There is a bit of wiring to get Cosmic Time working, but after that it's only
 //! a few lines to create rather complex animations!
 //! See the Pong example to see how a full game of pong can be implemented in
 //! only a few lines!
