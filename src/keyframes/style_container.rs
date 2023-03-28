@@ -22,11 +22,11 @@ impl Id {
         Self(widget::Id::unique())
     }
 
-    pub fn to_chain(self) -> Chain {
+    pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
-    pub fn to_chain_with_children(self, children: Vec<StyleContainer>) -> Chain {
+    pub fn into_chain_with_children(self, children: Vec<StyleContainer>) -> Chain {
         Chain::with_children(self, children)
     }
 

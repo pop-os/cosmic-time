@@ -28,10 +28,10 @@ use crate::Timeline;
 #[macro_export]
 macro_rules! chain{
   ($id:expr) => {
-    $id.clone().to_chain()
+    $id.clone().into_chain()
   };
   ($id:expr, $($x:expr),+ $(,)?) => {
-    $id.clone().to_chain_with_children(vec![$($x),+])
+    $id.clone().into_chain_with_children(vec![$($x),+])
   };
 }
 
