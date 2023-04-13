@@ -150,7 +150,8 @@ TODOs:
 - [ ] physics based animations
 - [ ] Figure out what else needs to be on this list
 
-## Version Map
-### map of iced version to required cosmic-time version.
-0.8 -> 1.2
-0.9 -> 2.0
+#### Map of iced version to required cosmic-time version.
+|Iced Version|Required Cosmic Time Version|
+|------------|----------------------------|
+|0.8| 1.2|
+|0.9| 2.0|
