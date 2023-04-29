@@ -1,12 +1,13 @@
 use iced_futures::subscription::Subscription;
 use iced_native::widget;
 
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
-use crate::keyframes::Repeat;
-use crate::{lerp, Ease, MovementType, Tween};
+use crate::{keyframes::Repeat, lerp, Ease, MovementType, Tween};
 
 /// This holds all the data for your animations.
 /// tracks: this holds all data for active animations
@@ -101,11 +102,9 @@ impl Frame {
     /// You almost certainly do not need this function.
     /// Converts a Lazy [`Frame`] to an Eager [`Frame`].
     pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, index: usize) {
-        *self = if let Frame::Lazy(movement_type, default, ease) = *self {
+        if let Frame::Lazy(movement_type, default, ease) = *self {
             let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
-            Frame::Eager(movement_type, value, ease)
-        } else {
-            *self
+            *self = Frame::Eager(movement_type, value, ease)
         }
     }
 
@@ -390,16 +389,14 @@ impl Timeline {
                         let time = end;
                         if let Some(next) = peekable.peek() {
                             let mut counter = 0;
-                            if let Some((c_frame, n_frame)) =
-                                current.iter().zip(next.iter()).find(|(c_frame, n_frame)| {
+                            if let Some((Some(c), Some(n))) =
+                                current.iter().zip(next.iter()).find(|(c, n)| {
                                     counter += 1;
-                                    c_frame.is_some() && n_frame.is_some()
+                                    c.is_some() && n.is_some()
                                 })
                             {
-                                let mut c = c_frame.expect("Previous check guarentees saftey");
-                                let mut n = n_frame.expect("Previous check guarentees saftey");
-                                c.to_eager(self, &id, counter - 1);
-                                n.to_eager(self, &id, counter - 1);
+                                c.to_owned().to_eager(self, &id, counter - 1);
+                                n.to_owned().to_eager(self, &id, counter - 1);
                                 let duration = n.get_duration(&c);
                                 end += duration;
                             }
@@ -460,7 +457,7 @@ impl Timeline {
     }
 
     /// Get the [`Interped`] value for an animation.
-    /// Use internaly by Cosmic Time.
+    /// Used internally by Cosmic Time.
     /// index is the index that the keyframe arbitratily assigns to each
     /// widget modifier (think width/height).
     pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
