@@ -161,11 +161,11 @@ impl Space {
 impl From<Space> for Vec<Option<Frame>> {
     fn from(space: Space) -> Vec<Option<Frame>> {
       if space.is_eager {
-        vec![as_f32(space.width).map(|w| Frame::eager(space.at, w, space.ease)), // 0 = width
-          as_f32(space.height).map(|h| Frame::eager(space.at, h, space.ease)) // 1 = height
+        vec![as_f32(space.width).map(|w| Frame::eager(space.at, w, space.ease, None)), // 0 = width
+          as_f32(space.height).map(|h| Frame::eager(space.at, h, space.ease, None)) // 1 = height
         ]
       } else {
-        vec![Some(Frame::lazy(space.at, 0., space.ease)); 2] // lazy calculates for both width & height
+        vec![Some(Frame::lazy(space.at, 0., space.ease, None)); 2] // lazy calculates for both width & height
       }
     }
 }

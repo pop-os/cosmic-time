@@ -195,16 +195,16 @@ impl Column {
 impl From<Column> for Vec<Option<Frame>> {
     fn from(column: Column) -> Vec<Option<Frame>> {
       if column.is_eager {
-        vec![column.spacing.map(|s| Frame::eager(column.at, s, column.ease)),        // 0 = spacing
-             column.padding.map(|p| Frame::eager(column.at, p.top, column.ease)),    // 1 = padding[0] (top)
-             column.padding.map(|p| Frame::eager(column.at, p.right, column.ease)),  // 2 = padding[1] (right)
-             column.padding.map(|p| Frame::eager(column.at, p.bottom, column.ease)), // 3 = padding[2] (bottom)
-             column.padding.map(|p| Frame::eager(column.at, p.left, column.ease)),   // 4 = padding[3] (left)
-             as_f32(column.width).map(|w| Frame::eager(column.at, w, column.ease)),  // 5 = width
-             as_f32(column.height).map(|h| Frame::eager(column.at, h, column.ease)), // 6 = height
+        vec![column.spacing.map(|s| Frame::eager(column.at, s, column.ease, None)),        // 0 = spacing
+             column.padding.map(|p| Frame::eager(column.at, p.top, column.ease, None)),    // 1 = padding[0] (top)
+             column.padding.map(|p| Frame::eager(column.at, p.right, column.ease, None)),  // 2 = padding[1] (right)
+             column.padding.map(|p| Frame::eager(column.at, p.bottom, column.ease, None)), // 3 = padding[2] (bottom)
+             column.padding.map(|p| Frame::eager(column.at, p.left, column.ease, None)),   // 4 = padding[3] (left)
+             as_f32(column.width).map(|w| Frame::eager(column.at, w, column.ease, None)),  // 5 = width
+             as_f32(column.height).map(|h| Frame::eager(column.at, h, column.ease, None)), // 6 = height
         ]
       } else {
-        vec![Some(Frame::lazy(column.at, 0., column.ease)); 7] // lazy evaluates for all values
+        vec![Some(Frame::lazy(column.at, 0., column.ease, None)); 7] // lazy evaluates for all values
       }
     }
 }

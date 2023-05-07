@@ -68,49 +68,55 @@ enum Pending {
 /// the animation, or even after the animation was completed.
 #[derive(Debug, Clone, Copy)]
 pub enum Frame {
-    /// Keyframe time, !!VALUE AT TIME!!, ease type into value
-    Eager(MovementType, f32, Ease),
-    /// Keyframe time, !!DEFAULT FALLBACK VALUE!!, ease type into value
-    Lazy(MovementType, f32, Ease),
+    /// Keyframe time,
+    /// !!VALUE AT TIME!!,
+    /// ease type into value,
+    /// Optional extra value to be mapped to by the keyframe
+    Eager(MovementType, f32, Ease, Option<u8>),
+    /// Keyframe time,
+    /// !!DEFAULT FALLBACK VALUE!!,
+    /// ease type into value
+    /// Optional extra value to be mapped to by the keyframe
+    Lazy(MovementType, f32, Ease, Option<u8>),
 }
 
 impl Frame {
     /// Create an Eager Frame.
-    pub fn eager(movement_type: impl Into<MovementType>, value: f32, ease: Ease) -> Self {
+    pub fn eager(movement_type: impl Into<MovementType>, value: f32, ease: Ease, dynamic: Option<u8>) -> Self {
         let movement_type = movement_type.into();
-        Frame::Eager(movement_type, value, ease)
+        Frame::Eager(movement_type, value, ease, dynamic)
     }
 
     /// Create an Lazy Frame.
-    pub fn lazy(movement_type: impl Into<MovementType>, default: f32, ease: Ease) -> Self {
+    pub fn lazy(movement_type: impl Into<MovementType>, default: f32, ease: Ease, dynamic: Option<u8>) -> Self {
         let movement_type = movement_type.into();
-        Frame::Lazy(movement_type, default, ease)
+        Frame::Lazy(movement_type, default, ease, dynamic)
     }
 
     /// You almost certainly do not need this function.
     /// Used in timeline::start to guarentee that we have the same
     /// time of an animation, not the API convinient [`MovementType`].
     pub fn to_subframe(self, time: Instant) -> SubFrame {
-        let (value, ease) = match self {
-            Frame::Eager(_movement_type, value, ease) => (value, ease),
+        let (value, ease, dynamic) = match self {
+            Frame::Eager(_movement_type, value, ease, dynamic) => (value, ease, dynamic),
             _ => panic!("Call 'to_eager' first"),
         };
 
-        SubFrame::new(time, value, ease)
+        SubFrame::new(time, value, ease, dynamic)
     }
 
     /// You almost certainly do not need this function.
     /// Converts a Lazy [`Frame`] to an Eager [`Frame`].
     pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, index: usize) {
-        if let Frame::Lazy(movement_type, default, ease) = *self {
+        if let Frame::Lazy(movement_type, default, ease, dynamic) = *self {
             let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
-            *self = Frame::Eager(movement_type, value, ease)
+            *self = Frame::Eager(movement_type, value, ease, dynamic)
         }
     }
 
     fn get_value(&self) -> f32 {
         match self {
-            Frame::Eager(_, value, _) => *value,
+            Frame::Eager(_, value, _, _) => *value,
             _ => panic!("call 'to_eager' first"),
         }
     }
@@ -119,7 +125,7 @@ impl Frame {
     /// Get the duration of a [`Frame`]
     pub fn get_duration(self, previous: &Self) -> Duration {
         match self {
-            Frame::Eager(movement_type, value, _ease) => match movement_type {
+            Frame::Eager(movement_type, value, _ease, _dynamic) => match movement_type {
                 MovementType::Duration(duration) => duration,
                 MovementType::Speed(speed) => speed.calc_duration(previous.get_value(), value),
             },
@@ -217,12 +223,14 @@ pub struct SubFrame {
     pub ease: Ease,
     /// The Instant of this. Converted from duration in [`Frame`]
     pub at: Instant,
+    /// Optional u8 for the keyframe to map to it's own type
+    pub dynamic: Option<u8>,
 }
 
 impl SubFrame {
     /// Creates a new SubFrame.
-    pub fn new(at: Instant, value: f32, ease: Ease) -> Self {
-        SubFrame { value, at, ease }
+    pub fn new(at: Instant, value: f32, ease: Ease, dynamic: Option<u8>) -> Self {
+        SubFrame { value, at, ease, dynamic }
     }
 }
 
@@ -257,8 +265,12 @@ impl PartialOrd for SubFrame {
 pub struct Interped {
     /// The previous ['Frame']'s value
     pub previous: f32,
+    /// Previous ['Frame']s dynamic value
+    pub prev_dyn: Option<u8>,
     /// The nexy ['Frame']'s value
     pub next: f32,
+    /// Next ['Frame']s dynamic value
+    pub next_dyn: Option<u8>,
     /// The interpolated value.
     pub value: f32,
     /// The percent done of this link in the chain.
@@ -491,7 +503,9 @@ impl Timeline {
                 (Some(acc), None) => {
                     return Some(Interped {
                         previous: acc.value,
+                        prev_dyn: acc.dynamic,
                         next: acc.value,
+                        next_dyn: None,
                         percent: 1.0,
                         value: acc.value,
                     });
@@ -507,7 +521,9 @@ impl Timeline {
                         let duration = (modifier.at - acc.at).as_millis() as f32;
 
                         let previous = acc.value;
+                        let prev_dyn = acc.dynamic;
                         let next = modifier.value;
+                        let next_dyn = modifier.dynamic;
                         let percent = modifier.ease.tween(elapsed / duration);
                         let value = lerp(
                             acc.value,
@@ -517,7 +533,9 @@ impl Timeline {
 
                         return Some(Interped {
                             previous,
+                            prev_dyn,
                             next,
+                            next_dyn,
                             percent,
                             value,
                         });

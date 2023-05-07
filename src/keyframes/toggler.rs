@@ -157,9 +157,9 @@ impl Toggler {
 impl From<Toggler> for Vec<Option<Frame>> {
     fn from(toggler: Toggler) -> Vec<Option<Frame>> {
       if toggler.is_eager {
-        vec![Some(Frame::eager(toggler.at, toggler.percent, toggler.ease))]  // 0 = animation percent completion
+        vec![Some(Frame::eager(toggler.at, toggler.percent, toggler.ease, None))]  // 0 = animation percent completion
       } else {
-        vec![Some(Frame::lazy(toggler.at, 0., toggler.ease))] // lazy evaluates for all values
+        vec![Some(Frame::lazy(toggler.at, 0., toggler.ease, None))] // lazy evaluates for all values
       }
     }
 }

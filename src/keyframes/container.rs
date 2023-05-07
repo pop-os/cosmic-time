@@ -216,17 +216,17 @@ impl Container {
 impl From<Container> for Vec<Option<Frame>> {
     fn from(container: Container) -> Vec<Option<Frame>> {
       if container.is_eager {
-        vec![as_f32(container.width).map(|w| Frame::eager(container.at, w, container.ease)),  // 0 = width
-             as_f32(container.height).map(|h| Frame::eager(container.at, h, container.ease)), // 1 = height
-             container.padding.map(|p| Frame::eager(container.at, p.top, container.ease)),    // 2 = padding[0] (top)
-             container.padding.map(|p| Frame::eager(container.at, p.right, container.ease)),  // 3 = padding[1] (right)
-             container.padding.map(|p| Frame::eager(container.at, p.bottom, container.ease)), // 4 = padding[2] (bottom)
-             container.padding.map(|p| Frame::eager(container.at, p.left, container.ease)),   // 5 = padding[3] (left)
-             container.max_width.map(|w| Frame::eager(container.at, w, container.ease)),      // 6 = max_width
-             container.max_height.map(|h| Frame::eager(container.at, h, container.ease)),     // 7 = max_height
+        vec![as_f32(container.width).map(|w| Frame::eager(container.at, w, container.ease, None)),  // 0 = width
+             as_f32(container.height).map(|h| Frame::eager(container.at, h, container.ease, None)), // 1 = height
+             container.padding.map(|p| Frame::eager(container.at, p.top, container.ease, None)),    // 2 = padding[0] (top)
+             container.padding.map(|p| Frame::eager(container.at, p.right, container.ease, None)),  // 3 = padding[1] (right)
+             container.padding.map(|p| Frame::eager(container.at, p.bottom, container.ease, None)), // 4 = padding[2] (bottom)
+             container.padding.map(|p| Frame::eager(container.at, p.left, container.ease, None)),   // 5 = padding[3] (left)
+             container.max_width.map(|w| Frame::eager(container.at, w, container.ease, None)),      // 6 = max_width
+             container.max_height.map(|h| Frame::eager(container.at, h, container.ease, None)),     // 7 = max_height
         ]
       } else {
-        vec![Some(Frame::lazy(container.at, 0., container.ease)); 8] // lazy evaluates for all values
+        vec![Some(Frame::lazy(container.at, 0., container.ease, None)); 8] // lazy evaluates for all values
       }
     }
 }

@@ -195,16 +195,16 @@ impl Row {
 impl From<Row> for Vec<Option<Frame>> {
     fn from(row: Row) -> Vec<Option<Frame>> {
       if row.is_eager {
-        vec![row.spacing.map(|s| Frame::eager(row.at, s, row.ease)),        // 0 = spacing
-             row.padding.map(|p| Frame::eager(row.at, p.top, row.ease)),    // 1 = padding[0] (top)
-             row.padding.map(|p| Frame::eager(row.at, p.right, row.ease)),  // 2 = padding[1] (right)
-             row.padding.map(|p| Frame::eager(row.at, p.bottom, row.ease)), // 3 = padding[2] (bottom)
-             row.padding.map(|p| Frame::eager(row.at, p.left, row.ease)),  // 4 = padding[3] (left)
-             as_f32(row.width).map(|w| Frame::eager(row.at, w, row.ease)),  // 5 = width
-             as_f32(row.height).map(|h| Frame::eager(row.at, h, row.ease)), // 6 = height
+        vec![row.spacing.map(|s| Frame::eager(row.at, s, row.ease, None)),        // 0 = spacing
+             row.padding.map(|p| Frame::eager(row.at, p.top, row.ease, None)),    // 1 = padding[0] (top)
+             row.padding.map(|p| Frame::eager(row.at, p.right, row.ease, None)),  // 2 = padding[1] (right)
+             row.padding.map(|p| Frame::eager(row.at, p.bottom, row.ease, None)), // 3 = padding[2] (bottom)
+             row.padding.map(|p| Frame::eager(row.at, p.left, row.ease, None)),  // 4 = padding[3] (left)
+             as_f32(row.width).map(|w| Frame::eager(row.at, w, row.ease, None)),  // 5 = width
+             as_f32(row.height).map(|h| Frame::eager(row.at, h, row.ease, None)), // 6 = height
         ]
       } else {
-        vec![Some(Frame::lazy(row.at, 0., row.ease)); 7] // lazy evaluates for all values
+        vec![Some(Frame::lazy(row.at, 0., row.ease, None)); 7] // lazy evaluates for all values
       }
     }
 }

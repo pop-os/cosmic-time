@@ -214,22 +214,22 @@ impl StyleButton {
 impl From<StyleButton> for Vec<Option<Frame>> {
     fn from(button: StyleButton) -> Vec<Option<Frame>> {
       if button.is_eager {
-        vec![as_f32(button.width).map(|w| Frame::eager(button.at, w, button.ease)),  // 0 = width
-             as_f32(button.height).map(|h| Frame::eager(button.at, h, button.ease)), // 1 = height
-             button.padding.map(|p| Frame::eager(button.at, p.top, button.ease)),    // 2 = padding[0] (top)
-             button.padding.map(|p| Frame::eager(button.at, p.right, button.ease)),  // 3 = padding[1] (right)
-             button.padding.map(|p| Frame::eager(button.at, p.bottom, button.ease)), // 4 = padding[2] (bottom)
-             button.padding.map(|p| Frame::eager(button.at, p.left, button.ease)),  // 5 = padding[3] (left)
-             button.style.map(|s| Frame::eager(button.at, s as f32, button.ease)),  // 6 = style blend (passed to widget to mix values at `draw` time)
+        vec![as_f32(button.width).map(|w| Frame::eager(button.at, w, button.ease, None)),  // 0 = width
+             as_f32(button.height).map(|h| Frame::eager(button.at, h, button.ease, None)), // 1 = height
+             button.padding.map(|p| Frame::eager(button.at, p.top, button.ease, None)),    // 2 = padding[0] (top)
+             button.padding.map(|p| Frame::eager(button.at, p.right, button.ease, None)),  // 3 = padding[1] (right)
+             button.padding.map(|p| Frame::eager(button.at, p.bottom, button.ease, None)), // 4 = padding[2] (bottom)
+             button.padding.map(|p| Frame::eager(button.at, p.left, button.ease, None)),  // 5 = padding[3] (left)
+             button.style.map(|s| Frame::eager(button.at, s as f32, button.ease, None)),  // 6 = style blend (passed to widget to mix values at `draw` time)
         ]
       } else {
-        vec![Some(Frame::lazy(button.at, 0., button.ease)), // 0 = width
-             Some(Frame::lazy(button.at, 0., button.ease)), // 1 = height
-             Some(Frame::lazy(button.at, 5., button.ease)), // 2 = padding[0] (top)
-             Some(Frame::lazy(button.at, 5., button.ease)), // 3 = padding[1] (right)
-             Some(Frame::lazy(button.at, 5., button.ease)), // 4 = padding[2] (bottom)
-             Some(Frame::lazy(button.at, 5., button.ease)), // 5 = padding[3] (left)
-             Some(Frame::lazy(button.at, 0., button.ease)), // 6 = style blend (passed to widget to mix values at `draw` time)
+        vec![Some(Frame::lazy(button.at, 0., button.ease, None)), // 0 = width
+             Some(Frame::lazy(button.at, 0., button.ease, None)), // 1 = height
+             Some(Frame::lazy(button.at, 5., button.ease, None)), // 2 = padding[0] (top)
+             Some(Frame::lazy(button.at, 5., button.ease, None)), // 3 = padding[1] (right)
+             Some(Frame::lazy(button.at, 5., button.ease, None)), // 4 = padding[2] (bottom)
+             Some(Frame::lazy(button.at, 5., button.ease, None)), // 5 = padding[3] (left)
+             Some(Frame::lazy(button.at, 0., button.ease, None)), // 6 = style blend (passed to widget to mix values at `draw` time)
         ]
       }
     }
