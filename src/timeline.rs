@@ -15,12 +15,12 @@ use crate::{keyframes::Repeat, lerp, Ease, MovementType, Tween};
 /// now: This is the instant that is used to calculate animation interpolations.
 #[derive(Debug, Clone)]
 pub struct Timeline {
-    // Hash map of widget::id to track, where each track is made of subtracks<isize>
+    /// Hash map of widget::id to track, where each track is made of subtracks<isize>
     tracks: HashMap<widget::Id, (Meta, Vec<Vec<SubFrame>>)>,
-    // Pending keyframes. Need to call `start` to finalize start time and move into `tracks`
+    /// Pending keyframes. Need to call `start` to finalize start time and move into `tracks`
     pendings: HashMap<widget::Id, Pending>,
-    // Global animation interp value. Use `timeline.now(instant)`, where instant is the value
-    // passed from the `timeline.as_subscription` value.
+    /// Global animation interp value. Use `timeline.now(instant)`, where instant is the value
+    /// passed from the `timeline.as_subscription` value.
     now: Option<Instant>,
 }
 
