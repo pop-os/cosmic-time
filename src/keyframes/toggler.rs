@@ -1,4 +1,10 @@
-use iced_native::widget;
+#[cfg(feature = "libcosmic")]
+use cosmic::iced::widget;
+#[cfg(feature = "libcosmic")]
+use cosmic::iced_core::{text, widget::Id as IcedId, Renderer as IcedRenderer};
+
+#[cfg(not(feature = "libcosmic"))]
+use iced_native::{text, widget, widget::Id as IcedId, Renderer as IcedRenderer};
 
 use crate::keyframes::Repeat;
 use crate::timeline::Frame;
@@ -6,19 +12,19 @@ use crate::{Ease, Linear, MovementType};
 
 /// A Toggler's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(iced_native::widget::Id);
+pub struct Id(IcedId);
 
 impl Id {
     /// Creates a custom [`Id`].
     pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
+        Self(IcedId::new(id))
     }
 
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
-        Self(widget::Id::unique())
+        Self(IcedId::unique())
     }
 
     /// Used by [`chain!`] macro
@@ -32,7 +38,7 @@ impl Id {
     }
 }
 
-impl From<Id> for widget::Id {
+impl From<Id> for IcedId {
     fn from(id: Id) -> Self {
         id.0
     }
@@ -130,7 +136,7 @@ impl Toggler {
         f: F,
     ) -> crate::widget::Toggler<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer + iced_native::text::Renderer,
+        Renderer: IcedRenderer + text::Renderer,
         Renderer::Theme: widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
     {

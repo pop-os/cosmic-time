@@ -1,9 +1,23 @@
-use iced_futures::subscription::Subscription;
-use iced_native::widget;
+#[cfg(feature = "libcosmic")]
+mod imports {
+    pub use cosmic::iced::time::{Duration, Instant};
+    pub use cosmic::iced_core::{
+        event::{self, Event},
+        widget, Hasher,
+    };
+    pub use cosmic::iced_futures::subscription::Subscription;
+}
+#[cfg(not(feature = "libcosmic"))]
+mod imports {
+    pub use iced::time::{Duration, Instant};
+    pub use iced_futures::subscription::Subscription;
+    pub use iced_native::{event, widget, Event, Hasher};
+}
+
+use imports::{widget, Duration, Instant, Subscription};
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
 
 use crate::keyframes::Repeat;
 use crate::{lerp, Ease, MovementType, Tween};
@@ -532,6 +546,7 @@ impl Timeline {
 
     /// Efficiently request redraws for animations.
     /// Automatically checks if animations are in a state where redraws arn't necessary.
+    #[cfg(not(feature = "libcosmic"))]
     pub fn as_subscription<Event>(
         &self,
     ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
@@ -544,6 +559,23 @@ impl Timeline {
             })
         {
             iced::window::frames()
+        } else {
+            Subscription::none()
+        }
+    }
+
+    /// Efficiently request redraws for animations.
+    /// Automatically checks if animations are in a state where redraws arn't necessary.
+    #[cfg(feature = "libcosmic")]
+    pub fn as_subscription(&self) -> Subscription<Instant> {
+        let now = self.now;
+        if now.is_some()
+            && self.tracks.values().any(|track| {
+                (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
+                    || (track.0.end >= now.unwrap() && track.0.pause.is_playing())
+            })
+        {
+            cosmic::iced_runtime::window::frames()
         } else {
             Subscription::none()
         }

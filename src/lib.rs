@@ -142,6 +142,9 @@ pub use crate::keyframes::{
 };
 pub use crate::timeline::{Chain, Timeline};
 
+#[cfg(feature = "libcosmic")]
+pub use cosmic::iced::time::{Duration, Instant};
+#[cfg(not(feature = "libcosmic"))]
 pub use iced::time::{Duration, Instant};
 
 const PI: f32 = std::f32::consts::PI;

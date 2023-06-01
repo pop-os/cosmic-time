@@ -9,6 +9,9 @@ mod space;
 mod style_button;
 mod style_container;
 
+#[cfg(feature = "libcosmic")]
+use cosmic::iced_core::{widget, Length};
+#[cfg(not(feature = "libcosmic"))]
 use iced_native::{widget, Length};
 
 pub use button::Button;
