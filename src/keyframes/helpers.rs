@@ -99,3 +99,9 @@ pub mod id {
         toggler::Id as Toggler,
     };
 }
+
+/// Direct access to `Chain`s for widget that may return an animation
+/// in a message.
+pub mod chain {
+  pub use crate::keyframes::toggler::Chain as Toggler;
+}

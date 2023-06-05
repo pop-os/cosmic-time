@@ -45,6 +45,7 @@ impl From<Id> for IcedId {
 }
 
 #[derive(Debug, Clone)]
+/// An animation, where each keyframe is "chained" together.
 pub struct Chain {
     id: Id,
     links: Vec<Toggler>,
@@ -52,6 +53,9 @@ pub struct Chain {
 }
 
 impl Chain {
+    /// Crate a new [`Toggler`] animation chain.
+    /// You probably don't want to use use directly, and should
+    /// use the [`chain`] macro.
     pub fn new(id: Id) -> Self {
         Chain {
             id,
@@ -60,6 +64,9 @@ impl Chain {
         }
     }
 
+    /// Create a chain pre-fulled with children.
+    /// You probably don't want to use use directly, and should
+    /// use the [`chain`] macro.
     pub fn with_children(id: Id, children: Vec<Toggler>) -> Self {
         Chain {
             id,
@@ -68,16 +75,24 @@ impl Chain {
         }
     }
 
+    /// Link another keyframe, (very similar to push)
+    /// You probably don't want to use use directly, and should
+    /// use the [`chain`] macro.
     pub fn link(mut self, toggler: Toggler) -> Self {
         self.links.push(toggler);
         self
     }
 
+    /// Sets the animation to loop forever.
     pub fn loop_forever(mut self) -> Self {
         self.repeat = Repeat::Forever;
         self
     }
 
+    /// Sets the animation to only loop once.
+    /// This is the default, and only useful to
+    /// stop an animation that was previously set
+    /// to loop forever.
     pub fn loop_once(mut self) -> Self {
         self.repeat = Repeat::Never;
         self

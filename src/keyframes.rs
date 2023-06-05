@@ -19,7 +19,7 @@ pub use column::Column;
 pub use container::Container;
 pub use helpers::id;
 pub use helpers::lazy;
-pub use helpers::{button, column, container, row, space, style_button, style_container};
+pub use helpers::{button, column, container, row, space, style_button, style_container, chain};
 pub use row::Row;
 pub use space::Space;
 pub use style_button::StyleButton;
