@@ -544,6 +544,21 @@ impl Timeline {
         }
     }
 
+    /// Check if the timeline is idle
+    /// The timeline is considered idle if all animations meet
+    /// one of the final criteria:
+    /// 1. Played until completion
+    /// 2. Paused
+    /// 3. Does not loop forever
+    pub fn is_idle(&self) -> bool {
+        let now = self.now;
+        !(now.is_some()
+            && self.tracks.values().any(|track| {
+                (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
+                    || (track.0.end >= now.unwrap() && track.0.pause.is_playing())
+            }))
+    }
+
     /// Efficiently request redraws for animations.
     /// Automatically checks if animations are in a state where redraws arn't necessary.
     #[cfg(not(feature = "libcosmic"))]
@@ -551,16 +566,10 @@ impl Timeline {
         &self,
     ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
     {
-        let now = self.now;
-        if now.is_some()
-            && self.tracks.values().any(|track| {
-                (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
-                    || (track.0.end >= now.unwrap() && track.0.pause.is_playing())
-            })
-        {
-            iced::window::frames()
-        } else {
+        if self.is_idle() {
             Subscription::none()
+        } else {
+            iced::window::frames()
         }
     }
 
@@ -568,16 +577,10 @@ impl Timeline {
     /// Automatically checks if animations are in a state where redraws arn't necessary.
     #[cfg(feature = "libcosmic")]
     pub fn as_subscription(&self) -> Subscription<Instant> {
-        let now = self.now;
-        if now.is_some()
-            && self.tracks.values().any(|track| {
-                (track.0.repeat == Repeat::Forever && track.0.pause.is_playing())
-                    || (track.0.end >= now.unwrap() && track.0.pause.is_playing())
-            })
-        {
-            cosmic::iced::time::every(Duration::from_millis(8)) // ~120FPS
-        } else {
+        if self.is_idle() {
             Subscription::none()
+        } else {
+            cosmic::iced::time::every(Duration::from_millis(8)) // ~120FPS
         }
     }
 }
