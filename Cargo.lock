@@ -646,6 +646,7 @@ dependencies = [
  "iced_native",
  "iced_style 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcosmic",
+ "once_cell",
 ]
 
 [[package]]
@@ -654,7 +655,6 @@ version = "0.1.0"
 dependencies = [
  "cosmic-time",
  "iced 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "once_cell",
 ]
 
 [[package]]
@@ -2797,9 +2797,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.17.1"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "option-ext"
@@ -3072,7 +3072,6 @@ version = "0.1.0"
 dependencies = [
  "cosmic-time",
  "iced 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "once_cell",
  "rand 0.7.3",
  "reqwest",
  "serde",
@@ -3102,7 +3101,6 @@ dependencies = [
  "cosmic-time",
  "iced 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "iced_native",
- "once_cell",
  "rand 0.8.5",
 ]
 
@@ -3882,7 +3880,6 @@ version = "0.1.0"
 dependencies = [
  "cosmic-time",
  "iced 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "once_cell",
 ]
 
 [[package]]
@@ -4695,7 +4692,7 @@ dependencies = [
  "js-sys",
  "log",
  "naga 0.12.2",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle 0.5.2",
  "smallvec",
@@ -4743,7 +4740,7 @@ dependencies = [
  "codespan-reporting",
  "log",
  "naga 0.12.2",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "raw-window-handle 0.5.2",
  "rustc-hash",
@@ -4824,7 +4821,7 @@ dependencies = [
  "metal",
  "naga 0.12.2",
  "objc",
- "parking_lot 0.11.2",
+ "parking_lot 0.12.1",
  "profiling",
  "range-alloc",
  "raw-window-handle 0.5.2",

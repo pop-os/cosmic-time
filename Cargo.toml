@@ -13,6 +13,7 @@ categories = ["gui"]
 [features]
 default = ["iced", "iced_native", "iced_futures", "iced_core", "iced_style"]
 libcosmic = ["dep:libcosmic"]
+once_cell = ["dep:once_cell"]
 
 [workspace]
 members = [
@@ -26,3 +27,4 @@ iced_futures = { version = "0.6.0", optional = true }
 iced_core = { version = "0.9.0", optional = true }
 iced_style = { version = "0.8.0", optional = true }
 libcosmic = { git = "https://github.com/pop-os/libcosmic/", rev = "5765053", default-features = false, features = [ "tokio" ], optional = true }
+once_cell = { version = "1.18.0", optional = true }

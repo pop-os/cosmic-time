@@ -147,6 +147,9 @@ pub use cosmic::iced::time::{Duration, Instant};
 #[cfg(not(feature = "libcosmic"))]
 pub use iced::time::{Duration, Instant};
 
+#[cfg(feature = "once_cell")]
+pub use once_cell;
+
 const PI: f32 = std::f32::consts::PI;
 
 /// A simple linear interpolation calculation function.

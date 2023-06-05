@@ -7,8 +7,7 @@ mod theme;
 use self::widget::Element;
 use theme::Theme;
 
-use cosmic_time::{self, anim, chain, id, Sinusoidal, Timeline};
-use once_cell::sync::Lazy;
+use cosmic_time::{self, anim, chain, id, once_cell::sync::Lazy, Sinusoidal, Timeline};
 
 static BUTTON: Lazy<id::StyleButton> = Lazy::new(id::StyleButton::unique);
 static CONTAINER: Lazy<id::StyleContainer> = Lazy::new(id::StyleContainer::unique);

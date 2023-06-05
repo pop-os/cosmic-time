@@ -96,5 +96,6 @@ pub mod id {
     pub use crate::keyframes::{
         button::Id as Button, column::Id as Column, container::Id as Container, row::Id as Row,
         space::Id as Space, style_button::Id as StyleButton, style_container::Id as StyleContainer,
+        toggler::Id as Toggler,
     };
 }
