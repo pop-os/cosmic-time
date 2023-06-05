@@ -5,20 +5,15 @@ use iced_native::layout;
 use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::text;
-use iced_native::time::Duration;
 use iced_native::widget::{self, Row, Text, Tree};
 use iced_native::{
     color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
     Shell, Widget,
 };
 
-use crate::keyframes::{self, toggler::Chain};
-use crate::lerp;
+use crate::{chain, id, lerp};
 
 pub use iced_style::toggler::{Appearance, StyleSheet};
-
-/// The default animation duration. Change here for custom widgets. Or at runtime with `.anim_multiplier`
-const ANIM_DURATION: f32 = 100.;
 
 /// A toggler widget.
 ///
@@ -41,9 +36,9 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    id: crate::keyframes::toggler::Id,
+    id: id::Toggler,
     is_toggled: bool,
-    on_toggle: Box<dyn Fn(Chain, bool) -> Message + 'a>,
+    on_toggle: Box<dyn Fn(chain::Toggler, bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
     size: f32,
@@ -72,14 +67,9 @@ where
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    pub fn new<F>(
-        id: crate::keyframes::toggler::Id,
-        label: impl Into<Option<String>>,
-        is_toggled: bool,
-        f: F,
-    ) -> Self
+    pub fn new<F>(id: id::Toggler, label: impl Into<Option<String>>, is_toggled: bool, f: F) -> Self
     where
-        F: 'a + Fn(Chain, bool) -> Message,
+        F: 'a + Fn(chain::Toggler, bool) -> Message,
     {
         Toggler {
             id,
@@ -207,30 +197,14 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
-                // To prevent broken animations, only send message if
-                // toggler is clicked after animation is finished.
-                // TODO this should be possible to fix once redirectable
-                // animations are implemented.
-                if mouse_over && (self.percent == 0.0 || self.percent == 1.0) {
+                if mouse_over {
                     if self.is_toggled {
-                        let off_animation = Chain::new(self.id.clone())
-                            .link(keyframes::toggler::Toggler::new(Duration::ZERO).percent(1.0))
-                            .link(
-                                keyframes::toggler::Toggler::new(Duration::from_millis(
-                                    (ANIM_DURATION * self.anim_multiplier.round()) as u64,
-                                ))
-                                .percent(0.0),
-                            );
+                        let off_animation =
+                            chain::Toggler::off(self.id.clone(), self.anim_multiplier);
                         shell.publish((self.on_toggle)(off_animation, !self.is_toggled));
                     } else {
-                        let on_animation = Chain::new(self.id.clone())
-                            .link(keyframes::toggler::Toggler::new(Duration::ZERO).percent(0.0))
-                            .link(
-                                keyframes::toggler::Toggler::new(Duration::from_millis(
-                                    (ANIM_DURATION * self.anim_multiplier.round()) as u64,
-                                ))
-                                .percent(1.0),
-                            );
+                        let on_animation =
+                            chain::Toggler::on(self.id.clone(), self.anim_multiplier);
                         shell.publish((self.on_toggle)(on_animation, !self.is_toggled));
                     }
 
@@ -372,53 +346,59 @@ fn blend_appearances(
     mut two: iced_style::toggler::Appearance,
     percent: f32,
 ) -> iced_style::toggler::Appearance {
-    let background: [f32; 4] = one
-        .background
-        .into_linear()
-        .iter()
-        .zip(two.background.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
+    if percent == 0. {
+        one
+    } else if percent == 1. {
+        two
+    } else {
+        let background: [f32; 4] = one
+            .background
+            .into_linear()
+            .iter()
+            .zip(two.background.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent))
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
 
-    let border_one: Color = one.background_border.unwrap_or(color!(0, 0, 0));
-    let border_two: Color = two.background_border.unwrap_or(color!(0, 0, 0));
-    let border: [f32; 4] = border_one
-        .into_linear()
-        .iter()
-        .zip(border_two.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-    let new_border: Color = border.into();
+        let border_one: Color = one.background_border.unwrap_or(color!(0, 0, 0));
+        let border_two: Color = two.background_border.unwrap_or(color!(0, 0, 0));
+        let border: [f32; 4] = border_one
+            .into_linear()
+            .iter()
+            .zip(border_two.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent))
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
+        let new_border: Color = border.into();
 
-    let foreground: [f32; 4] = one
-        .foreground
-        .into_linear()
-        .iter()
-        .zip(two.foreground.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
+        let foreground: [f32; 4] = one
+            .foreground
+            .into_linear()
+            .iter()
+            .zip(two.foreground.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent))
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
 
-    let f_border_one: Color = one.foreground_border.unwrap_or(color!(0, 0, 0));
-    let f_border_two: Color = two.foreground_border.unwrap_or(color!(0, 0, 0));
-    let f_border: [f32; 4] = f_border_one
-        .into_linear()
-        .iter()
-        .zip(f_border_two.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-    let new_f_border: Color = f_border.into();
+        let f_border_one: Color = one.foreground_border.unwrap_or(color!(0, 0, 0));
+        let f_border_two: Color = two.foreground_border.unwrap_or(color!(0, 0, 0));
+        let f_border: [f32; 4] = f_border_one
+            .into_linear()
+            .iter()
+            .zip(f_border_two.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent))
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
+        let new_f_border: Color = f_border.into();
 
-    two.background = background.into();
-    two.background_border = Some(new_border);
-    two.foreground = foreground.into();
-    two.foreground_border = Some(new_f_border);
-    two
+        two.background = background.into();
+        two.background_border = Some(new_border);
+        two.foreground = foreground.into();
+        two.foreground_border = Some(new_f_border);
+        two
+    }
 }

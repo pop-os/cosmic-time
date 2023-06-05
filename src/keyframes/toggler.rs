@@ -8,11 +8,12 @@ use iced_native::{text, widget, widget::Id as IcedId, Renderer as IcedRenderer};
 
 use crate::keyframes::Repeat;
 use crate::timeline::Frame;
-use crate::{Ease, Linear, MovementType};
+use crate::{chain, lazy::toggler as lazy, toggler, Duration, Ease, Linear, MovementType};
 
 /// A Toggler's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(IcedId);
+const ANIM_DURATION: f32 = 100.;
 
 impl Id {
     /// Creates a custom [`Id`].
@@ -35,6 +36,22 @@ impl Id {
     /// Used by [`chain!`] macro
     pub fn into_chain_with_children(self, children: Vec<Toggler>) -> Chain {
         Chain::with_children(self, children)
+    }
+
+    /// Used by [`crate::anim!`] macro
+    pub fn as_widget<'a, Message, Renderer, F>(
+        self,
+        timeline: &crate::Timeline,
+        label: impl Into<Option<String>>,
+        is_toggled: bool,
+        f: F,
+    ) -> crate::widget::Toggler<'a, Message, Renderer>
+    where
+        Renderer: IcedRenderer + text::Renderer,
+        Renderer::Theme: widget::toggler::StyleSheet,
+        F: 'a + Fn(Chain, bool) -> Message,
+    {
+        Toggler::as_widget(self, timeline, label, is_toggled, f)
     }
 }
 
@@ -97,6 +114,26 @@ impl Chain {
         self.repeat = Repeat::Never;
         self
     }
+
+    /// Returns the default animation for animating the toggler to "on"
+    pub fn on(id: Id, anim_multiplier: f32) -> Self {
+        let duration = (ANIM_DURATION * anim_multiplier.round()) as u64;
+        chain!(
+            id,
+            lazy(Duration::ZERO),
+            toggler(Duration::from_millis(duration)).percent(1.0),
+        )
+    }
+
+    /// Returns the default animation for animating the toggler to "off"
+    pub fn off(id: Id, anim_multiplier: f32) -> Self {
+        let duration = (ANIM_DURATION * anim_multiplier.round()) as u64;
+        chain!(
+            id,
+            lazy(Duration::ZERO),
+            toggler(Duration::from_millis(duration)).percent(0.0),
+        )
+    }
 }
 
 impl From<Chain> for crate::timeline::Chain {
@@ -115,6 +152,7 @@ impl From<Chain> for crate::timeline::Chain {
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
+///
 pub struct Toggler {
     at: MovementType,
     ease: Ease,

@@ -1,4 +1,6 @@
-use crate::keyframes::{Button, Column, Container, Row, Space, StyleButton, StyleContainer};
+use crate::keyframes::{
+    Button, Column, Container, Row, Space, StyleButton, StyleContainer, Toggler,
+};
 use crate::MovementType;
 
 /// Create a button keyframe.
@@ -31,6 +33,12 @@ pub fn space(at: impl Into<MovementType>) -> Space {
     Space::new(at)
 }
 
+/// Create a toggler keyframe.
+/// Needs to be added into a chain. See [`crate::chain!`] macro.
+pub fn toggler(at: impl Into<MovementType>) -> Toggler {
+    Toggler::new(at)
+}
+
 /// Create a style_button keyframe.
 /// Needs to be added into a chain. See [`crate::chain!`] macro.
 pub fn style_button(at: impl Into<MovementType>) -> StyleButton {
@@ -45,7 +53,9 @@ pub fn style_container(at: impl Into<MovementType>) -> StyleContainer {
 
 /// A slightly different import to clean up makeing lazy keyframes.
 pub mod lazy {
-    use crate::keyframes::{Button, Column, Container, Row, Space, StyleButton, StyleContainer};
+    use crate::keyframes::{
+        Button, Column, Container, Row, Space, StyleButton, StyleContainer, Toggler,
+    };
     use crate::MovementType;
 
     /// Create a lazy button keyframe.
@@ -78,6 +88,12 @@ pub mod lazy {
         Space::lazy(at)
     }
 
+    /// Create a lazy toggler keyframe.
+    /// Needs to be added into a chain. See [`crate::chain!`] macro.
+    pub fn toggler(at: impl Into<MovementType>) -> Toggler {
+        Toggler::lazy(at)
+    }
+
     /// Create a lazy style_button keyframe.
     /// Needs to be added into a chain. See [`crate::chain!`] macro.
     pub fn style_button(at: impl Into<MovementType>) -> StyleButton {
@@ -103,5 +119,5 @@ pub mod id {
 /// Direct access to `Chain`s for widget that may return an animation
 /// in a message.
 pub mod chain {
-  pub use crate::keyframes::toggler::Chain as Toggler;
+    pub use crate::keyframes::toggler::Chain as Toggler;
 }

@@ -127,7 +127,10 @@ where
         self
     }
 
-    /// Sets the animatable style variant of this [`Container`].
+    /// Set the appearance this [`Container`] to a blend of two styles.
+    ///
+    /// Percent is a f32 of 0.0 -> 1.0.
+    /// Where 0 is 100% style1 and 1 is 100% style2.
     pub fn blend_style(
         mut self,
         style1: <Renderer::Theme as StyleSheet>::Style,

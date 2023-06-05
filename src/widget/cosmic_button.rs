@@ -3,7 +3,6 @@
 //! A [`Button`] has some local [`State`].
 use cosmic::iced_runtime::core::widget::Id;
 use cosmic::iced_runtime::{keyboard, Command};
-use std::borrow::Cow;
 
 use crate::widget::StyleType;
 use cosmic::iced_core::event::{self, Event};
@@ -458,7 +457,7 @@ impl State {
 /// Processes the given [`Event`] and updates the [`State`] of a [`Button`]
 /// accordingly.
 pub fn update<'a, Message: Clone>(
-    id: Id,
+    _id: Id,
     event: Event,
     layout: Layout<'_>,
     cursor_position: Point,

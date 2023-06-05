@@ -5,18 +5,14 @@ use cosmic::iced_core::layout;
 use cosmic::iced_core::mouse;
 use cosmic::iced_core::renderer;
 use cosmic::iced_core::text;
-use cosmic::iced_core::time::Duration;
 use cosmic::iced_core::widget::Tree;
 use cosmic::iced_core::{
     Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Widget,
 };
 use cosmic::iced_widget::{Row, Text};
 
-use crate::keyframes::{self, toggler::Chain};
+use crate::{chain, id, lerp};
 pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
-
-/// The default animation duration. Change here for custom widgets. Or at runtime with `.anim_multiplier`
-const ANIM_DURATION: f32 = 100.;
 
 /// A toggler widget.
 ///
@@ -40,9 +36,9 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    id: crate::keyframes::toggler::Id,
+    id: id::Toggler,
     is_toggled: bool,
-    on_toggle: Box<dyn Fn(Chain, bool) -> Message + 'a>,
+    on_toggle: Box<dyn Fn(chain::Toggler, bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
     size: f32,
@@ -73,14 +69,9 @@ where
     ///   * a function that will be called when the [`Toggler`] is toggled. It
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
-    pub fn new<F>(
-        id: crate::keyframes::toggler::Id,
-        label: impl Into<Option<String>>,
-        is_toggled: bool,
-        f: F,
-    ) -> Self
+    pub fn new<F>(id: id::Toggler, label: impl Into<Option<String>>, is_toggled: bool, f: F) -> Self
     where
-        F: 'a + Fn(Chain, bool) -> Message,
+        F: 'a + Fn(chain::Toggler, bool) -> Message,
     {
         Toggler {
             id,
@@ -216,30 +207,14 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
 
-                // To prevent broken animations, only send message if
-                // toggler is clicked after animation is finished.
-                // TODO this should be possible to fix once redirectable
-                // animations are implemented.
-                if mouse_over && (self.percent == 0.0 || self.percent == 1.0) {
+                if mouse_over {
                     if self.is_toggled {
-                        let off_animation = Chain::new(self.id.clone())
-                            .link(keyframes::toggler::Toggler::new(Duration::ZERO).percent(1.0))
-                            .link(
-                                keyframes::toggler::Toggler::new(Duration::from_millis(
-                                    (ANIM_DURATION * self.anim_multiplier.round()) as u64,
-                                ))
-                                .percent(0.0),
-                            );
+                        let off_animation =
+                            chain::Toggler::off(self.id.clone(), self.anim_multiplier);
                         shell.publish((self.on_toggle)(off_animation, !self.is_toggled));
                     } else {
-                        let on_animation = Chain::new(self.id.clone())
-                            .link(keyframes::toggler::Toggler::new(Duration::ZERO).percent(0.0))
-                            .link(
-                                keyframes::toggler::Toggler::new(Duration::from_millis(
-                                    (ANIM_DURATION * self.anim_multiplier.round()) as u64,
-                                ))
-                                .percent(1.0),
-                            );
+                        let on_animation =
+                            chain::Toggler::on(self.id.clone(), self.anim_multiplier);
                         shell.publish((self.on_toggle)(on_animation, !self.is_toggled));
                     }
 
@@ -310,9 +285,17 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_toggled)
+            blend_appearances(
+                theme.hovered(&self.style, false),
+                theme.hovered(&self.style, true),
+                self.percent,
+            )
         } else {
-            theme.active(&self.style, self.is_toggled)
+            blend_appearances(
+                theme.active(&self.style, false),
+                theme.active(&self.style, true),
+                self.percent,
+            )
         };
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
@@ -337,11 +320,11 @@ where
 
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
-                } else {
-                    2.0 * space
-                },
+                + lerp(
+                    2.0 * space,
+                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space)),
+                    self.percent,
+                ),
             y: bounds.y + (2.0 * space),
             width: bounds.height - (4.0 * space),
             height: bounds.height - (4.0 * space),
@@ -367,5 +350,26 @@ where
 {
     fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(toggler)
+    }
+}
+
+fn blend_appearances(one: Appearance, mut two: Appearance, percent: f32) -> Appearance {
+    if percent == 0. {
+        one
+    } else if percent == 1. {
+        two
+    } else {
+        let background: [f32; 4] = one
+            .background
+            .into_linear()
+            .iter()
+            .zip(two.background.into_linear().iter())
+            .map(|(o, t)| o * (1.0 - percent) + t * percent)
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
+
+        two.background = background.into();
+        two
     }
 }
