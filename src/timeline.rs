@@ -575,7 +575,7 @@ impl Timeline {
                     || (track.0.end >= now.unwrap() && track.0.pause.is_playing())
             })
         {
-            cosmic::iced_runtime::window::frames()
+            cosmic::iced::time::every(Duration::from_millis(8)) // ~120FPS
         } else {
             Subscription::none()
         }
