@@ -198,14 +198,14 @@ where
         _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let mouse_over = layout.bounds().contains(cursor_position);
+                let mouse_over = cursor_position.is_over(layout.bounds());
 
                 if mouse_over {
                     if self.is_toggled {
@@ -231,11 +231,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if layout.bounds().contains(cursor_position) {
+        if cursor_position.is_over(layout.bounds()) {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -249,7 +249,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         /// Makes sure that the border radius of the toggler looks good at every size.
@@ -282,7 +282,7 @@ where
         let toggler_layout = children.next().unwrap();
         let bounds = toggler_layout.bounds();
 
-        let is_mouse_over = bounds.contains(cursor_position);
+        let is_mouse_over = cursor_position.is_over(bounds);
 
         let style = if is_mouse_over {
             blend_appearances(

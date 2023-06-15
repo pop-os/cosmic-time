@@ -191,7 +191,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -225,7 +225,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -258,7 +258,7 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -308,7 +308,7 @@ impl State {
 pub fn update<'a, Message: Clone>(
     event: Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor_position: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     on_press: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
@@ -319,7 +319,7 @@ pub fn update<'a, Message: Clone>(
             if on_press.is_some() {
                 let bounds = layout.bounds();
 
-                if bounds.contains(cursor_position) {
+                if cursor_position.is_over(bounds) {
                     let state = state();
 
                     state.is_pressed = true;
@@ -338,7 +338,7 @@ pub fn update<'a, Message: Clone>(
 
                     let bounds = layout.bounds();
 
-                    if bounds.contains(cursor_position) {
+                    if cursor_position.is_over(bounds) {
                         shell.publish(on_press);
                     }
 
@@ -361,7 +361,7 @@ pub fn update<'a, Message: Clone>(
 pub fn draw<'a, Renderer: iced_native::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
-    cursor_position: Point,
+    cursor_position: mouse::Cursor,
     is_enabled: bool,
     style_sheet: &dyn StyleSheet<Style = <Renderer::Theme as StyleSheet>::Style>,
     style: &StyleType<<Renderer::Theme as StyleSheet>::Style>,
@@ -370,7 +370,7 @@ pub fn draw<'a, Renderer: iced_native::Renderer>(
 where
     Renderer::Theme: StyleSheet,
 {
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor_position.is_over(bounds);
 
     // todo disable blend if user has applied style.
     let styling = match style {
@@ -465,10 +465,10 @@ pub fn layout<Renderer>(
 /// Returns the [`mouse::Interaction`] of a [`Button`].
 pub fn mouse_interaction(
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor_position: mouse::Cursor,
     is_enabled: bool,
 ) -> mouse::Interaction {
-    let is_mouse_over = layout.bounds().contains(cursor_position);
+    let is_mouse_over = cursor_position.is_over(layout.bounds());
 
     if is_mouse_over && is_enabled {
         mouse::Interaction::Pointer

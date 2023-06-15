@@ -576,11 +576,13 @@ impl Timeline {
     /// Efficiently request redraws for animations.
     /// Automatically checks if animations are in a state where redraws arn't necessary.
     #[cfg(feature = "libcosmic")]
-    pub fn as_subscription(&self) -> Subscription<Instant> {
+    pub fn as_subscription(&self) -> Subscription<(cosmic::iced::window::Id, Instant)> {
+        use cosmic::iced;
+
         if self.is_idle() {
             Subscription::none()
         } else {
-            cosmic::iced::time::every(Duration::from_millis(8)) // ~120FPS
+            iced::window::frames() // ~120FPS
         }
     }
 }

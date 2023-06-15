@@ -1,8 +1,7 @@
 //! Decorate content and apply alignment.
 use cosmic::iced_core::alignment::{self, Alignment};
 use cosmic::iced_core::event::{self, Event};
-use cosmic::iced_core::layout;
-use cosmic::iced_core::mouse;
+use cosmic::iced_core::gradient::{ColorStop, Linear};
 use cosmic::iced_core::overlay;
 use cosmic::iced_core::renderer;
 use cosmic::iced_core::widget::{Id, Operation, Tree};
@@ -10,6 +9,8 @@ use cosmic::iced_core::{
     color, Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Widget,
 };
+use cosmic::iced_core::{layout, Gradient};
+use cosmic::iced_core::{mouse, Radians};
 
 use crate::widget::StyleType;
 
@@ -197,7 +198,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -217,7 +218,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -237,7 +238,7 @@ where
         theme: &Renderer::Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let style = match &self.style {
@@ -366,28 +367,64 @@ fn blend_appearances(
     use crate::lerp;
 
     // background
-    let background_one: Color = one
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background_two: Color = two
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background: [f32; 4] = background_one
-        .into_linear()
-        .iter()
-        .zip(background_two.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-    let background: Color = background.into();
-
+    let background_mix: Background = match (one.background, two.background) {
+        (Some(Background::Color(c1)), Some(Background::Color(c2))) => {
+            let background_mix: [f32; 4] = c1
+                .into_linear()
+                .iter()
+                .zip(c2.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent))
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap();
+            Background::from(Color::from(background_mix))
+        }
+        (
+            Some(Background::Gradient(Gradient::Linear(l1))),
+            Some(Background::Gradient(Gradient::Linear(l2))),
+        ) => {
+            let angle = lerp(l1.angle.0, l2.angle.0, percent);
+            let stops = l1
+                .stops
+                .iter()
+                .zip(l2.stops.iter())
+                .map(|(o, t)| match (o, t) {
+                    (
+                        Some(ColorStop {
+                            offset: o1,
+                            color: c1,
+                        }),
+                        Some(ColorStop {
+                            color: c2,
+                            offset: o2,
+                        }),
+                    ) => {
+                        let color: [f32; 4] = c1
+                            .into_linear()
+                            .iter()
+                            .zip(c2.into_linear().iter())
+                            .map(|(o, t)| lerp(*o, *t, percent))
+                            .collect::<Vec<f32>>()
+                            .try_into()
+                            .unwrap();
+                        Some(ColorStop {
+                            color: color.into(),
+                            offset: lerp(*o1, *o2, percent),
+                        })
+                    }
+                    (a, b) => if percent < 0.5 { a } else { b }.clone(),
+                })
+                .collect::<Vec<Option<ColorStop>>>();
+            Background::Gradient(
+                Linear {
+                    angle: Radians(angle),
+                    stops: stops.try_into().unwrap(),
+                }
+                .into(),
+            )
+        }
+        _ => Background::from(Color::from([0.0, 0.0, 0.0, 0.0])),
+    };
     // boarder color
     let border_color: [f32; 4] = one
         .border_color
@@ -417,7 +454,7 @@ fn blend_appearances(
 
     let one_border_radius: [f32; 4] = one.border_radius.into();
     let two_border_radius: [f32; 4] = two.border_radius.into();
-    two.background = Some(background.into());
+    two.background = Some(background_mix.into());
     two.border_radius = [
         lerp(one_border_radius[0], two_border_radius[0], percent),
         lerp(one_border_radius[1], two_border_radius[1], percent),
