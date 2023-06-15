@@ -1,13 +1,12 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+use cosmic::iced_core::gradient::{ColorStop, Linear};
 use cosmic::iced_runtime::core::widget::Id;
 use cosmic::iced_runtime::{keyboard, Command};
 
 use crate::widget::StyleType;
 use cosmic::iced_core::event::{self, Event};
-use cosmic::iced_core::layout;
-use cosmic::iced_core::mouse;
 use cosmic::iced_core::overlay;
 use cosmic::iced_core::renderer;
 use cosmic::iced_core::touch;
@@ -17,6 +16,8 @@ use cosmic::iced_core::{
     color, Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
     Vector, Widget,
 };
+use cosmic::iced_core::{layout, Gradient};
+use cosmic::iced_core::{mouse, Radians};
 use cosmic::iced_renderer::core::widget::{operation, OperationOutputWrapper};
 
 pub use cosmic::iced_style::button::{Appearance, StyleSheet};
@@ -245,7 +246,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -280,7 +281,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -313,7 +314,7 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -460,7 +461,7 @@ pub fn update<'a, Message: Clone>(
     _id: Id,
     event: Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor_position: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     on_press: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
@@ -471,7 +472,7 @@ pub fn update<'a, Message: Clone>(
             if on_press.is_some() {
                 let bounds = layout.bounds();
 
-                if bounds.contains(cursor_position) {
+                if cursor_position.is_over(bounds) {
                     let state = state();
 
                     state.is_pressed = true;
@@ -490,7 +491,7 @@ pub fn update<'a, Message: Clone>(
 
                     let bounds = layout.bounds();
 
-                    if bounds.contains(cursor_position) {
+                    if cursor_position.is_over(bounds) {
                         shell.publish(on_press);
                     }
 
@@ -535,7 +536,7 @@ pub fn update<'a, Message: Clone>(
 pub fn draw<'a, Renderer: cosmic::iced_core::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
-    cursor_position: Point,
+    cursor_position: mouse::Cursor,
     is_enabled: bool,
     style_sheet: &dyn StyleSheet<Style = <Renderer::Theme as StyleSheet>::Style>,
     style: &StyleType<<Renderer::Theme as StyleSheet>::Style>,
@@ -544,7 +545,7 @@ pub fn draw<'a, Renderer: cosmic::iced_core::Renderer>(
 where
     Renderer::Theme: StyleSheet,
 {
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor_position.is_over(bounds);
 
     let styling = match style {
         StyleType::Static(style) => {
@@ -638,10 +639,10 @@ pub fn layout<Renderer>(
 /// Returns the [`mouse::Interaction`] of a [`Button`].
 pub fn mouse_interaction(
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor_position: mouse::Cursor,
     is_enabled: bool,
 ) -> mouse::Interaction {
-    let is_mouse_over = layout.bounds().contains(cursor_position);
+    let is_mouse_over = cursor_position.is_over(layout.bounds());
 
     if is_mouse_over && is_enabled {
         mouse::Interaction::Pointer
@@ -683,27 +684,64 @@ fn blend_appearances(
     let y2 = two.shadow_offset.y;
 
     // background
-    let background_one: Color = one
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background_two: Color = two
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background_mix: [f32; 4] = background_one
-        .into_linear()
-        .iter()
-        .zip(background_two.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-    let new_background_color: Color = background_mix.into();
+    let background_mix: Background = match (one.background, two.background) {
+        (Some(Background::Color(c1)), Some(Background::Color(c2))) => {
+            let background_mix: [f32; 4] = c1
+                .into_linear()
+                .iter()
+                .zip(c2.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent))
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap();
+            Background::from(Color::from(background_mix))
+        }
+        (
+            Some(Background::Gradient(Gradient::Linear(l1))),
+            Some(Background::Gradient(Gradient::Linear(l2))),
+        ) => {
+            let angle = lerp(l1.angle.0, l2.angle.0, percent);
+            let stops = l1
+                .stops
+                .iter()
+                .zip(l2.stops.iter())
+                .map(|(o, t)| match (o, t) {
+                    (
+                        Some(ColorStop {
+                            offset: o1,
+                            color: c1,
+                        }),
+                        Some(ColorStop {
+                            color: c2,
+                            offset: o2,
+                        }),
+                    ) => {
+                        let color: [f32; 4] = c1
+                            .into_linear()
+                            .iter()
+                            .zip(c2.into_linear().iter())
+                            .map(|(o, t)| lerp(*o, *t, percent))
+                            .collect::<Vec<f32>>()
+                            .try_into()
+                            .unwrap();
+                        Some(ColorStop {
+                            color: color.into(),
+                            offset: lerp(*o1, *o2, percent),
+                        })
+                    }
+                    (a, b) => if percent < 0.5 { a } else { b }.clone(),
+                })
+                .collect::<Vec<Option<ColorStop>>>();
+            Background::Gradient(
+                Linear {
+                    angle: Radians(angle),
+                    stops: stops.try_into().unwrap(),
+                }
+                .into(),
+            )
+        }
+        _ => Background::from(Color::from([0.0, 0.0, 0.0, 0.0])),
+    };
 
     // boarder color
     let border_color: [f32; 4] = one
@@ -727,9 +765,19 @@ fn blend_appearances(
         .try_into()
         .unwrap();
 
+    let br1: [f32; 4] = one.border_radius.into();
+    let br2: [f32; 4] = two.border_radius.into();
+
+    let br = [
+        lerp(br1[0], br2[0], percent),
+        lerp(br1[1], br2[1], percent),
+        lerp(br1[2], br2[2], percent),
+        lerp(br1[3], br2[3], percent),
+    ];
+
     two.shadow_offset = Vector::new(lerp(x1, x2, percent), lerp(y1, y2, percent));
-    two.background = Some(new_background_color.into());
-    two.border_radius = lerp(one.border_radius, two.border_radius, percent);
+    two.background = Some(background_mix);
+    two.border_radius = br.into();
     two.border_width = lerp(one.border_width, two.border_width, percent);
     two.border_color = border_color.into();
     two.text_color = text.into();
