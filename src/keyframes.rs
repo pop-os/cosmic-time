@@ -1,4 +1,6 @@
 mod button;
+#[cfg(feature = "libcosmic")]
+mod cards;
 mod column;
 mod container;
 mod helpers;
@@ -14,12 +16,14 @@ use cosmic::iced_core::{widget, Length};
 use iced_native::{widget, Length};
 
 pub use button::Button;
+#[cfg(feature = "libcosmic")]
+pub use cards::Cards;
 pub use column::Column;
 pub use container::Container;
 pub use helpers::id;
 pub use helpers::lazy;
 pub use helpers::{
-    button, chain, column, container, row, space, style_button, style_container, toggler,
+    button, cards, chain, column, container, row, space, style_button, style_container, toggler,
 };
 pub use row::Row;
 pub use space::Space;

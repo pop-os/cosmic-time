@@ -1,12 +1,16 @@
 #![allow(clippy::too_many_arguments)]
 
 #[cfg(feature = "libcosmic")]
+pub mod cards;
+#[cfg(feature = "libcosmic")]
 pub mod cosmic_button;
 #[cfg(feature = "libcosmic")]
 pub mod cosmic_container;
 #[cfg(feature = "libcosmic")]
 pub mod cosmic_toggler;
 
+#[cfg(feature = "libcosmic")]
+pub use cards::Cards;
 #[cfg(feature = "libcosmic")]
 pub use cosmic_button::Button;
 #[cfg(feature = "libcosmic")]
