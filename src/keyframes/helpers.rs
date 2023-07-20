@@ -1,6 +1,9 @@
+#[cfg(feature = "libcosmic")]
+use crate::keyframes::Cards;
 use crate::keyframes::{
     Button, Column, Container, Row, Space, StyleButton, StyleContainer, Toggler,
 };
+
 use crate::MovementType;
 
 /// Create a button keyframe.
@@ -39,6 +42,13 @@ pub fn toggler(at: impl Into<MovementType>) -> Toggler {
     Toggler::new(at)
 }
 
+#[cfg(feature = "libcosmic")]
+/// Create a cards keyframe.
+/// Needs to be added into a chain. See [`crate::chain!`] macro.
+pub fn cards(at: impl Into<MovementType>) -> Cards {
+    Cards::new(at)
+}
+
 /// Create a style_button keyframe.
 /// Needs to be added into a chain. See [`crate::chain!`] macro.
 pub fn style_button(at: impl Into<MovementType>) -> StyleButton {
@@ -53,6 +63,8 @@ pub fn style_container(at: impl Into<MovementType>) -> StyleContainer {
 
 /// A slightly different import to clean up makeing lazy keyframes.
 pub mod lazy {
+    #[cfg(feature = "libcosmic")]
+    use crate::keyframes::Cards;
     use crate::keyframes::{
         Button, Column, Container, Row, Space, StyleButton, StyleContainer, Toggler,
     };
@@ -94,6 +106,13 @@ pub mod lazy {
         Toggler::lazy(at)
     }
 
+    #[cfg(feature = "libcosmic")]
+    /// Create a lazy toggler keyframe.
+    /// Needs to be added into a chain. See [`crate::chain!`] macro.
+    pub fn cards(at: impl Into<MovementType>) -> Cards {
+        Cards::lazy(at)
+    }
+
     /// Create a lazy style_button keyframe.
     /// Needs to be added into a chain. See [`crate::chain!`] macro.
     pub fn style_button(at: impl Into<MovementType>) -> StyleButton {
@@ -110,14 +129,16 @@ pub mod lazy {
 /// A slightly different import to clean up makeing animation Ids.
 pub mod id {
     pub use crate::keyframes::{
-        button::Id as Button, column::Id as Column, container::Id as Container, row::Id as Row,
-        space::Id as Space, style_button::Id as StyleButton, style_container::Id as StyleContainer,
-        toggler::Id as Toggler,
+        button::Id as Button, cards::Id as Cards, column::Id as Column, container::Id as Container,
+        row::Id as Row, space::Id as Space, style_button::Id as StyleButton,
+        style_container::Id as StyleContainer, toggler::Id as Toggler,
     };
 }
 
 /// Direct access to `Chain`s for widget that may return an animation
 /// in a message.
 pub mod chain {
+    #[cfg(feature = "libcosmic")]
+    pub use crate::keyframes::cards::Chain as Cards;
     pub use crate::keyframes::toggler::Chain as Toggler;
 }

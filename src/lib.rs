@@ -138,7 +138,8 @@ pub mod widget;
 mod keyframes;
 
 pub use crate::keyframes::{
-    button, chain, column, container, id, lazy, row, space, style_button, style_container, toggler,
+    button, cards, chain, column, container, id, lazy, row, space, style_button, style_container,
+    toggler,
 };
 pub use crate::timeline::{Chain, Timeline};
 
