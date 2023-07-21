@@ -1,7 +1,7 @@
 # COSMIC TIME
 ## An animation toolkit for [Iced](https://github.com/iced-rs/iced)
 
-> This Project was build for [Cosmic DE](https://github.com/pop-os/cosmic-epoch). Though this will work for any project that depends on [Iced](https://github.com/iced-rs/iced).
+> This Project was built for [Cosmic DE](https://github.com/pop-os/cosmic-epoch). Though this will work for any project that depends on [Iced](https://github.com/iced-rs/iced).
 
 
  The goal of this project is to provide a simple API to build and show
