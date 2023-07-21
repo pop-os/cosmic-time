@@ -138,11 +138,18 @@ pub mod widget;
 mod keyframes;
 
 pub use crate::keyframes::{
-    button, column, container, id, lazy, row, space, style_button, style_container,
+    button, cards, chain, column, container, id, lazy, row, space, style_button, style_container,
+    toggler,
 };
 pub use crate::timeline::{Chain, Timeline};
 
+#[cfg(feature = "libcosmic")]
+pub use cosmic::iced::time::{Duration, Instant};
+#[cfg(not(feature = "libcosmic"))]
 pub use iced::time::{Duration, Instant};
+
+#[cfg(feature = "once_cell")]
+pub use once_cell;
 
 const PI: f32 = std::f32::consts::PI;
 

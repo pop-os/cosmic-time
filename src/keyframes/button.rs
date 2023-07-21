@@ -1,4 +1,12 @@
-use iced_native::{widget, Element, Length, Padding};
+#[cfg(feature = "libcosmic")]
+use cosmic::iced::widget;
+#[cfg(feature = "libcosmic")]
+use cosmic::iced_core::{widget::Id as IcedId, Element, Length, Padding, Renderer as IcedRenderer};
+
+#[cfg(not(feature = "libcosmic"))]
+use iced_native::{
+    widget, widget::Id as IcedId, Element, Length, Padding, Renderer as IcedRenderer,
+};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -6,19 +14,19 @@ use crate::{Ease, Linear, MovementType};
 
 /// A Button's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(iced_native::widget::Id);
+pub struct Id(IcedId);
 
 impl Id {
     /// Creates a custom [`Id`].
     pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
+        Self(IcedId::new(id))
     }
 
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
-        Self(widget::Id::unique())
+        Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
@@ -38,14 +46,14 @@ impl Id {
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> widget::Button<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
+        Renderer: IcedRenderer,
         Renderer::Theme: widget::button::StyleSheet,
     {
         Button::as_widget(self, timeline, content)
     }
 }
 
-impl From<Id> for widget::Id {
+impl From<Id> for IcedId {
     fn from(id: Id) -> Self {
         id.0
     }
@@ -147,10 +155,10 @@ impl Button {
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> widget::Button<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
+        Renderer: IcedRenderer,
         Renderer::Theme: widget::button::StyleSheet,
     {
-        let id: widget::Id = id.into();
+        let id: IcedId = id.into();
 
         widget::Button::new(content)
             .width(get_length(&id, timeline, 0, Length::Shrink))

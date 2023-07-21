@@ -7,6 +7,5 @@ publish = false
 
 [dependencies]
 iced = { version = "0.9.0", features = ["smol"] }
-cosmic-time = { path = "../.."}
-once_cell = "1.15"
+cosmic-time = { path = "../..", features = ["once_cell"] }
 
