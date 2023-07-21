@@ -64,7 +64,6 @@ where
     }
 
     fn fully_unexpanded(&self) -> bool {
-        // false
         self.elements.len() == 1 || (!self.expanded && approx_eq!(f32, self.percent, 0.0))
     }
 }
@@ -470,10 +469,12 @@ where
         let mut tree_children = state.children.iter_mut();
         let fully_expanded = self.fully_expanded();
         let fully_unexpanded = self.fully_unexpanded();
+        let show_less_state = tree_children.next();
+        let clear_all_state = tree_children.next();
 
         if fully_expanded {
             let c_layout = layout.next().unwrap();
-            let state = tree_children.next().unwrap();
+            let state = show_less_state.unwrap();
             status = status.merge(self.show_less_button.as_widget_mut().on_event(
                 state,
                 event.clone(),
@@ -489,7 +490,7 @@ where
             }
 
             let c_layout = layout.next().unwrap();
-            let state = tree_children.next().unwrap();
+            let state = clear_all_state.unwrap();
             status = status.merge(self.clear_all_button.as_widget_mut().on_event(
                 state,
                 event.clone(),
