@@ -1,16 +1,16 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-use iced_native::color;
-use iced_native::event::{self, Event};
-use iced_native::layout;
-use iced_native::mouse;
-use iced_native::overlay;
-use iced_native::renderer;
-use iced_native::touch;
-use iced_native::widget::tree::{self, Tree};
-use iced_native::widget::Operation;
-use iced_native::{
+use iced_core::color;
+use iced_core::event::{self, Event};
+use iced_core::layout;
+use iced_core::mouse;
+use iced_core::overlay;
+use iced_core::renderer;
+use iced_core::touch;
+use iced_core::widget::tree::{self, Tree};
+use iced_core::widget::Operation;
+use iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
     Vector, Widget,
 };
@@ -18,6 +18,8 @@ use iced_native::{
 use crate::widget::StyleType;
 
 pub use iced_style::button::{Appearance, StyleSheet};
+
+use super::button_blend_appearances;
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -56,7 +58,7 @@ pub use iced_style::button::{Appearance, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     content: Element<'a, Message, Renderer>,
@@ -69,7 +71,7 @@ where
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
@@ -131,7 +133,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + iced_native::Renderer,
+    Renderer: 'a + iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
@@ -176,7 +178,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
+        operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
@@ -195,6 +197,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -204,6 +207,7 @@ where
             renderer,
             clipboard,
             shell,
+            _viewport,
         ) {
             return event::Status::Captured;
         }
@@ -282,7 +286,7 @@ where
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_native::Renderer + 'a,
+    Renderer: iced_core::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
     fn from(button: Button<'a, Message, Renderer>) -> Self {
@@ -358,7 +362,7 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: iced_native::Renderer>(
+pub fn draw<'a, Renderer: iced_core::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: mouse::Cursor,
@@ -404,7 +408,7 @@ where
                 (style_sheet.active(style1), style_sheet.active(style2))
             };
 
-            blend_appearances(one, two, *percent)
+            button_blend_appearances(one, two, *percent)
         }
     };
 
@@ -475,71 +479,4 @@ pub fn mouse_interaction(
     } else {
         mouse::Interaction::default()
     }
-}
-
-fn blend_appearances(
-    one: iced_style::button::Appearance,
-    mut two: iced_style::button::Appearance,
-    percent: f32,
-) -> iced_style::button::Appearance {
-    use crate::lerp;
-
-    // shadow offet
-    let x1 = one.shadow_offset.x;
-    let y1 = one.shadow_offset.y;
-    let x2 = two.shadow_offset.x;
-    let y2 = two.shadow_offset.y;
-
-    // background
-    let background_one: Color = one
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background_two: Color = two
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background_mix: [f32; 4] = background_one
-        .into_linear()
-        .iter()
-        .zip(background_two.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-    let new_background_color: Color = background_mix.into();
-
-    // boarder color
-    let border_color: [f32; 4] = one
-        .border_color
-        .into_linear()
-        .iter()
-        .zip(two.border_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-
-    // text
-    let text: [f32; 4] = one
-        .text_color
-        .into_linear()
-        .iter()
-        .zip(two.text_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-
-    two.shadow_offset = Vector::new(lerp(x1, x2, percent), lerp(y1, y2, percent));
-    two.background = Some(new_background_color.into());
-    two.border_radius = lerp(one.border_radius, two.border_radius, percent);
-    two.border_width = lerp(one.border_width, two.border_width, percent);
-    two.border_color = border_color.into();
-    two.text_color = text.into();
-    two
 }

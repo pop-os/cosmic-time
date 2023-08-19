@@ -1,10 +1,5 @@
-#[cfg(feature = "libcosmic")]
-use cosmic::iced::widget;
-#[cfg(feature = "libcosmic")]
-use cosmic::iced_core::{widget::Id as IcedId, Length};
-
-#[cfg(not(feature = "libcosmic"))]
-use iced_native::{widget, widget::Id as IcedId, Length};
+use crate::reexports::iced_core::{widget::Id as IcedId, Length};
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -38,7 +33,7 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget(self, timeline: &crate::Timeline) -> widget::Space {
+    pub fn as_widget(self, timeline: &crate::Timeline) -> iced_widget::Space {
         Space::as_widget(self, timeline)
     }
 }
@@ -136,10 +131,10 @@ impl Space {
         }
     }
 
-    pub fn as_widget(id: Id, timeline: &crate::Timeline) -> widget::Space {
+    pub fn as_widget(id: Id, timeline: &crate::Timeline) -> iced_widget::Space {
         let id: IcedId = id.into();
 
-        widget::Space::new(
+        iced_widget::Space::new(
             get_length(&id, timeline, 0, Length::Shrink),
             get_length(&id, timeline, 1, Length::Shrink),
         )

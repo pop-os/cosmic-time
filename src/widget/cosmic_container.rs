@@ -183,7 +183,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
-        operation.container(self.id.as_ref(), &mut |operation| {
+        operation.container(self.id.as_ref(), layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
@@ -202,6 +202,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -211,6 +212,7 @@ where
             renderer,
             clipboard,
             shell,
+            viewport,
         )
     }
 
@@ -256,6 +258,7 @@ where
             theme,
             &renderer::Style {
                 text_color: style.text_color.unwrap_or(renderer_style.text_color),
+                scale_factor: renderer_style.scale_factor,
             },
             layout.children().next().unwrap(),
             cursor_position,

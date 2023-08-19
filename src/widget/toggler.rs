@@ -1,15 +1,19 @@
 //! Show toggle controls using togglers.
-use iced_native::alignment;
-use iced_native::event;
-use iced_native::layout;
-use iced_native::mouse;
-use iced_native::renderer;
-use iced_native::text;
-use iced_native::widget::{self, Row, Text, Tree};
-use iced_native::{
+use iced_core::alignment;
+use iced_core::event;
+use iced_core::layout;
+use iced_core::mouse;
+use iced_core::renderer;
+use iced_core::text;
+use iced_core::text::LineHeight;
+use iced_core::text::Shaping;
+use iced_core::widget::{self, Text, Tree};
+use iced_core::{
     color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
     Shell, Widget,
 };
+
+use iced_widget::Row;
 
 use crate::{chain, id, lerp};
 
@@ -20,7 +24,7 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 /// # Example
 ///
 /// ```
-/// # type Toggler<'a, Message> = iced_native::widget::Toggler<'a, Message, iced_native::renderer::Null>;
+/// # type Toggler<'a, Message> = iced_core::widget::Toggler<'a, Message, iced_core::renderer::Null>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),
@@ -45,7 +49,7 @@ where
     text_size: Option<f32>,
     text_alignment: alignment::Horizontal,
     spacing: f32,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
@@ -81,7 +85,7 @@ where
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
             spacing: 0.0,
-            font: Renderer::Font::default(),
+            font: None,
             style: Default::default(),
             percent: if is_toggled { 1.0 } else { 0.0 },
             anim_multiplier: 1.0,
@@ -120,9 +124,9 @@ where
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
     ///
-    /// [`Font`]: iced_native::text::Renderer::Font
+    /// [`Font`]: iced_core::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+        self.font = Some(font);
         self
     }
 
@@ -172,7 +176,7 @@ where
             row = row.push(
                 Text::new(label)
                     .horizontal_alignment(self.text_alignment)
-                    .font(self.font.clone())
+                    .font(self.font.clone().unwrap_or_else(|| renderer.default_font()))
                     .width(self.width)
                     .size(self.text_size.unwrap_or_else(|| renderer.default_size())),
             );
@@ -192,6 +196,7 @@ where
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -254,16 +259,18 @@ where
         if let Some(label) = &self.label {
             let label_layout = children.next().unwrap();
 
-            iced_native::widget::text::draw(
+            iced_core::widget::text::draw(
                 renderer,
                 style,
                 label_layout,
                 label,
                 self.text_size,
+                LineHeight::default(),
                 self.font.clone(),
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
+                Shaping::Advanced,
             );
         }
 

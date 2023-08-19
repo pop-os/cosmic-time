@@ -1,10 +1,5 @@
-#[cfg(feature = "libcosmic")]
-use cosmic::iced::widget;
-#[cfg(feature = "libcosmic")]
-use cosmic::iced_core::{text, widget::Id as IcedId, Renderer as IcedRenderer};
-
-#[cfg(not(feature = "libcosmic"))]
-use iced_native::{text, widget, widget::Id as IcedId, Renderer as IcedRenderer};
+use crate::reexports::iced_core::{text, widget::Id as IcedId, Renderer as IcedRenderer};
+use crate::reexports::iced_widget;
 
 use crate::keyframes::Repeat;
 use crate::timeline::Frame;
@@ -48,7 +43,7 @@ impl Id {
     ) -> crate::widget::Toggler<'a, Message, Renderer>
     where
         Renderer: IcedRenderer + text::Renderer,
-        Renderer::Theme: widget::toggler::StyleSheet,
+        Renderer::Theme: iced_widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
     {
         Toggler::as_widget(self, timeline, label, is_toggled, f)
@@ -190,7 +185,7 @@ impl Toggler {
     ) -> crate::widget::Toggler<'a, Message, Renderer>
     where
         Renderer: IcedRenderer + text::Renderer,
-        Renderer::Theme: widget::toggler::StyleSheet,
+        Renderer::Theme: iced_widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
     {
         crate::widget::Toggler::new(id.clone(), label, is_toggled, f).percent(

@@ -32,7 +32,7 @@ impl<'a, Message, Renderer> Layer<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Layer<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Message: Clone,
 {
     fn children(&self) -> Vec<Tree> {
@@ -152,7 +152,7 @@ struct Overlay<'a, 'b, Message, Renderer> {
 impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Renderer>
     for Overlay<'a, 'b, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Message: Clone,
 {
     fn layout(&self, renderer: &Renderer, _bounds: Size, position: Point) -> layout::Node {
@@ -252,7 +252,7 @@ where
 
 impl<'a, Message, Renderer> From<Layer<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
-    Renderer: 'a + iced_native::Renderer,
+    Renderer: 'a + iced_core::Renderer,
     Message: 'a + Clone,
 {
     fn from(layer: Layer<'a, Message, Renderer>) -> Self {

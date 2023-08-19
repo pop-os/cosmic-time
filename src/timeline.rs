@@ -10,8 +10,8 @@ mod imports {
 #[cfg(not(feature = "libcosmic"))]
 mod imports {
     pub use iced::time::{Duration, Instant};
+    pub use iced_core::{event, widget, Event, Hasher};
     pub use iced_futures::subscription::Subscription;
-    pub use iced_native::{event, widget, Event, Hasher};
 }
 
 use imports::{widget, Duration, Instant, Subscription};
@@ -562,10 +562,7 @@ impl Timeline {
     /// Efficiently request redraws for animations.
     /// Automatically checks if animations are in a state where redraws arn't necessary.
     #[cfg(not(feature = "libcosmic"))]
-    pub fn as_subscription<Event>(
-        &self,
-    ) -> Subscription<iced_native::Hasher, (iced_native::Event, iced_native::event::Status), Instant>
-    {
+    pub fn as_subscription<Event>(&self) -> Subscription<Instant> {
         if self.is_idle() {
             Subscription::none()
         } else {

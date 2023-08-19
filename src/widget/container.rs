@@ -1,13 +1,13 @@
 //! Decorate content and apply alignment.
-use iced_native::alignment::{self, Alignment};
-use iced_native::color;
-use iced_native::event::{self, Event};
-use iced_native::layout;
-use iced_native::mouse;
-use iced_native::overlay;
-use iced_native::renderer;
-use iced_native::widget::{self, Operation, Tree};
-use iced_native::{
+use iced_core::alignment::{self, Alignment};
+use iced_core::color;
+use iced_core::event::{self, Event};
+use iced_core::layout;
+use iced_core::mouse;
+use iced_core::overlay;
+use iced_core::renderer;
+use iced_core::widget::{self, Operation, Tree};
+use iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
     Shell, Widget,
 };
@@ -16,13 +16,15 @@ use crate::widget::StyleType;
 
 pub use iced_style::container::{Appearance, StyleSheet};
 
+use super::container_blend_appearances;
+
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
 pub struct Container<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
@@ -39,7 +41,7 @@ where
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
@@ -144,7 +146,7 @@ where
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Container<'a, Message, Renderer>
 where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
@@ -185,14 +187,18 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(self.id.as_ref().map(|id| &id.0), &mut |operation| {
-            self.content.as_widget().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
-        });
+        operation.container(
+            self.id.as_ref().map(|id| &id.0),
+            layout.bounds(),
+            &mut |operation| {
+                self.content.as_widget().operate(
+                    &mut tree.children[0],
+                    layout.children().next().unwrap(),
+                    renderer,
+                    operation,
+                );
+            },
+        );
     }
 
     fn on_event(
@@ -204,6 +210,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -213,6 +220,7 @@ where
             renderer,
             clipboard,
             shell,
+            viewport,
         )
     }
 
@@ -246,7 +254,7 @@ where
         let style = match &self.style {
             StyleType::Static(style) => theme.appearance(style),
             StyleType::Blend(one, two, percent) => {
-                blend_appearances(theme.appearance(one), theme.appearance(two), *percent)
+                container_blend_appearances(theme.appearance(one), theme.appearance(two), *percent)
             }
         };
 
@@ -283,7 +291,7 @@ impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + iced_native::Renderer,
+    Renderer: 'a + iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
@@ -331,7 +339,7 @@ pub fn draw_background<Renderer>(
     appearance: &Appearance,
     bounds: Rectangle,
 ) where
-    Renderer: iced_native::Renderer,
+    Renderer: iced_core::Renderer,
 {
     if appearance.background.is_some() || appearance.border_width > 0.0 {
         renderer.fill_quad(
@@ -370,69 +378,4 @@ impl From<Id> for widget::Id {
     fn from(id: Id) -> Self {
         id.0
     }
-}
-
-fn blend_appearances(
-    one: iced_style::container::Appearance,
-    mut two: iced_style::container::Appearance,
-    percent: f32,
-) -> iced_style::container::Appearance {
-    use crate::lerp;
-
-    // background
-    let background_one: Color = one
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background_two: Color = two
-        .background
-        .map(|b| match b {
-            Background::Color(c) => c,
-        })
-        .unwrap_or(color!(0, 0, 0));
-    let background: [f32; 4] = background_one
-        .into_linear()
-        .iter()
-        .zip(background_two.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-    let background: Color = background.into();
-
-    // boarder color
-    let border_color: [f32; 4] = one
-        .border_color
-        .into_linear()
-        .iter()
-        .zip(two.border_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
-
-    // text
-    let text = one
-        .text_color
-        .map(|t| {
-            let ret: [f32; 4] = t
-                .into_linear()
-                .iter()
-                .zip(two.text_color.unwrap_or(t).into_linear().iter())
-                .map(|(o, t)| lerp(*o, *t, percent))
-                .collect::<Vec<f32>>()
-                .try_into()
-                .unwrap();
-            ret
-        })
-        .map(Into::<Color>::into);
-
-    two.background = Some(background.into());
-    two.border_radius = lerp(one.border_radius, two.border_radius, percent);
-    two.border_width = lerp(one.border_width, two.border_width, percent);
-    two.border_color = border_color.into();
-    two.text_color = text;
-    two
 }

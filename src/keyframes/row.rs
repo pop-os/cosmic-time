@@ -1,12 +1,7 @@
-#[cfg(feature = "libcosmic")]
-use cosmic::iced::widget;
-#[cfg(feature = "libcosmic")]
-use cosmic::iced_core::{widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer};
-
-#[cfg(not(feature = "libcosmic"))]
-use iced_native::{
-    widget, widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
+use crate::reexports::iced_core::{
+    widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -40,15 +35,15 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_iced_widget<'a, Message, Renderer>(
         self,
         timeline: &crate::Timeline,
-    ) -> widget::Row<'a, Message, Renderer>
+    ) -> iced_widget::Row<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
-        Row::as_widget(self, timeline)
+        Row::as_iced_widget(self, timeline)
     }
 }
 
@@ -151,17 +146,17 @@ impl Row {
         }
     }
 
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_iced_widget<'a, Message, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
-    ) -> widget::Row<'a, Message, Renderer>
+    ) -> iced_widget::Row<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         let id: IcedId = id.into();
 
-        widget::Row::new()
+        iced_widget::Row::new()
             .spacing(timeline.get(&id, 0).map(|m| m.value).unwrap_or(0.))
             .padding([
                 timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),

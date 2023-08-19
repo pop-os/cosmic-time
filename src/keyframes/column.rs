@@ -1,12 +1,7 @@
-#[cfg(feature = "libcosmic")]
-use cosmic::iced::widget;
-#[cfg(feature = "libcosmic")]
-use cosmic::iced_core::{widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer};
-
-#[cfg(not(feature = "libcosmic"))]
-use iced_native::{
-    widget, widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
+use crate::reexports::iced_core::{
+    widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -43,10 +38,10 @@ impl Id {
     pub fn as_widget<'a, Message, Renderer>(
         self,
         timeline: &crate::Timeline,
-    ) -> widget::Column<'a, Message, Renderer>
+    ) -> iced_widget::Column<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         Column::as_widget(self, timeline)
     }
@@ -154,14 +149,14 @@ impl Column {
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
-    ) -> widget::Column<'a, Message, Renderer>
+    ) -> iced_widget::Column<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         let id: IcedId = id.into();
 
-        widget::Column::new()
+        iced_widget::Column::new()
             .spacing(timeline.get(&id, 0).map(|m| m.value).unwrap_or(0.))
             .padding([
                 timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),

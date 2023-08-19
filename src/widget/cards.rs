@@ -458,6 +458,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn iced_core::Clipboard,
         shell: &mut iced_core::Shell<'_, Message>,
+        viewport: &iced_core::Rectangle,
     ) -> iced_core::event::Status {
         let mut status = iced_core::event::Status::Ignored;
 
@@ -483,6 +484,7 @@ where
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             ));
 
             if status == Status::Captured {
@@ -499,6 +501,7 @@ where
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             ));
         }
 
@@ -515,6 +518,7 @@ where
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             ));
             if status == Status::Captured || fully_unexpanded {
                 break;

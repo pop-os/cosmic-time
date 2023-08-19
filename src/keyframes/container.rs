@@ -1,14 +1,7 @@
-#[cfg(feature = "libcosmic")]
-use cosmic::iced::widget;
-#[cfg(feature = "libcosmic")]
-use cosmic::iced_core::{
+use crate::reexports::iced_core::{
     widget::Id as IcedId, Element, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
-
-#[cfg(not(feature = "libcosmic"))]
-use iced_native::{
-    widget, widget::Id as IcedId, Element, Length, Padding, Pixels, Renderer as IcedRenderer,
-};
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -46,10 +39,10 @@ impl Id {
         self,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Renderer>>,
-    ) -> widget::Container<'a, Message, Renderer>
+    ) -> iced_widget::Container<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         Container::as_widget(self, timeline, content)
     }
@@ -161,14 +154,14 @@ impl Container {
         id: Id,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Renderer>>,
-    ) -> widget::Container<'a, Message, Renderer>
+    ) -> iced_widget::Container<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         let id: IcedId = id.into();
 
-        widget::Container::new(content)
+        iced_widget::Container::new(content)
             .width(get_length(&id, timeline, 0, Length::Shrink))
             .height(get_length(&id, timeline, 1, Length::Shrink))
             .padding([
