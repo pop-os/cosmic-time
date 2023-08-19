@@ -9,8 +9,8 @@ use iced_core::text::LineHeight;
 use iced_core::text::Shaping;
 use iced_core::widget::{self, Text, Tree};
 use iced_core::{
-    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Widget,
+    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Widget,
 };
 
 use iced_widget::Row;
@@ -176,7 +176,7 @@ where
             row = row.push(
                 Text::new(label)
                     .horizontal_alignment(self.text_alignment)
-                    .font(self.font.clone().unwrap_or_else(|| renderer.default_font()))
+                    .font(self.font.unwrap_or_else(|| renderer.default_font()))
                     .width(self.width)
                     .size(self.text_size.unwrap_or_else(|| renderer.default_size())),
             );
@@ -266,7 +266,7 @@ where
                 label,
                 self.text_size,
                 LineHeight::default(),
-                self.font.clone(),
+                self.font,
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,

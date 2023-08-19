@@ -103,7 +103,7 @@ pub fn container_blend_appearances(
                             offset: lerp(*o1, *o2, percent),
                         })
                     }
-                    (a, b) => if percent < 0.5 { a } else { b }.clone(),
+                    (a, b) => *if percent < 0.5 { a } else { b },
                 })
                 .collect::<Vec<Option<ColorStop>>>();
             Background::Gradient(
@@ -145,7 +145,7 @@ pub fn container_blend_appearances(
 
     let one_border_radius: [f32; 4] = one.border_radius.into();
     let two_border_radius: [f32; 4] = two.border_radius.into();
-    two.background = Some(background_mix.into());
+    two.background = Some(background_mix);
     two.border_radius = [
         lerp(one_border_radius[0], two_border_radius[0], percent),
         lerp(one_border_radius[1], two_border_radius[1], percent),
@@ -219,7 +219,7 @@ pub fn button_blend_appearances(
                             offset: lerp(*o1, *o2, percent),
                         })
                     }
-                    (a, b) => if percent < 0.5 { a } else { b }.clone(),
+                    (a, b) => *if percent < 0.5 { a } else { b },
                 })
                 .collect::<Vec<Option<ColorStop>>>();
             Background::Gradient(

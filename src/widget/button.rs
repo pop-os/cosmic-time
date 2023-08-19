@@ -1,7 +1,6 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-use iced_core::color;
 use iced_core::event::{self, Event};
 use iced_core::layout;
 use iced_core::mouse;
@@ -422,7 +421,7 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius.into(),
+                    border_radius: styling.border_radius,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
@@ -433,7 +432,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius.into(),
+                border_radius: styling.border_radius,
                 border_width: styling.border_width,
                 border_color: styling.border_color,
             },
