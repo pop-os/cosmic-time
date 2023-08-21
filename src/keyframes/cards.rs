@@ -1,11 +1,12 @@
-use crate::reexports::iced_core::{text, widget::Id as IcedId, Renderer as IcedRenderer};
-use crate::reexports::iced_widget;
+use cosmic::iced_core::widget::Id as IcedId;
+use cosmic::widget::IconSource;
+use cosmic::Element;
 
 use crate::keyframes::Repeat;
 use crate::timeline::Frame;
-use crate::{chain, lazy::toggler as lazy, toggler, Duration, Ease, Linear, MovementType};
+use crate::{cards, chain, lazy::cards as lazy, Duration, Ease, Linear, MovementType};
 
-/// A Toggler's animation Id. Used for linking animation built in `update()` with widget output in `view()`
+/// A Cards's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(IcedId);
 const ANIM_DURATION: f32 = 100.;
@@ -29,24 +30,40 @@ impl Id {
     }
 
     /// Used by [`chain!`] macro
-    pub fn into_chain_with_children(self, children: Vec<Toggler>) -> Chain {
+    pub fn into_chain_with_children(self, children: Vec<Cards>) -> Chain {
         Chain::with_children(self, children)
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget<'a, Message, Renderer, F>(
+    #[allow(clippy::too_many_arguments)]
+    pub fn as_widget<'a, Message, F>(
         self,
         timeline: &crate::Timeline,
-        label: impl Into<Option<String>>,
-        is_toggled: bool,
-        f: F,
-    ) -> crate::widget::Toggler<'a, Message, Renderer>
+        card_inner_elements: Vec<Element<'a, Message>>,
+        on_clear_all: Message,
+        on_show_more: F,
+        show_more_label: &'a str,
+        show_less_label: &'a str,
+        clear_all_label: &'a str,
+        show_less_icon: Option<IconSource<'a>>,
+        expanded: bool,
+    ) -> crate::widget::Cards<'a, Message, cosmic::Renderer>
     where
-        Renderer: IcedRenderer + text::Renderer,
-        Renderer::Theme: iced_widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
+        Message: 'static + Clone,
     {
-        Toggler::as_widget(self, timeline, label, is_toggled, f)
+        Cards::as_widget(
+            self,
+            timeline,
+            card_inner_elements,
+            on_clear_all,
+            on_show_more,
+            show_more_label,
+            show_less_label,
+            clear_all_label,
+            show_less_icon,
+            expanded,
+        )
     }
 }
 
@@ -60,14 +77,14 @@ impl From<Id> for IcedId {
 /// An animation, where each keyframe is "chained" together.
 pub struct Chain {
     id: Id,
-    links: Vec<Toggler>,
+    links: Vec<Cards>,
     repeat: Repeat,
 }
 
 impl Chain {
-    /// Crate a new Toggler animation chain.
+    /// Crate a new [`Cards`] animation chain.
     /// You probably don't want to use use directly, and should
-    /// use the [`chain!`] macro.
+    /// use the [`chain`] macro.
     pub fn new(id: Id) -> Self {
         Chain {
             id,
@@ -78,8 +95,8 @@ impl Chain {
 
     /// Create a chain pre-fulled with children.
     /// You probably don't want to use use directly, and should
-    /// use the [`chain!`] macro.
-    pub fn with_children(id: Id, children: Vec<Toggler>) -> Self {
+    /// use the [`chain`] macro.
+    pub fn with_children(id: Id, children: Vec<Cards>) -> Self {
         Chain {
             id,
             links: children,
@@ -89,8 +106,8 @@ impl Chain {
 
     /// Link another keyframe, (very similar to push)
     /// You probably don't want to use use directly, and should
-    /// use the [`chain!`] macro.
-    pub fn link(mut self, toggler: Toggler) -> Self {
+    /// use the [`chain`] macro.
+    pub fn link(mut self, toggler: Cards) -> Self {
         self.links.push(toggler);
         self
     }
@@ -110,23 +127,23 @@ impl Chain {
         self
     }
 
-    /// Returns the default animation for animating the toggler to "on"
+    /// Returns the default animation for animating the cards to "on"
     pub fn on(id: Id, anim_multiplier: f32) -> Self {
         let duration = (ANIM_DURATION * anim_multiplier.round()) as u64;
         chain!(
             id,
             lazy(Duration::ZERO),
-            toggler(Duration::from_millis(duration)).percent(1.0),
+            cards(Duration::from_millis(duration)).percent(1.0),
         )
     }
 
-    /// Returns the default animation for animating the toggler to "off"
+    /// Returns the default animation for animating the cards to "off"
     pub fn off(id: Id, anim_multiplier: f32) -> Self {
         let duration = (ANIM_DURATION * anim_multiplier.round()) as u64;
         chain!(
             id,
             lazy(Duration::ZERO),
-            toggler(Duration::from_millis(duration)).percent(0.0),
+            cards(Duration::from_millis(duration)).percent(0.0),
         )
     }
 }
@@ -148,17 +165,17 @@ impl From<Chain> for crate::timeline::Chain {
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
 ///
-pub struct Toggler {
+pub struct Cards {
     at: MovementType,
     ease: Ease,
     percent: f32,
     is_eager: bool,
 }
 
-impl Toggler {
-    pub fn new(at: impl Into<MovementType>) -> Toggler {
+impl Cards {
+    pub fn new(at: impl Into<MovementType>) -> Cards {
         let at = at.into();
-        Toggler {
+        Cards {
             at,
             ease: Linear::InOut.into(),
             percent: 1.0,
@@ -166,9 +183,9 @@ impl Toggler {
         }
     }
 
-    pub fn lazy(at: impl Into<MovementType>) -> Toggler {
+    pub fn lazy(at: impl Into<MovementType>) -> Cards {
         let at = at.into();
-        Toggler {
+        Cards {
             at,
             ease: Linear::InOut.into(),
             percent: 1.0,
@@ -176,23 +193,39 @@ impl Toggler {
         }
     }
 
-    pub fn as_widget<'a, Message, Renderer, F>(
+    #[allow(clippy::too_many_arguments)]
+    pub fn as_widget<'a, Message, F>(
         id: Id,
         timeline: &crate::Timeline,
-        label: impl Into<Option<String>>,
-        is_toggled: bool,
-        f: F,
-    ) -> crate::widget::Toggler<'a, Message, Renderer>
+        card_inner_elements: Vec<Element<'a, Message>>,
+        on_clear_all: Message,
+        on_show_more: F,
+        show_more_label: &'a str,
+        show_less_label: &'a str,
+        clear_all_label: &'a str,
+        show_less_icon: Option<IconSource<'a>>,
+        expanded: bool,
+    ) -> crate::widget::Cards<'a, Message, cosmic::Renderer>
     where
-        Renderer: IcedRenderer + text::Renderer,
-        Renderer::Theme: iced_widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
+        Message: Clone + 'static,
     {
-        crate::widget::Toggler::new(id.clone(), label, is_toggled, f).percent(
+        crate::widget::Cards::new(
+            id.clone(),
+            card_inner_elements,
+            on_clear_all,
+            on_show_more,
+            show_more_label,
+            show_less_label,
+            clear_all_label,
+            show_less_icon,
+            expanded,
+        )
+        .percent(
             timeline
                 .get(&id.into(), 0)
                 .map(|m| m.value)
-                .unwrap_or(if is_toggled { 1.0 } else { 0.0 }),
+                .unwrap_or(if expanded { 1.0 } else { 0.0 }),
         )
     }
 
@@ -208,12 +241,12 @@ impl Toggler {
 }
 
 #[rustfmt::skip]
-impl From<Toggler> for Vec<Option<Frame>> {
-    fn from(toggler: Toggler) -> Vec<Option<Frame>> {
-      if toggler.is_eager {
-        vec![Some(Frame::eager(toggler.at, toggler.percent, toggler.ease))]  // 0 = animation percent completion
+impl From<Cards> for Vec<Option<Frame>> {
+    fn from(cards: Cards) -> Vec<Option<Frame>> {
+      if cards.is_eager {
+        vec![Some(Frame::eager(cards.at, cards.percent, cards.ease))]  // 0 = animation percent completion
       } else {
-        vec![Some(Frame::lazy(toggler.at, 0., toggler.ease))] // lazy evaluates for all values
+        vec![Some(Frame::lazy(cards.at, 0., cards.ease))] // lazy evaluates for all values
       }
     }
 }

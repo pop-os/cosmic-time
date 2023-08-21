@@ -8,5 +8,17 @@ jobs:
       with:
         components: clippy
     - uses: actions/checkout@master
-    - name: Check lints
-      run: cargo clippy --workspace --all-features --all-targets --no-deps -- -D warnings
+    - name: Install cargo-deb
+      run: cargo install cargo-deb
+    - uses: actions/checkout@master
+    - name: Install dependencies
+      run: |
+        export DEBIAN_FRONTED=noninteractive
+        sudo apt-get -qq update
+        sudo apt-get install -y libxkbcommon-dev
+    - name: Check lints iced
+      run: cargo clippy --workspace --no-default-features --features=once_cell --all-targets --no-deps -- -D warnings
+    - name: Check lints wayland-libcosmic
+      run: cargo clippy --no-default-features --features=wayland-libcosmic --all-targets --no-deps -- -D warnings
+    - name: Check lints winit-libcosmic
+      run: cargo clippy --no-default-features --features=winit-libcosmic --all-targets --no-deps -- -D warnings

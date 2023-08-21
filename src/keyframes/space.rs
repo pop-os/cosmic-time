@@ -1,4 +1,5 @@
-use iced_native::{widget, Length};
+use crate::reexports::iced_core::{widget::Id as IcedId, Length};
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -6,19 +7,19 @@ use crate::{Ease, Linear, MovementType};
 
 /// A Space's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(iced_native::widget::Id);
+pub struct Id(IcedId);
 
 impl Id {
     /// Creates a custom [`Id`].
     pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
+        Self(IcedId::new(id))
     }
 
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
-        Self(widget::Id::unique())
+        Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
@@ -32,12 +33,12 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget(self, timeline: &crate::Timeline) -> widget::Space {
+    pub fn as_widget(self, timeline: &crate::Timeline) -> iced_widget::Space {
         Space::as_widget(self, timeline)
     }
 }
 
-impl From<Id> for widget::Id {
+impl From<Id> for IcedId {
     fn from(id: Id) -> Self {
         id.0
     }
@@ -130,10 +131,10 @@ impl Space {
         }
     }
 
-    pub fn as_widget(id: Id, timeline: &crate::Timeline) -> widget::Space {
-        let id: widget::Id = id.into();
+    pub fn as_widget(id: Id, timeline: &crate::Timeline) -> iced_widget::Space {
+        let id: IcedId = id.into();
 
-        widget::Space::new(
+        iced_widget::Space::new(
             get_length(&id, timeline, 0, Length::Shrink),
             get_length(&id, timeline, 1, Length::Shrink),
         )

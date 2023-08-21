@@ -1,32 +1,41 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+use cosmic::iced_core::gradient::{ColorStop, Linear};
+use cosmic::iced_runtime::core::widget::Id;
+use cosmic::iced_runtime::{keyboard, Command};
+
 use crate::widget::StyleType;
-use iced_core::event::{self, Event};
-use iced_core::layout;
-use iced_core::mouse;
-use iced_core::overlay;
-use iced_core::renderer;
-use iced_core::touch;
-use iced_core::widget::tree::{self, Tree};
-use iced_core::widget::Operation;
-use iced_core::{
+use cosmic::iced_core::event::{self, Event};
+use cosmic::iced_core::overlay;
+use cosmic::iced_core::renderer;
+use cosmic::iced_core::touch;
+use cosmic::iced_core::widget::tree::{self, Tree};
+use cosmic::iced_core::widget::Operation;
+use cosmic::iced_core::{layout, Gradient};
+use cosmic::iced_core::{mouse, Radians};
+use cosmic::iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
     Vector, Widget,
 };
+use cosmic::iced_renderer::core::widget::{operation, OperationOutputWrapper};
 
-pub use iced_style::button::{Appearance, StyleSheet};
-
-use super::button_blend_appearances;
+pub use cosmic::iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
-///
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer>
+pub struct Button<'a, Message, Renderer = cosmic::iced::Renderer>
 where
-    Renderer: iced_core::renderer::Renderer,
+    Renderer: cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Id,
+    #[cfg(feature = "a11y")]
+    name: Option<Cow<'a, str>>,
+    #[cfg(feature = "a11y")]
+    description: Option<iced_accessibility::Description<'a>>,
+    #[cfg(feature = "a11y")]
+    label: Option<Vec<iced_accessibility::accesskit::NodeId>>,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -37,12 +46,19 @@ where
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
-    Renderer: iced_core::renderer::Renderer,
+    Renderer: cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
+            id: Id::unique(),
+            #[cfg(feature = "a11y")]
+            name: None,
+            #[cfg(feature = "a11y")]
+            description: None,
+            #[cfg(feature = "a11y")]
+            label: None,
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
@@ -94,12 +110,48 @@ where
         self.style = StyleType::Blend(style1, style2, percent);
         self
     }
+
+    /// Sets the [`Id`] of the [`Button`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = id;
+        self
+    }
+
+    #[cfg(feature = "a11y")]
+    /// Sets the name of the [`Button`].
+    pub fn name(mut self, name: impl Into<Cow<'a, str>>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    #[cfg(feature = "a11y")]
+    /// Sets the description of the [`Button`].
+    pub fn description_widget<T: iced_accessibility::Describes>(mut self, description: &T) -> Self {
+        self.description = Some(iced_accessibility::Description::Id(
+            description.description(),
+        ));
+        self
+    }
+
+    #[cfg(feature = "a11y")]
+    /// Sets the description of the [`Button`].
+    pub fn description(mut self, description: impl Into<Cow<'a, str>>) -> Self {
+        self.description = Some(iced_accessibility::Description::Text(description.into()));
+        self
+    }
+
+    #[cfg(feature = "a11y")]
+    /// Sets the label of the [`Button`].
+    pub fn label(mut self, label: &dyn iced_accessibility::Labels) -> Self {
+        self.label = Some(label.label().into_iter().map(|l| l.into()).collect());
+        self
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + iced_core::renderer::Renderer,
+    Renderer: 'a + cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
@@ -114,8 +166,8 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
     fn width(&self) -> Length {
@@ -142,7 +194,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
@@ -152,6 +204,8 @@ where
                 operation,
             );
         });
+        let state = tree.state.downcast_mut::<State>();
+        operation.focusable(state, Some(&self.id));
     }
 
     fn on_event(
@@ -179,6 +233,7 @@ where
         }
 
         update(
+            self.id.clone(),
             event,
             layout,
             cursor_position,
@@ -193,7 +248,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
-        _style: &renderer::Style,
+        style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
@@ -217,6 +272,7 @@ where
             theme,
             &renderer::Style {
                 text_color: styling.text_color,
+                scale_factor: style.scale_factor,
             },
             content_layout,
             cursor_position,
@@ -247,12 +303,86 @@ where
             renderer,
         )
     }
+
+    #[cfg(feature = "a11y")]
+    /// get the a11y nodes for the widget
+    fn a11y_nodes(
+        &self,
+        layout: Layout<'_>,
+        state: &Tree,
+        p: Point,
+    ) -> iced_accessibility::A11yTree {
+        use iced_accessibility::{
+            accesskit::{Action, DefaultActionVerb, NodeBuilder, NodeId, Rect, Role},
+            A11yNode, A11yTree,
+        };
+
+        let child_layout = layout.children().next().unwrap();
+        let child_tree = &state.children[0];
+        let child_tree = self
+            .content
+            .as_widget()
+            .a11y_nodes(child_layout, &child_tree, p);
+
+        let Rectangle {
+            x,
+            y,
+            width,
+            height,
+        } = layout.bounds();
+        let bounds = Rect::new(x as f64, y as f64, (x + width) as f64, (y + height) as f64);
+        let is_hovered = state.state.downcast_ref::<State>().is_hovered;
+
+        let mut node = NodeBuilder::new(Role::Button);
+        node.add_action(Action::Focus);
+        node.add_action(Action::Default);
+        node.set_bounds(bounds);
+        if let Some(name) = self.name.as_ref() {
+            node.set_name(name.clone());
+        }
+        match self.description.as_ref() {
+            Some(iced_accessibility::Description::Id(id)) => {
+                node.set_described_by(
+                    id.iter()
+                        .cloned()
+                        .map(|id| NodeId::from(id))
+                        .collect::<Vec<_>>(),
+                );
+            }
+            Some(iced_accessibility::Description::Text(text)) => {
+                node.set_description(text.clone());
+            }
+            None => {}
+        }
+
+        if let Some(label) = self.label.as_ref() {
+            node.set_labelled_by(label.clone());
+        }
+
+        if self.on_press.is_none() {
+            node.set_disabled()
+        }
+        if is_hovered {
+            node.set_hovered()
+        }
+        node.set_default_action_verb(DefaultActionVerb::Click);
+
+        A11yTree::node_with_child_tree(A11yNode::new(node, self.id.clone()), child_tree)
+    }
+
+    fn id(&self) -> Option<Id> {
+        Some(self.id.clone())
+    }
+
+    fn set_id(&mut self, id: Id) {
+        self.id = id;
+    }
 }
 
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::renderer::Renderer + 'a,
+    Renderer: cosmic::iced_core::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
     fn from(button: Button<'a, Message, Renderer>) -> Self {
@@ -263,7 +393,9 @@ where
 /// The local state of a [`Button`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
+    is_hovered: bool,
     is_pressed: bool,
+    is_focused: bool,
 }
 
 impl State {
@@ -271,11 +403,32 @@ impl State {
     pub fn new() -> State {
         State::default()
     }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Returns whether the [`Button`] is currently hovered or not.
+    pub fn is_hovered(&self) -> bool {
+        self.is_hovered
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
 }
 
 /// Processes the given [`Event`] and updates the [`State`] of a [`Button`]
 /// accordingly.
 pub fn update<'a, Message: Clone>(
+    _id: Id,
     event: Event,
     layout: Layout<'_>,
     cursor_position: mouse::Cursor,
@@ -316,9 +469,31 @@ pub fn update<'a, Message: Clone>(
                 }
             }
         }
+        #[cfg(feature = "a11y")]
+        Event::A11y(event_id, iced_accessibility::accesskit::ActionRequest { action, .. }) => {
+            let state = state();
+            if let Some(Some(on_press)) = (id == event_id
+                && matches!(action, iced_accessibility::accesskit::Action::Default))
+            .then(|| on_press.clone())
+            {
+                state.is_pressed = false;
+                shell.publish(on_press);
+            }
+            return event::Status::Captured;
+        }
+        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+            if let Some(on_press) = on_press.clone() {
+                let state = state();
+                if state.is_focused && key_code == keyboard::KeyCode::Enter {
+                    state.is_pressed = true;
+                    shell.publish(on_press);
+                    return event::Status::Captured;
+                }
+            }
+        }
         Event::Touch(touch::Event::FingerLost { .. }) => {
             let state = state();
-
+            state.is_hovered = false;
             state.is_pressed = false;
         }
         _ => {}
@@ -328,7 +503,7 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: iced_core::renderer::Renderer>(
+pub fn draw<'a, Renderer: cosmic::iced_core::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: mouse::Cursor,
@@ -342,7 +517,6 @@ where
 {
     let is_mouse_over = cursor_position.is_over(bounds);
 
-    // todo disable blend if user has applied style.
     let styling = match style {
         StyleType::Static(style) => {
             if !is_enabled {
@@ -374,7 +548,7 @@ where
                 (style_sheet.active(style1), style_sheet.active(style2))
             };
 
-            button_blend_appearances(one, two, *percent)
+            blend_appearances(one, two, *percent)
         }
     };
 
@@ -445,4 +619,137 @@ pub fn mouse_interaction(
     } else {
         mouse::Interaction::default()
     }
+}
+
+/// Produces a [`Command`] that focuses the [`Button`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id))
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
+    }
+}
+
+fn blend_appearances(
+    one: cosmic::iced_style::button::Appearance,
+    mut two: cosmic::iced_style::button::Appearance,
+    percent: f32,
+) -> cosmic::iced_style::button::Appearance {
+    use crate::lerp;
+
+    // shadow offet
+    let x1 = one.shadow_offset.x;
+    let y1 = one.shadow_offset.y;
+    let x2 = two.shadow_offset.x;
+    let y2 = two.shadow_offset.y;
+
+    // background
+    let background_mix: Background = match (one.background, two.background) {
+        (Some(Background::Color(c1)), Some(Background::Color(c2))) => {
+            let background_mix: [f32; 4] = c1
+                .into_linear()
+                .iter()
+                .zip(c2.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent))
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap();
+            Background::from(Color::from(background_mix))
+        }
+        (
+            Some(Background::Gradient(Gradient::Linear(l1))),
+            Some(Background::Gradient(Gradient::Linear(l2))),
+        ) => {
+            let angle = lerp(l1.angle.0, l2.angle.0, percent);
+            let stops = l1
+                .stops
+                .iter()
+                .zip(l2.stops.iter())
+                .map(|(o, t)| match (o, t) {
+                    (
+                        Some(ColorStop {
+                            offset: o1,
+                            color: c1,
+                        }),
+                        Some(ColorStop {
+                            color: c2,
+                            offset: o2,
+                        }),
+                    ) => {
+                        let color: [f32; 4] = c1
+                            .into_linear()
+                            .iter()
+                            .zip(c2.into_linear().iter())
+                            .map(|(o, t)| lerp(*o, *t, percent))
+                            .collect::<Vec<f32>>()
+                            .try_into()
+                            .unwrap();
+                        Some(ColorStop {
+                            color: color.into(),
+                            offset: lerp(*o1, *o2, percent),
+                        })
+                    }
+                    (a, b) => *if percent < 0.5 { a } else { b },
+                })
+                .collect::<Vec<Option<ColorStop>>>();
+            Background::Gradient(
+                Linear {
+                    angle: Radians(angle),
+                    stops: stops.try_into().unwrap(),
+                }
+                .into(),
+            )
+        }
+        _ => Background::from(Color::from([0.0, 0.0, 0.0, 0.0])),
+    };
+
+    // boarder color
+    let border_color: [f32; 4] = one
+        .border_color
+        .into_linear()
+        .iter()
+        .zip(two.border_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    // text
+    let text: [f32; 4] = one
+        .text_color
+        .into_linear()
+        .iter()
+        .zip(two.text_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
+
+    let br1: [f32; 4] = one.border_radius.into();
+    let br2: [f32; 4] = two.border_radius.into();
+
+    let br = [
+        lerp(br1[0], br2[0], percent),
+        lerp(br1[1], br2[1], percent),
+        lerp(br1[2], br2[2], percent),
+        lerp(br1[3], br2[3], percent),
+    ];
+
+    two.shadow_offset = Vector::new(lerp(x1, x2, percent), lerp(y1, y2, percent));
+    two.background = Some(background_mix);
+    two.border_radius = br.into();
+    two.border_width = lerp(one.border_width, two.border_width, percent);
+    two.border_color = border_color.into();
+    two.text_color = text.into();
+    two
 }

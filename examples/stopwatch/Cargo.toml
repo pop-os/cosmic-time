@@ -6,7 +6,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { version = "0.9.0", features = ["smol"] }
-cosmic-time = { path = "../.."}
-once_cell = "1.15"
+iced = { version = "0.10.0", features = ["smol"] }
+cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }
 

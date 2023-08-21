@@ -1,31 +1,29 @@
 //! Decorate content and apply alignment.
-
-use crate::reexports::*;
-use iced_core::alignment::{self, Alignment};
-use iced_core::event::{self, Event};
-use iced_core::layout;
-use iced_core::mouse;
-use iced_core::overlay;
-use iced_core::renderer;
-use iced_core::widget::{self, Operation, Tree};
-use iced_core::{
+use cosmic::iced_core::alignment::{self, Alignment};
+use cosmic::iced_core::event::{self, Event};
+use cosmic::iced_core::gradient::{ColorStop, Linear};
+use cosmic::iced_core::overlay;
+use cosmic::iced_core::renderer;
+use cosmic::iced_core::widget::{Id, Operation, Tree};
+use cosmic::iced_core::{layout, Gradient};
+use cosmic::iced_core::{mouse, Radians};
+use cosmic::iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
     Shell, Widget,
 };
 
 use crate::widget::StyleType;
 
-pub use iced_style::container::{Appearance, StyleSheet};
-
-use super::container_blend_appearances;
+use cosmic::iced_renderer::core::widget::OperationOutputWrapper;
+pub use cosmic::iced_style::container::{Appearance, StyleSheet};
 
 /// An element decorating some content.
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer>
+pub struct Container<'a, Message, Renderer = cosmic::iced::Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
@@ -42,7 +40,7 @@ where
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
@@ -130,10 +128,7 @@ where
         self
     }
 
-    /// Set the appearance this [`Container`] to a blend of two styles.
-    ///
-    /// Percent is a f32 of 0.0 -> 1.0.
-    /// Where 0 is 100% style1 and 1 is 100% style2.
+    /// Sets the animatable style variant of this [`Container`].
     pub fn blend_style(
         mut self,
         style1: <Renderer::Theme as StyleSheet>::Style,
@@ -147,15 +142,15 @@ where
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Container<'a, Message, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
     fn width(&self) -> Length {
@@ -186,20 +181,16 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            layout.bounds(),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(self.id.as_ref(), layout.bounds(), &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn on_event(
@@ -255,7 +246,7 @@ where
         let style = match &self.style {
             StyleType::Static(style) => theme.appearance(style),
             StyleType::Blend(one, two, percent) => {
-                container_blend_appearances(theme.appearance(one), theme.appearance(two), *percent)
+                blend_appearances(theme.appearance(one), theme.appearance(two), *percent)
             }
         };
 
@@ -267,6 +258,7 @@ where
             theme,
             &renderer::Style {
                 text_color: style.text_color.unwrap_or(renderer_style.text_color),
+                scale_factor: renderer_style.scale_factor,
             },
             layout.children().next().unwrap(),
             cursor_position,
@@ -286,13 +278,26 @@ where
             renderer,
         )
     }
+
+    #[cfg(feature = "a11y")]
+    /// get the a11y nodes for the widget
+    fn a11y_nodes(
+        &self,
+        layout: Layout<'_>,
+        state: &Tree,
+        p: Point,
+    ) -> iced_accessibility::A11yTree {
+        let c_layout = layout.children().next().unwrap();
+        let c_state = &state.children[0];
+        self.content.as_widget().a11y_nodes(c_layout, c_state, p)
+    }
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + iced_core::Renderer,
+    Renderer: 'a + cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
@@ -340,7 +345,7 @@ pub fn draw_background<Renderer>(
     appearance: &Appearance,
     bounds: Rectangle,
 ) where
-    Renderer: iced_core::Renderer,
+    Renderer: cosmic::iced_core::Renderer,
 {
     if appearance.background.is_some() || appearance.border_width > 0.0 {
         renderer.fill_quad(
@@ -357,26 +362,111 @@ pub fn draw_background<Renderer>(
     }
 }
 
-/// The identifier of a [`Container`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
+fn blend_appearances(
+    one: cosmic::iced_style::container::Appearance,
+    mut two: cosmic::iced_style::container::Appearance,
+    percent: f32,
+) -> cosmic::iced_style::container::Appearance {
+    use crate::lerp;
 
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
+    // background
+    let background_mix: Background = match (one.background, two.background) {
+        (Some(Background::Color(c1)), Some(Background::Color(c2))) => {
+            let background_mix: [f32; 4] = c1
+                .into_linear()
+                .iter()
+                .zip(c2.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent))
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap();
+            Background::from(Color::from(background_mix))
+        }
+        (
+            Some(Background::Gradient(Gradient::Linear(l1))),
+            Some(Background::Gradient(Gradient::Linear(l2))),
+        ) => {
+            let angle = lerp(l1.angle.0, l2.angle.0, percent);
+            let stops = l1
+                .stops
+                .iter()
+                .zip(l2.stops.iter())
+                .map(|(o, t)| match (o, t) {
+                    (
+                        Some(ColorStop {
+                            offset: o1,
+                            color: c1,
+                        }),
+                        Some(ColorStop {
+                            color: c2,
+                            offset: o2,
+                        }),
+                    ) => {
+                        let color: [f32; 4] = c1
+                            .into_linear()
+                            .iter()
+                            .zip(c2.into_linear().iter())
+                            .map(|(o, t)| lerp(*o, *t, percent))
+                            .collect::<Vec<f32>>()
+                            .try_into()
+                            .unwrap();
+                        Some(ColorStop {
+                            color: color.into(),
+                            offset: lerp(*o1, *o2, percent),
+                        })
+                    }
+                    (a, b) => *if percent < 0.5 { a } else { b },
+                })
+                .collect::<Vec<Option<ColorStop>>>();
+            Background::Gradient(
+                Linear {
+                    angle: Radians(angle),
+                    stops: stops.try_into().unwrap(),
+                }
+                .into(),
+            )
+        }
+        _ => Background::from(Color::from([0.0, 0.0, 0.0, 0.0])),
+    };
+    // boarder color
+    let border_color: [f32; 4] = one
+        .border_color
+        .into_linear()
+        .iter()
+        .zip(two.border_color.into_linear().iter())
+        .map(|(o, t)| lerp(*o, *t, percent))
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
 
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
+    // text
+    let text = one
+        .text_color
+        .map(|t| {
+            let ret: [f32; 4] = t
+                .into_linear()
+                .iter()
+                .zip(two.text_color.unwrap_or(t).into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent))
+                .collect::<Vec<f32>>()
+                .try_into()
+                .unwrap();
+            ret
+        })
+        .map(Into::<Color>::into);
 
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
+    let one_border_radius: [f32; 4] = one.border_radius.into();
+    let two_border_radius: [f32; 4] = two.border_radius.into();
+    two.background = Some(background_mix);
+    two.border_radius = [
+        lerp(one_border_radius[0], two_border_radius[0], percent),
+        lerp(one_border_radius[1], two_border_radius[1], percent),
+        lerp(one_border_radius[2], two_border_radius[2], percent),
+        lerp(one_border_radius[3], two_border_radius[3], percent),
+    ]
+    .into();
+    two.border_width = lerp(one.border_width, two.border_width, percent);
+    two.border_color = border_color.into();
+    two.text_color = text;
+    two
 }

@@ -130,6 +130,7 @@
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub mod reexports;
 /// The main timeline for your animations!
 pub mod timeline;
 /// Additional Widgets that Cosmic Time uses for more advanced animations.
@@ -137,12 +138,20 @@ pub mod widget;
 
 mod keyframes;
 
+#[cfg(feature = "libcosmic")]
+pub use crate::keyframes::cards;
 pub use crate::keyframes::{
-    button, column, container, id, lazy, row, space, style_button, style_container,
+    button, chain, column, container, id, lazy, row, space, style_button, style_container, toggler,
 };
 pub use crate::timeline::{Chain, Timeline};
 
+#[cfg(feature = "libcosmic")]
+pub use cosmic::iced::time::{Duration, Instant};
+#[cfg(not(feature = "libcosmic"))]
 pub use iced::time::{Duration, Instant};
+
+#[cfg(feature = "once_cell")]
+pub use once_cell;
 
 const PI: f32 = std::f32::consts::PI;
 

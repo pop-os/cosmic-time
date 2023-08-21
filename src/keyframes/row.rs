@@ -1,4 +1,7 @@
-use iced_native::{widget, Length, Padding, Pixels};
+use crate::reexports::iced_core::{
+    widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
+};
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -6,19 +9,19 @@ use crate::{Ease, Linear, MovementType};
 
 /// A Row's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(iced_native::widget::Id);
+pub struct Id(IcedId);
 
 impl Id {
     /// Creates a custom [`Id`].
     pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
+        Self(IcedId::new(id))
     }
 
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
-        Self(widget::Id::unique())
+        Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
@@ -32,19 +35,19 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_iced_widget<'a, Message, Renderer>(
         self,
         timeline: &crate::Timeline,
-    ) -> widget::Row<'a, Message, Renderer>
+    ) -> iced_widget::Row<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer: IcedRenderer,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
-        Row::as_widget(self, timeline)
+        Row::as_iced_widget(self, timeline)
     }
 }
 
-impl From<Id> for widget::Id {
+impl From<Id> for IcedId {
     fn from(id: Id) -> Self {
         id.0
     }
@@ -143,17 +146,17 @@ impl Row {
         }
     }
 
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_iced_widget<'a, Message, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
-    ) -> widget::Row<'a, Message, Renderer>
+    ) -> iced_widget::Row<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::container::StyleSheet,
+        Renderer: IcedRenderer,
+        Renderer::Theme: iced_widget::container::StyleSheet,
     {
-        let id: widget::Id = id.into();
+        let id: IcedId = id.into();
 
-        widget::Row::new()
+        iced_widget::Row::new()
             .spacing(timeline.get(&id, 0).map(|m| m.value).unwrap_or(0.))
             .padding([
                 timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),

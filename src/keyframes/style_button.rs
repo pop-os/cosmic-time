@@ -1,5 +1,5 @@
-use iced_native::{widget, Element, Length, Padding};
-use iced_style::button::StyleSheet;
+use crate::reexports::iced_core::{widget, Element, Length, Padding, Renderer as IcedRenderer};
+use crate::reexports::iced_style::button::StyleSheet;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{Frame, Interped};
@@ -7,7 +7,7 @@ use crate::{Ease, Linear, MovementType};
 
 /// A Button's animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(iced_native::widget::Id);
+pub struct Id(widget::Id);
 
 impl Id {
     /// Creates a custom [`Id`].
@@ -40,8 +40,8 @@ impl Id {
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> crate::widget::Button<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::button::StyleSheet,
+        Renderer: IcedRenderer,
+        Renderer::Theme: StyleSheet,
     {
         StyleButton::as_widget(self, style, timeline, content)
     }
@@ -155,8 +155,8 @@ impl StyleButton {
         content: impl Into<Element<'a, Message, Renderer>>,
     ) -> crate::widget::Button<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
-        Renderer::Theme: widget::button::StyleSheet,
+        Renderer: IcedRenderer,
+        Renderer::Theme: StyleSheet,
     {
         let id: widget::Id = id.into();
 

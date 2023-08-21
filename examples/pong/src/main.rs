@@ -3,11 +3,12 @@ use iced::keyboard::{self, KeyCode};
 use iced::subscription;
 use iced::widget::{column, container, row, Space};
 use iced::{executor, Application, Command, Event, Length, Settings, Subscription};
-use iced_native::window;
+use iced_core::window;
 
-use cosmic_time::{self, anim, chain, id, Duration, Instant, Speed, Timeline};
+use cosmic_time::{
+    self, anim, chain, id, once_cell::sync::Lazy, Duration, Instant, Speed, Timeline,
+};
 
-use once_cell::sync::Lazy;
 use rand::prelude::*;
 
 mod layer;

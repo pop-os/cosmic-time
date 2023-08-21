@@ -92,24 +92,24 @@ impl button::StyleSheet for Theme {
     fn active(&self, style: &Self::Style) -> button::Appearance {
         match style {
             Button::Primary => button::Appearance {
-                background: color!(0x25, 0x63, 0xeb).into(),
+                background: Some(color!(0x25, 0x63, 0xeb).into()),
                 text_color: color!(0x00, 0x00, 0x00),
-                border_radius: 10.0,
+                border_radius: 10.0.into(),
                 border_width: 10.0,
                 shadow_offset: Vector::new(3., 3.),
                 border_color: color!(0x25, 0x63, 0xeb),
             },
             Button::Secondary => button::Appearance {
-                background: color!(0x3c, 0x38, 0x36).into(),
-                border_radius: 10.0,
+                background: Some(color!(0x3c, 0x38, 0x36).into()),
+                border_radius: 10.0.into(),
                 shadow_offset: Vector::new(3., 3.),
                 text_color: color!(0xff, 0xff, 0xff),
                 ..Default::default()
             },
             Button::Destructive => button::Appearance {
-                background: color!(0xdc, 0x26, 0x26).into(),
+                background: Some(color!(0xdc, 0x26, 0x26).into()),
                 text_color: color!(0xff, 0xff, 0xff),
-                border_radius: 10.0,
+                border_radius: 10.0.into(),
                 shadow_offset: Vector::new(5., 5.),
                 border_color: color!(0xdc, 0x26, 0x26),
                 border_width: 10.0,

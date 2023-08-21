@@ -5,9 +5,7 @@ use iced::{
     Alignment, Application, Command, Element, Event, Length, Settings, Subscription, Theme,
 };
 
-use cosmic_time::{self, anim, chain, id, Timeline};
-
-use once_cell::sync::Lazy;
+use cosmic_time::{self, anim, chain, id, once_cell::sync::Lazy, Timeline};
 
 static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
 

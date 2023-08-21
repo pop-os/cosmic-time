@@ -1,30 +1,22 @@
 //! Show toggle controls using togglers.
-
-use crate::reexports::*;
-use iced_core::alignment;
-use iced_core::event;
-use iced_core::layout;
-use iced_core::mouse;
-use iced_core::renderer;
-use iced_core::text;
-use iced_core::text::LineHeight;
-use iced_core::text::Shaping;
-use iced_core::widget::{self, Text, Tree};
-use iced_core::{
-    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
-    Widget,
+use cosmic::iced_core::alignment;
+use cosmic::iced_core::event;
+use cosmic::iced_core::layout;
+use cosmic::iced_core::mouse;
+use cosmic::iced_core::renderer;
+use cosmic::iced_core::text;
+use cosmic::iced_core::widget::Tree;
+use cosmic::iced_core::{
+    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
 };
-
-use iced_widget::Row;
+use cosmic::iced_widget::{Row, Text};
 
 use crate::{chain, id, lerp};
-
-pub use iced_style::toggler::{Appearance, StyleSheet};
+pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
-///
 #[allow(missing_debug_implementations)]
-pub struct Toggler<'a, Message, Renderer>
+pub struct Toggler<'a, Message, Renderer = cosmic::iced::Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -36,10 +28,12 @@ where
     width: Length,
     size: f32,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_alignment: alignment::Horizontal,
+    text_shaping: text::Shaping,
     spacing: f32,
-    font: Option<<Renderer as iced_core::text::Renderer>::Font>,
-    style: <<Renderer as iced_core::renderer::Renderer>::Theme as StyleSheet>::Style,
+    font: Option<Renderer::Font>,
+    style: <Renderer::Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
 }
@@ -72,7 +66,9 @@ where
             width: Length::Fill,
             size: Self::DEFAULT_SIZE,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
+            text_shaping: text::Shaping::Basic,
             spacing: 0.0,
             font: None,
             style: Default::default(),
@@ -99,9 +95,21 @@ where
         self
     }
 
+    /// Sets the text [`LineHeight`] of the [`Toggler`].
+    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.text_line_height = line_height.into();
+        self
+    }
+
     /// Sets the horizontal alignment of the text of the [`Toggler`]
     pub fn text_alignment(mut self, alignment: alignment::Horizontal) -> Self {
         self.text_alignment = alignment;
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -113,9 +121,9 @@ where
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
     ///
-    /// [`Font`]: iced_core::text::Renderer::Font
-    pub fn font(mut self, font: <Renderer as iced_core::text::Renderer>::Font) -> Self {
-        self.font = Some(font);
+    /// [`Font`]: cosmic::iced::text::Renderer::Font
+    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+        self.font = Some(font.into());
         self
     }
 
@@ -132,20 +140,12 @@ where
         self.percent = percent;
         self
     }
-
-    /// The default animation time is 100ms, to speed up the toggle
-    /// animation use a value less than 1.0, and to slow down the
-    /// animation use a value greater than 1.0.
-    pub fn anim_multiplier(mut self, multiplier: f32) -> Self {
-        self.anim_multiplier = multiplier;
-        self
-    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+    Renderer::Theme: StyleSheet + cosmic::iced_widget::text::StyleSheet,
 {
     fn width(&self) -> Length {
         self.width
@@ -167,7 +167,9 @@ where
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font.unwrap_or_else(|| renderer.default_font()))
                     .width(self.width)
-                    .size(self.text_size.unwrap_or_else(|| renderer.default_size())),
+                    .size(self.text_size.unwrap_or_else(|| renderer.default_size()))
+                    .line_height(self.text_line_height)
+                    .shaping(self.text_shaping),
             );
         }
 
@@ -248,18 +250,18 @@ where
         if let Some(label) = &self.label {
             let label_layout = children.next().unwrap();
 
-            iced_core::widget::text::draw(
+            cosmic::iced_widget::text::draw(
                 renderer,
                 style,
                 label_layout,
                 label,
                 self.text_size,
-                LineHeight::default(),
+                self.text_line_height,
                 self.font,
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
-                Shaping::Advanced,
+                self.text_shaping,
             );
         }
 
@@ -330,18 +332,14 @@ impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>> for Element<'a,
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+    Renderer::Theme: StyleSheet + cosmic::iced_widget::text::StyleSheet,
 {
     fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(toggler)
     }
 }
 
-fn blend_appearances(
-    one: iced_style::toggler::Appearance,
-    mut two: iced_style::toggler::Appearance,
-    percent: f32,
-) -> iced_style::toggler::Appearance {
+fn blend_appearances(one: Appearance, mut two: Appearance, percent: f32) -> Appearance {
     if percent == 0. {
         one
     } else if percent == 1. {
@@ -352,49 +350,12 @@ fn blend_appearances(
             .into_linear()
             .iter()
             .zip(two.background.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
+            .map(|(o, t)| o * (1.0 - percent) + t * percent)
             .collect::<Vec<f32>>()
             .try_into()
             .unwrap();
-
-        let border_one: Color = one.background_border.unwrap_or(color!(0, 0, 0));
-        let border_two: Color = two.background_border.unwrap_or(color!(0, 0, 0));
-        let border: [f32; 4] = border_one
-            .into_linear()
-            .iter()
-            .zip(border_two.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
-        let new_border: Color = border.into();
-
-        let foreground: [f32; 4] = one
-            .foreground
-            .into_linear()
-            .iter()
-            .zip(two.foreground.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
-
-        let f_border_one: Color = one.foreground_border.unwrap_or(color!(0, 0, 0));
-        let f_border_two: Color = two.foreground_border.unwrap_or(color!(0, 0, 0));
-        let f_border: [f32; 4] = f_border_one
-            .into_linear()
-            .iter()
-            .zip(f_border_two.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
-        let new_f_border: Color = f_border.into();
 
         two.background = background.into();
-        two.background_border = Some(new_border);
-        two.foreground = foreground.into();
-        two.foreground_border = Some(new_f_border);
         two
     }
 }
