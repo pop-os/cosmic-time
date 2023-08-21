@@ -5,8 +5,8 @@
  *
  */
 
-use iced_native::widget::{self, Tree};
-use iced_native::{
+use iced_core::widget::{self, Tree};
+use iced_core::{
     event, layout, mouse, overlay, renderer, Clipboard, Color, Element, Event, Layout, Length,
     Point, Rectangle, Shell, Size, Widget,
 };
@@ -64,6 +64,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.base.as_widget_mut().on_event(
             &mut state.children[0],
@@ -73,6 +74,7 @@ where
             renderer,
             clipboard,
             shell,
+            viewport,
         )
     }
 
@@ -80,7 +82,7 @@ where
         &self,
         state: &Tree,
         renderer: &mut Renderer,
-        theme: &<Renderer as iced_native::Renderer>::Theme,
+        theme: &<Renderer as iced_core::Renderer>::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -184,6 +186,7 @@ where
             renderer,
             clipboard,
             shell,
+            &layout.bounds(),
         )
     }
 
@@ -198,7 +201,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: layout.bounds(),
-                border_radius: renderer::BorderRadius::from(0.0),
+                border_radius: iced_core::BorderRadius::from(0.0),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },

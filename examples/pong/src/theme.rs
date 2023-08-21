@@ -39,16 +39,16 @@ impl container::StyleSheet for Theme {
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
         match style {
             Container::Default => container::Appearance {
-                background: color!(0x00, 0x00, 0x00).into(),
+                background: Some(color!(0, 0, 0).into()),
                 ..Default::default()
             },
             Container::Paddle => container::Appearance {
-                background: color!(0xff, 0xff, 0xff).into(),
+                background: Some(color!(0xff, 0xff, 0xff).into()),
                 ..Default::default()
             },
             Container::Ball => container::Appearance {
-                background: color!(0xff, 0xff, 0xff).into(),
-                border_radius: 100000.0,
+                background: Some(color!(0xff, 0xff, 0xff).into()),
+                border_radius: 100000.0.into(),
                 ..Default::default()
             },
         }
