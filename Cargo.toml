@@ -12,10 +12,12 @@ categories = ["gui"]
 
 [features]
 default = ["iced"]
-libcosmic = ["dep:libcosmic"]
 iced = ["dep:iced", "dep:iced_runtime", "dep:iced_widget", "dep:iced_futures", "dep:iced_core", "dep:iced_style"]
 once_cell = ["dep:once_cell"]
+wayland-libcosmic =  ["libcosmic", "libcosmic/wayland"]
+winit-libcosmic =  ["libcosmic", "libcosmic/winit"]
 
+libcosmic = ["dep:libcosmic"]
 [workspace]
 members = [
     "examples/*",
