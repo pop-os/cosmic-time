@@ -15,21 +15,6 @@ use crate::{chain, id, lerp};
 pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
-///
-/// # Example
-///
-/// ```no_run
-/// # type Toggler<'a, Message> =
-/// #     iced_widget::Toggler<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
-/// #
-/// pub enum Message {
-///     TogglerToggled(bool),
-/// }
-///
-/// let is_toggled = true;
-///
-/// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
-/// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<'a, Message, Renderer = cosmic::iced::Renderer>
 where

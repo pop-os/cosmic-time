@@ -23,39 +23,6 @@ use cosmic::iced_renderer::core::widget::{operation, OperationOutputWrapper};
 pub use cosmic::iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
-///
-/// ```no_run
-/// # type Button<'a, Message> =
-/// #     iced_widget::Button<'a, Message, cosmic::iced_widget::renderer::Renderer<cosmic::iced_widget::style::Theme>>;
-/// #
-/// #[derive(Clone)]
-/// enum Message {
-///     ButtonPressed,
-/// }
-///
-/// let button = Button::new("Press me!").on_press(Message::ButtonPressed);
-/// ```
-///
-/// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
-/// be disabled:
-///
-/// ```
-/// # type Button<'a, Message> =
-/// #     cosmic::iced_widget::Button<'a, Message, cosmic::iced_widget::renderer::Renderer<cosmic::iced_widget::style::Theme>>;
-/// #
-/// #[derive(Clone)]
-/// enum Message {
-///     ButtonPressed,
-/// }
-///
-/// fn disabled_button<'a>() -> Button<'a, Message> {
-///     Button::new("I'm disabled!")
-/// }
-///
-/// fn enabled_button<'a>() -> Button<'a, Message> {
-///     disabled_button().on_press(Message::ButtonPressed)
-/// }
-/// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer = cosmic::iced::Renderer>
 where
