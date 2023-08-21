@@ -1,4 +1,6 @@
 //! Decorate content and apply alignment.
+
+use crate::reexports::*;
 use iced_core::alignment::{self, Alignment};
 use iced_core::event::{self, Event};
 use iced_core::layout;

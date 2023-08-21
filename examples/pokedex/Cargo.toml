@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced = { version = "0.10.0", features = ["image", "debug", "tokio"] }
-cosmic-time = { path = "../..", features = ["once_cell"] }
+cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }
 serde_json = "1.0"
 
 [dependencies.serde]

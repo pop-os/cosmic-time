@@ -7,7 +7,7 @@ use cosmic::iced_core::renderer;
 use cosmic::iced_core::text;
 use cosmic::iced_core::widget::Tree;
 use cosmic::iced_core::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
 };
 use cosmic::iced_widget::{Row, Text};
 

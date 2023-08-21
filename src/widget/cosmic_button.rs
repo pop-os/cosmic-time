@@ -12,12 +12,12 @@ use cosmic::iced_core::renderer;
 use cosmic::iced_core::touch;
 use cosmic::iced_core::widget::tree::{self, Tree};
 use cosmic::iced_core::widget::Operation;
-use cosmic::iced_core::{
-    color, Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
-    Vector, Widget,
-};
 use cosmic::iced_core::{layout, Gradient};
 use cosmic::iced_core::{mouse, Radians};
+use cosmic::iced_core::{
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
+    Vector, Widget,
+};
 use cosmic::iced_renderer::core::widget::{operation, OperationOutputWrapper};
 
 pub use cosmic::iced_style::button::{Appearance, StyleSheet};
@@ -595,7 +595,7 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius.into(),
+                    border_radius: styling.border_radius,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
@@ -606,7 +606,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius.into(),
+                border_radius: styling.border_radius,
                 border_width: styling.border_width,
                 border_color: styling.border_color,
             },
@@ -732,7 +732,7 @@ fn blend_appearances(
                             offset: lerp(*o1, *o2, percent),
                         })
                     }
-                    (a, b) => if percent < 0.5 { a } else { b }.clone(),
+                    (a, b) => *if percent < 0.5 { a } else { b },
                 })
                 .collect::<Vec<Option<ColorStop>>>();
             Background::Gradient(

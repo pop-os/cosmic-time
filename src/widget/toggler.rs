@@ -1,4 +1,6 @@
 //! Show toggle controls using togglers.
+
+use crate::reexports::*;
 use iced_core::alignment;
 use iced_core::event;
 use iced_core::layout;
@@ -21,19 +23,6 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
 ///
-/// # Example
-///
-/// ```
-/// # type Toggler<'a, Message> = iced_core::widget::Toggler<'a, Message, iced_core::renderer::Null>;
-/// #
-/// pub enum Message {
-///     TogglerToggled(bool),
-/// }
-///
-/// let is_toggled = true;
-///
-/// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
-/// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<'a, Message, Renderer>
 where
@@ -49,8 +38,8 @@ where
     text_size: Option<f32>,
     text_alignment: alignment::Horizontal,
     spacing: f32,
-    font: Option<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    font: Option<<Renderer as iced_core::text::Renderer>::Font>,
+    style: <<Renderer as iced_core::renderer::Renderer>::Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
 }
@@ -125,7 +114,7 @@ where
     /// Sets the [`Font`] of the text of the [`Toggler`]
     ///
     /// [`Font`]: iced_core::text::Renderer::Font
-    pub fn font(mut self, font: Renderer::Font) -> Self {
+    pub fn font(mut self, font: <Renderer as iced_core::text::Renderer>::Font) -> Self {
         self.font = Some(font);
         self
     }

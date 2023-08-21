@@ -35,6 +35,7 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
+    #[allow(clippy::too_many_arguments)]
     pub fn as_widget<'a, Message, F>(
         self,
         timeline: &crate::Timeline,
@@ -192,6 +193,7 @@ impl Cards {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn as_widget<'a, Message, F>(
         id: Id,
         timeline: &crate::Timeline,

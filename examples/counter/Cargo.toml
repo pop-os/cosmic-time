@@ -7,4 +7,4 @@ publish = false
 
 [dependencies]
 iced = "0.10.0"
-cosmic-time = { path = "../..", features = ["once_cell"] }
+cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }

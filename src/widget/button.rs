@@ -1,6 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+use crate::widget::StyleType;
 use iced_core::event::{self, Event};
 use iced_core::layout;
 use iced_core::mouse;
@@ -14,50 +15,16 @@ use iced_core::{
     Vector, Widget,
 };
 
-use crate::widget::StyleType;
-
 pub use iced_style::button::{Appearance, StyleSheet};
 
 use super::button_blend_appearances;
 
 /// A generic widget that produces a message when pressed.
 ///
-/// ```
-/// # type Button<'a, Message> =
-/// #     iced_core::widget::Button<'a, Message, iced_core::renderer::Null>;
-/// #
-/// #[derive(Clone)]
-/// enum Message {
-///     ButtonPressed,
-/// }
-///
-/// let button = Button::new("Press me!").on_press(Message::ButtonPressed);
-/// ```
-///
-/// If a [`Button::on_press`] handler is not set, the resulting [`Button`] will
-/// be disabled:
-///
-/// ```
-/// # type Button<'a, Message> =
-/// #     iced_core::widget::Button<'a, Message, iced_core::renderer::Null>;
-/// #
-/// #[derive(Clone)]
-/// enum Message {
-///     ButtonPressed,
-/// }
-///
-/// fn disabled_button<'a>() -> Button<'a, Message> {
-///     Button::new("I'm disabled!")
-/// }
-///
-/// fn enabled_button<'a>() -> Button<'a, Message> {
-///     disabled_button().on_press(Message::ButtonPressed)
-/// }
-/// ```
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: iced_core::renderer::Renderer,
     Renderer::Theme: StyleSheet,
 {
     content: Element<'a, Message, Renderer>,
@@ -70,7 +37,7 @@ where
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: iced_core::renderer::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
@@ -132,7 +99,7 @@ where
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + iced_core::Renderer,
+    Renderer: 'a + iced_core::renderer::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
@@ -285,7 +252,7 @@ where
 impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>> for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
+    Renderer: iced_core::renderer::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
     fn from(button: Button<'a, Message, Renderer>) -> Self {
@@ -361,7 +328,7 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: iced_core::Renderer>(
+pub fn draw<'a, Renderer: iced_core::renderer::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: mouse::Cursor,

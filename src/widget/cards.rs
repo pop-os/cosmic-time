@@ -1,4 +1,8 @@
 //! An expandable stack of cards
+use self::iced_core::{
+    event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, BorderRadius, Color,
+    Element, Length, Size, Vector, Widget,
+};
 use cosmic::{
     cosmic_theme::LayeredTheme,
     iced_core,
@@ -6,10 +10,6 @@ use cosmic::{
     widget::{button, card::style::StyleSheet, icon, IconSource},
 };
 use float_cmp::approx_eq;
-use iced_core::{
-    event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, BorderRadius, Color,
-    Element, Length, Size, Vector, Widget,
-};
 
 use crate::{chain, id};
 
@@ -78,7 +78,7 @@ where
         + cosmic::widget::cosmic_container::StyleSheet
         + StyleSheet,
 {
-    id: Id,
+    _id: Id,
     show_less_button: Element<'a, Message, Renderer>,
     clear_all_button: Element<'a, Message, Renderer>,
     elements: Vec<Element<'a, Message, Renderer>>,
@@ -110,7 +110,7 @@ where
     {
         let can_show_more = card_inner_elements.len() > 1;
         Self {
-            id: Id::unique(),
+            _id: Id::unique(),
             show_less_button: {
                 let mut show_less_children = Vec::with_capacity(3);
                 if let Some(source) = show_less_icon {

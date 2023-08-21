@@ -9,5 +9,5 @@ publish = false
 iced = "0.10.0"
 iced_core = "0.10.0"
 iced_runtime = "0.1.1"
-cosmic-time = { path = "../..", features = ["once_cell"] }
+cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }
 rand = "0.8.5"

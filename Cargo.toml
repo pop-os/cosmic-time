@@ -16,8 +16,8 @@ iced = ["dep:iced", "dep:iced_runtime", "dep:iced_widget", "dep:iced_futures", "
 once_cell = ["dep:once_cell"]
 wayland-libcosmic =  ["libcosmic", "libcosmic/wayland"]
 winit-libcosmic =  ["libcosmic", "libcosmic/winit"]
-
 libcosmic = ["dep:libcosmic"]
+
 [workspace]
 members = [
     "examples/*",

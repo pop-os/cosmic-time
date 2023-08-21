@@ -44,7 +44,7 @@ pub enum StyleType<T> {
     Blend(T, T, f32),
 }
 
-use iced_core::{
+use self::iced_core::{
     gradient::{ColorStop, Linear},
     Background, Color, Gradient, Radians, Vector,
 };
