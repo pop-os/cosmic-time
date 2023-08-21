@@ -65,9 +65,9 @@ pub struct Chain {
 }
 
 impl Chain {
-    /// Crate a new [`Toggler`] animation chain.
+    /// Crate a new Toggler animation chain.
     /// You probably don't want to use use directly, and should
-    /// use the [`chain`] macro.
+    /// use the [`chain!`] macro.
     pub fn new(id: Id) -> Self {
         Chain {
             id,
@@ -78,7 +78,7 @@ impl Chain {
 
     /// Create a chain pre-fulled with children.
     /// You probably don't want to use use directly, and should
-    /// use the [`chain`] macro.
+    /// use the [`chain!`] macro.
     pub fn with_children(id: Id, children: Vec<Toggler>) -> Self {
         Chain {
             id,
@@ -89,7 +89,7 @@ impl Chain {
 
     /// Link another keyframe, (very similar to push)
     /// You probably don't want to use use directly, and should
-    /// use the [`chain`] macro.
+    /// use the [`chain!`] macro.
     pub fn link(mut self, toggler: Toggler) -> Self {
         self.links.push(toggler);
         self

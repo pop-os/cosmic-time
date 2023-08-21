@@ -24,7 +24,7 @@ use super::button_blend_appearances;
 ///
 /// ```
 /// # type Button<'a, Message> =
-/// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_core::widget::Button<'a, Message, iced_core::renderer::Null>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -39,7 +39,7 @@ use super::button_blend_appearances;
 ///
 /// ```
 /// # type Button<'a, Message> =
-/// #     iced_native::widget::Button<'a, Message, iced_native::renderer::Null>;
+/// #     iced_core::widget::Button<'a, Message, iced_core::renderer::Null>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
