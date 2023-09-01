@@ -6,8 +6,7 @@ use self::iced_core::{
 use cosmic::{
     cosmic_theme::LayeredTheme,
     iced_core,
-    iced_widget::{column, text, Row},
-    widget::{button, card::style::StyleSheet, icon, IconSource},
+    widget::{button, card::style::StyleSheet, column, icon, icon::Handle, row, text},
 };
 use float_cmp::approx_eq;
 
@@ -31,7 +30,7 @@ pub fn cards<'a, Message, F>(
     show_more_label: &'a str,
     show_less_label: &'a str,
     clear_all_label: &'a str,
-    show_less_icon: Option<IconSource<'a>>,
+    show_less_icon: Option<Handle>,
     expanded: bool,
 ) -> Cards<'a, Message, cosmic::Renderer>
 where
@@ -102,7 +101,7 @@ where
         show_more_label: &'a str,
         show_less_label: &'a str,
         clear_all_label: &'a str,
-        show_less_icon: Option<IconSource<'a>>,
+        show_less_icon: Option<Handle>,
         expanded: bool,
     ) -> Self
     where
@@ -114,31 +113,32 @@ where
             show_less_button: {
                 let mut show_less_children = Vec::with_capacity(3);
                 if let Some(source) = show_less_icon {
-                    show_less_children.push(icon(source, ICON_SIZE).into());
+                    show_less_children.push(icon(source).size(ICON_SIZE).into());
                 }
                 show_less_children.push(text(show_less_label).width(Length::Shrink).into());
                 show_less_children.push(
-                    icon(IconSource::from("pan-up-symbolic"), ICON_SIZE)
-                        .style(cosmic::theme::Svg::Symbolic)
+                    icon::handle::from_name("pan-up-symbolic")
+                        .size(ICON_SIZE)
+                        .icon()
                         .into(),
                 );
                 let off_animation = chain::Cards::off(id.clone(), 1.0);
 
+                let button_content = row::with_children(show_less_children)
+                    .align_items(iced_core::Alignment::Center)
+                    .spacing(TOP_SPACING)
+                    .width(Length::Shrink);
+
                 Element::from(
-                    button(cosmic::theme::Button::Text)
-                        .custom(vec![Row::with_children(show_less_children)
-                            .align_items(iced_core::Alignment::Center)
-                            .spacing(TOP_SPACING)
-                            .width(Length::Shrink)
-                            .into()])
+                    button(button_content)
+                        .style(cosmic::theme::Button::Text)
                         .width(Length::Shrink)
                         .on_press(on_show_more(off_animation, false))
                         .padding([PADDING / 2, PADDING]),
                 )
             },
             clear_all_button: Element::from(
-                button(cosmic::theme::Button::Text)
-                    .text(clear_all_label.as_ref())
+                button::text(clear_all_label)
                     .width(Length::Shrink)
                     .on_press(on_clear_all)
                     .padding([PADDING / 2, PADDING]),
@@ -147,15 +147,19 @@ where
                 .into_iter()
                 .enumerate()
                 .map(|(i, w)| {
-                    let b = button(cosmic::theme::Button::Card)
-                        .custom(vec![if i == 0 && !expanded && can_show_more {
-                            column![w, text(show_more_label).size(10)]
-                                .spacing(VERTICAL_SPACING)
-                                .align_items(iced_core::Alignment::Center)
-                                .into()
-                        } else {
-                            w
-                        }])
+                    let custom_content = if i == 0 && !expanded && can_show_more {
+                        column::with_capacity(2)
+                            .push(w)
+                            .push(text(show_more_label).size(10))
+                            .spacing(VERTICAL_SPACING)
+                            .align_items(iced_core::Alignment::Center)
+                            .into()
+                    } else {
+                        w
+                    };
+
+                    let b = cosmic::iced::widget::button(custom_content)
+                        .style(cosmic::theme::IcedButton::Card)
                         .padding(PADDING);
                     if i == 0 && !expanded && can_show_more {
                         let on_animation = chain::Cards::on(id.clone(), 1.0);
