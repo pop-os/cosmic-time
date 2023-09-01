@@ -193,7 +193,8 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
-        _style: &renderer::Style,
+        #[cfg(feature = "libcosmic")] style: &renderer::Style,
+        #[cfg(not(feature = "libcosmic"))] _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
@@ -216,6 +217,8 @@ where
             renderer,
             theme,
             &renderer::Style {
+                #[cfg(feature = "libcosmic")]
+                icon_color: styling.icon_color.unwrap_or(style.icon_color),
                 text_color: styling.text_color,
             },
             content_layout,

@@ -24,7 +24,7 @@ pub use cosmic::iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer = cosmic::iced::Renderer>
+pub struct Button<'a, Message, Renderer = cosmic::Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
     Renderer::Theme: StyleSheet,
@@ -271,6 +271,8 @@ where
             renderer,
             theme,
             &renderer::Style {
+                #[cfg(feature = "libcosmic")]
+                icon_color: styling.icon_color.unwrap_or(style.icon_color),
                 text_color: styling.text_color,
                 scale_factor: style.scale_factor,
             },

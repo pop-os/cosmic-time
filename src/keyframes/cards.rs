@@ -1,5 +1,5 @@
 use cosmic::iced_core::widget::Id as IcedId;
-use cosmic::widget::IconSource;
+use cosmic::widget::icon::Handle;
 use cosmic::Element;
 
 use crate::keyframes::Repeat;
@@ -45,7 +45,7 @@ impl Id {
         show_more_label: &'a str,
         show_less_label: &'a str,
         clear_all_label: &'a str,
-        show_less_icon: Option<IconSource<'a>>,
+        show_less_icon: Option<Handle>,
         expanded: bool,
     ) -> crate::widget::Cards<'a, Message, cosmic::Renderer>
     where
@@ -203,7 +203,7 @@ impl Cards {
         show_more_label: &'a str,
         show_less_label: &'a str,
         clear_all_label: &'a str,
-        show_less_icon: Option<IconSource<'a>>,
+        show_less_icon: Option<Handle>,
         expanded: bool,
     ) -> crate::widget::Cards<'a, Message, cosmic::Renderer>
     where
