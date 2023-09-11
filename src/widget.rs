@@ -1,6 +1,9 @@
 #![allow(clippy::too_many_arguments)]
 
-use crate::reexports::{iced_core, iced_style};
+use crate::{
+    reexports::{iced_core, iced_style},
+    utils::static_array_from_iter,
+};
 
 #[cfg(feature = "libcosmic")]
 pub mod cards;
@@ -60,14 +63,13 @@ pub fn container_blend_appearances(
     // background
     let background_mix: Background = match (one.background, two.background) {
         (Some(Background::Color(c1)), Some(Background::Color(c2))) => {
-            let background_mix: [f32; 4] = c1
-                .into_linear()
-                .iter()
-                .zip(c2.into_linear().iter())
-                .map(|(o, t)| lerp(*o, *t, percent))
-                .collect::<Vec<f32>>()
-                .try_into()
-                .unwrap();
+            let background_mix = static_array_from_iter::<f32, 4>(
+                c1.into_linear()
+                    .iter()
+                    .zip(c2.into_linear().iter())
+                    .map(|(o, t)| lerp(*o, *t, percent)),
+            );
+
             Background::from(Color::from(background_mix))
         }
         (
@@ -90,26 +92,25 @@ pub fn container_blend_appearances(
                             offset: o2,
                         }),
                     ) => {
-                        let color: [f32; 4] = c1
-                            .into_linear()
-                            .iter()
-                            .zip(c2.into_linear().iter())
-                            .map(|(o, t)| lerp(*o, *t, percent))
-                            .collect::<Vec<f32>>()
-                            .try_into()
-                            .unwrap();
+                        let color = static_array_from_iter::<f32, 4>(
+                            c1.into_linear()
+                                .iter()
+                                .zip(c2.into_linear().iter())
+                                .map(|(o, t)| lerp(*o, *t, percent)),
+                        );
+
                         Some(ColorStop {
                             color: color.into(),
                             offset: lerp(*o1, *o2, percent),
                         })
                     }
                     (a, b) => *if percent < 0.5 { a } else { b },
-                })
-                .collect::<Vec<Option<ColorStop>>>();
+                });
+
             Background::Gradient(
                 Linear {
                     angle: Radians(angle),
-                    stops: stops.try_into().unwrap(),
+                    stops: static_array_from_iter(stops),
                 }
                 .into(),
             )
@@ -117,29 +118,24 @@ pub fn container_blend_appearances(
         _ => Background::from(Color::from([0.0, 0.0, 0.0, 0.0])),
     };
     // boarder color
-    let border_color: [f32; 4] = one
-        .border_color
-        .into_linear()
-        .iter()
-        .zip(two.border_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
+    let border_color = static_array_from_iter::<f32, 4>(
+        one.border_color
+            .into_linear()
+            .iter()
+            .zip(two.border_color.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent)),
+    );
 
     // text
     let text = one
         .text_color
         .map(|t| {
-            let ret: [f32; 4] = t
-                .into_linear()
-                .iter()
-                .zip(two.text_color.unwrap_or(t).into_linear().iter())
-                .map(|(o, t)| lerp(*o, *t, percent))
-                .collect::<Vec<f32>>()
-                .try_into()
-                .unwrap();
-            ret
+            static_array_from_iter::<f32, 4>(
+                t.into_linear()
+                    .iter()
+                    .zip(two.text_color.unwrap_or(t).into_linear().iter())
+                    .map(|(o, t)| lerp(*o, *t, percent)),
+            )
         })
         .map(Into::<Color>::into);
 
@@ -177,15 +173,12 @@ pub fn button_blend_appearances(
     // background
     let background_mix: Background = match (one.background, two.background) {
         (Some(Background::Color(c1)), Some(Background::Color(c2))) => {
-            let background_mix: [f32; 4] = c1
-                .into_linear()
-                .iter()
-                .zip(c2.into_linear().iter())
-                .map(|(o, t)| lerp(*o, *t, percent))
-                .collect::<Vec<f32>>()
-                .try_into()
-                .unwrap();
-            Background::from(Color::from(background_mix))
+            Background::from(Color::from(static_array_from_iter::<f32, 4>(
+                c1.into_linear()
+                    .iter()
+                    .zip(c2.into_linear().iter())
+                    .map(|(o, t)| lerp(*o, *t, percent)),
+            )))
         }
         (
             Some(Background::Gradient(Gradient::Linear(l1))),
@@ -206,27 +199,22 @@ pub fn button_blend_appearances(
                             color: c2,
                             offset: o2,
                         }),
-                    ) => {
-                        let color: [f32; 4] = c1
-                            .into_linear()
-                            .iter()
-                            .zip(c2.into_linear().iter())
-                            .map(|(o, t)| lerp(*o, *t, percent))
-                            .collect::<Vec<f32>>()
-                            .try_into()
-                            .unwrap();
-                        Some(ColorStop {
-                            color: color.into(),
-                            offset: lerp(*o1, *o2, percent),
-                        })
-                    }
+                    ) => Some(ColorStop {
+                        color: static_array_from_iter::<f32, 4>(
+                            c1.into_linear()
+                                .iter()
+                                .zip(c2.into_linear().iter())
+                                .map(|(o, t)| lerp(*o, *t, percent)),
+                        )
+                        .into(),
+                        offset: lerp(*o1, *o2, percent),
+                    }),
                     (a, b) => *if percent < 0.5 { a } else { b },
-                })
-                .collect::<Vec<Option<ColorStop>>>();
+                });
             Background::Gradient(
                 Linear {
                     angle: Radians(angle),
-                    stops: stops.try_into().unwrap(),
+                    stops: static_array_from_iter(stops),
                 }
                 .into(),
             )
@@ -235,26 +223,22 @@ pub fn button_blend_appearances(
     };
 
     // boarder color
-    let border_color: [f32; 4] = one
-        .border_color
-        .into_linear()
-        .iter()
-        .zip(two.border_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
+    let border_color: [f32; 4] = crate::utils::static_array_from_iter(
+        one.border_color
+            .into_linear()
+            .iter()
+            .zip(two.border_color.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent)),
+    );
 
     // text
-    let text: [f32; 4] = one
-        .text_color
-        .into_linear()
-        .iter()
-        .zip(two.text_color.into_linear().iter())
-        .map(|(o, t)| lerp(*o, *t, percent))
-        .collect::<Vec<f32>>()
-        .try_into()
-        .unwrap();
+    let text = static_array_from_iter::<f32, 4>(
+        one.text_color
+            .into_linear()
+            .iter()
+            .zip(two.text_color.into_linear().iter())
+            .map(|(o, t)| lerp(*o, *t, percent)),
+    );
 
     let br1: [f32; 4] = one.border_radius.into();
     let br2: [f32; 4] = two.border_radius.into();

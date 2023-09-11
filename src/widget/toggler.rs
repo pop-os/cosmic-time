@@ -1,6 +1,7 @@
 //! Show toggle controls using togglers.
 
 use crate::reexports::{iced_core, iced_style, iced_widget};
+use crate::utils::static_array_from_iter;
 use iced_core::alignment;
 use iced_core::event;
 use iced_core::layout;
@@ -347,54 +348,47 @@ fn blend_appearances(
     } else if percent == 1. {
         two
     } else {
-        let background: [f32; 4] = one
-            .background
-            .into_linear()
-            .iter()
-            .zip(two.background.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
+        let background = static_array_from_iter::<f32, 4>(
+            one.background
+                .into_linear()
+                .iter()
+                .zip(two.background.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent)),
+        );
 
         let border_one: Color = one.background_border.unwrap_or(color!(0, 0, 0));
         let border_two: Color = two.background_border.unwrap_or(color!(0, 0, 0));
-        let border: [f32; 4] = border_one
-            .into_linear()
-            .iter()
-            .zip(border_two.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
-        let new_border: Color = border.into();
 
-        let foreground: [f32; 4] = one
-            .foreground
-            .into_linear()
-            .iter()
-            .zip(two.foreground.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
+        let new_border = static_array_from_iter::<f32, 4>(
+            border_one
+                .into_linear()
+                .iter()
+                .zip(border_two.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent)),
+        );
+
+        let foreground = static_array_from_iter::<f32, 4>(
+            one.foreground
+                .into_linear()
+                .iter()
+                .zip(two.foreground.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent)),
+        );
 
         let f_border_one: Color = one.foreground_border.unwrap_or(color!(0, 0, 0));
         let f_border_two: Color = two.foreground_border.unwrap_or(color!(0, 0, 0));
-        let f_border: [f32; 4] = f_border_one
-            .into_linear()
-            .iter()
-            .zip(f_border_two.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent))
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
-        let new_f_border: Color = f_border.into();
+        let new_f_border = static_array_from_iter::<f32, 4>(
+            f_border_one
+                .into_linear()
+                .iter()
+                .zip(f_border_two.into_linear().iter())
+                .map(|(o, t)| lerp(*o, *t, percent)),
+        );
 
         two.background = background.into();
-        two.background_border = Some(new_border);
+        two.background_border = Some(new_border.into());
         two.foreground = foreground.into();
-        two.foreground_border = Some(new_f_border);
+        two.foreground_border = Some(new_f_border.into());
         two
     }
 }
