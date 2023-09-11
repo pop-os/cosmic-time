@@ -46,7 +46,7 @@
 //!
 //! ```
 //! There are some different things here!
-//!   > static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
+//!   > static CONTAINER: Lazy<id::Container> = `Lazy::new(id::Container::unique`);
 //!
 //!   Cosmic Time refers to each animation with an Id. We export our own, but they are
 //!   Identical to the widget Id's Iced uses for widget operations.
@@ -62,7 +62,7 @@
 //!   keyframe. This is why we call the animations chains. We cannot get to the
 //!   next state without animating though all previous Keyframes.
 //!
-//!   > self.timeline.set_chain(animation).start();
+//!   > `self.timeline.set_chain(animation).start`();
 //!
 //!   Then we need to add the animation to the [`Timeline`]. We call this `.set_chain`,
 //!   because there can only be one chain per Id.
@@ -128,7 +128,12 @@
     clippy::useless_conversion
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::inherent_to_string,
+    clippy::type_complexity
+)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod reexports;
 /// The main timeline for your animations!
@@ -156,12 +161,14 @@ pub use once_cell;
 const PI: f32 = std::f32::consts::PI;
 
 /// A simple linear interpolation calculation function.
-/// p = percent_complete in decimal form
+/// p = `percent_complete` in decimal form
+#[must_use]
 pub fn lerp(start: f32, end: f32, p: f32) -> f32 {
     (1.0 - p) * start + p * end
 }
 
 /// A simple animation percentage flip calculation function.
+#[must_use]
 pub fn flip(num: f32) -> f32 {
     1.0 - num
 }
@@ -178,7 +185,7 @@ pub trait Tween: std::fmt::Debug + Copy {
 /// between links in the animation chain, this
 /// type auto-calculates the time for you.
 /// Very useful with lazy keyframes.
-/// Designed to have an API very similar to std::time::Duration
+/// Designed to have an API very similar to `std::time::Duration`
 #[derive(Debug, Copy, Clone)]
 pub enum Speed {
     /// Whole number of seconds to move per second.
@@ -193,21 +200,25 @@ pub enum Speed {
 
 impl Speed {
     /// Creates a new `Speed` from the specified number of whole seconds.
+    #[must_use]
     pub fn per_secs(speed: f32) -> Self {
         Speed::PerSecond(speed)
     }
 
     /// Creates a new `Speed` from the specified number of whole milliseconds.
+    #[must_use]
     pub fn per_millis(speed: f32) -> Self {
         Speed::PerMillis(speed)
     }
 
     /// Creates a new `Speed` from the specified number of whole microseconds.
+    #[must_use]
     pub fn per_micros(speed: f32) -> Self {
         Speed::PerMicros(speed)
     }
 
     /// Creates a new `Speed` from the specified number of whole nanoseconds.
+    #[must_use]
     pub fn per_nanos(speed: f32) -> Self {
         Speed::PerNanoSe(speed)
     }
@@ -648,7 +659,7 @@ impl Tween for Back {
                 1. + 2.70158 * q.powi(3) + 1.70158 * q.powi(2)
             }
             Back::InOut => {
-                let c = 2.5949095;
+                let c = 2.594_909_5;
                 if p < 0.5 {
                     let q = 2. * p;
                     q.powi(2) * (0.5 * ((c + 1.) * q - c))
@@ -947,50 +958,50 @@ mod test {
     #[test]
     // Modeled after eighth sinusoidal wave y = 1 - cos((x * PI) / 2)
     fn sinusoidal_in() {
-        assert_eq!(0.000000, r(Sinusoidal::In.tween(0.0)));
-        assert_eq!(0.012312, r(Sinusoidal::In.tween(0.1)));
-        assert_eq!(0.048943, r(Sinusoidal::In.tween(0.2)));
-        assert_eq!(0.108993, r(Sinusoidal::In.tween(0.3)));
-        assert_eq!(0.190983, r(Sinusoidal::In.tween(0.4)));
-        assert_eq!(0.292893, r(Sinusoidal::In.tween(0.5)));
-        assert_eq!(0.412215, r(Sinusoidal::In.tween(0.6)));
-        assert_eq!(0.546010, r(Sinusoidal::In.tween(0.7)));
-        assert_eq!(0.690983, r(Sinusoidal::In.tween(0.8)));
-        assert_eq!(0.843566, r(Sinusoidal::In.tween(0.9)));
-        assert_eq!(1.000000, r(Sinusoidal::In.tween(1.0)));
+        assert_eq!(0.000_000, r(Sinusoidal::In.tween(0.0)));
+        assert_eq!(0.012_312, r(Sinusoidal::In.tween(0.1)));
+        assert_eq!(0.048_943, r(Sinusoidal::In.tween(0.2)));
+        assert_eq!(0.108_993, r(Sinusoidal::In.tween(0.3)));
+        assert_eq!(0.190_983, r(Sinusoidal::In.tween(0.4)));
+        assert_eq!(0.292_893, r(Sinusoidal::In.tween(0.5)));
+        assert_eq!(0.412_215, r(Sinusoidal::In.tween(0.6)));
+        assert_eq!(0.546_010, r(Sinusoidal::In.tween(0.7)));
+        assert_eq!(0.690_983, r(Sinusoidal::In.tween(0.8)));
+        assert_eq!(0.843_566, r(Sinusoidal::In.tween(0.9)));
+        assert_eq!(1.000_000, r(Sinusoidal::In.tween(1.0)));
     }
 
     #[test]
     #[allow(clippy::approx_constant)]
     // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
     fn sinusoidal_out() {
-        assert_eq!(0.000000, r(Sinusoidal::Out.tween(0.0)));
-        assert_eq!(0.156434, r(Sinusoidal::Out.tween(0.1)));
-        assert_eq!(0.309017, r(Sinusoidal::Out.tween(0.2)));
-        assert_eq!(0.453991, r(Sinusoidal::Out.tween(0.3)));
-        assert_eq!(0.587785, r(Sinusoidal::Out.tween(0.4)));
-        assert_eq!(0.707107, r(Sinusoidal::Out.tween(0.5)));
-        assert_eq!(0.809017, r(Sinusoidal::Out.tween(0.6)));
-        assert_eq!(0.891007, r(Sinusoidal::Out.tween(0.7)));
-        assert_eq!(0.951057, r(Sinusoidal::Out.tween(0.8)));
-        assert_eq!(0.987688, r(Sinusoidal::Out.tween(0.9)));
-        assert_eq!(1.000000, r(Sinusoidal::Out.tween(1.0)));
+        assert_eq!(0.000_000, r(Sinusoidal::Out.tween(0.0)));
+        assert_eq!(0.156_434, r(Sinusoidal::Out.tween(0.1)));
+        assert_eq!(0.309_017, r(Sinusoidal::Out.tween(0.2)));
+        assert_eq!(0.453_991, r(Sinusoidal::Out.tween(0.3)));
+        assert_eq!(0.587_785, r(Sinusoidal::Out.tween(0.4)));
+        assert_eq!(0.707_107, r(Sinusoidal::Out.tween(0.5)));
+        assert_eq!(0.809_017, r(Sinusoidal::Out.tween(0.6)));
+        assert_eq!(0.891_007, r(Sinusoidal::Out.tween(0.7)));
+        assert_eq!(0.951_057, r(Sinusoidal::Out.tween(0.8)));
+        assert_eq!(0.987_688, r(Sinusoidal::Out.tween(0.9)));
+        assert_eq!(1.000_000, r(Sinusoidal::Out.tween(1.0)));
     }
 
     #[test]
     // Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
     fn sinusoidal_inout() {
-        assert_eq!(0.000000, r(Sinusoidal::InOut.tween(0.0)));
-        assert_eq!(0.024472, r(Sinusoidal::InOut.tween(0.1)));
-        assert_eq!(0.095492, r(Sinusoidal::InOut.tween(0.2)));
-        assert_eq!(0.206107, r(Sinusoidal::InOut.tween(0.3)));
-        assert_eq!(0.345492, r(Sinusoidal::InOut.tween(0.4)));
-        assert_eq!(0.500000, r(Sinusoidal::InOut.tween(0.5)));
-        assert_eq!(0.654509, r(Sinusoidal::InOut.tween(0.6)));
-        assert_eq!(0.793893, r(Sinusoidal::InOut.tween(0.7)));
-        assert_eq!(0.904509, r(Sinusoidal::InOut.tween(0.8)));
-        assert_eq!(0.975528, r(Sinusoidal::InOut.tween(0.9)));
-        assert_eq!(1.000000, r(Sinusoidal::InOut.tween(1.0)));
+        assert_eq!(0.000_000, r(Sinusoidal::InOut.tween(0.0)));
+        assert_eq!(0.024_472, r(Sinusoidal::InOut.tween(0.1)));
+        assert_eq!(0.095_492, r(Sinusoidal::InOut.tween(0.2)));
+        assert_eq!(0.206_107, r(Sinusoidal::InOut.tween(0.3)));
+        assert_eq!(0.345_492, r(Sinusoidal::InOut.tween(0.4)));
+        assert_eq!(0.500_000, r(Sinusoidal::InOut.tween(0.5)));
+        assert_eq!(0.654_509, r(Sinusoidal::InOut.tween(0.6)));
+        assert_eq!(0.793_893, r(Sinusoidal::InOut.tween(0.7)));
+        assert_eq!(0.904_509, r(Sinusoidal::InOut.tween(0.8)));
+        assert_eq!(0.975_528, r(Sinusoidal::InOut.tween(0.9)));
+        assert_eq!(1.000_000, r(Sinusoidal::InOut.tween(1.0)));
     }
 
     #[test]
@@ -998,17 +1009,17 @@ mod test {
     // y = 0            ; [0, 0]
     // y = 2^(10x-10)   ; [0, 1]
     fn exponential_in() {
-        assert_eq!(0.000000, r(Exponential::In.tween(0.0)));
-        assert_eq!(0.001953, r(Exponential::In.tween(0.1)));
-        assert_eq!(0.003906, r(Exponential::In.tween(0.2)));
-        assert_eq!(0.007813, r(Exponential::In.tween(0.3)));
-        assert_eq!(0.015625, r(Exponential::In.tween(0.4)));
-        assert_eq!(0.031250, r(Exponential::In.tween(0.5)));
-        assert_eq!(0.062500, r(Exponential::In.tween(0.6)));
-        assert_eq!(0.125000, r(Exponential::In.tween(0.7)));
-        assert_eq!(0.250000, r(Exponential::In.tween(0.8)));
-        assert_eq!(0.500000, r(Exponential::In.tween(0.9)));
-        assert_eq!(1.000000, r(Exponential::In.tween(1.0)));
+        assert_eq!(0.000_000, r(Exponential::In.tween(0.0)));
+        assert_eq!(0.001_953, r(Exponential::In.tween(0.1)));
+        assert_eq!(0.003_906, r(Exponential::In.tween(0.2)));
+        assert_eq!(0.007_813, r(Exponential::In.tween(0.3)));
+        assert_eq!(0.015_625, r(Exponential::In.tween(0.4)));
+        assert_eq!(0.031_250, r(Exponential::In.tween(0.5)));
+        assert_eq!(0.062_500, r(Exponential::In.tween(0.6)));
+        assert_eq!(0.125_000, r(Exponential::In.tween(0.7)));
+        assert_eq!(0.250_000, r(Exponential::In.tween(0.8)));
+        assert_eq!(0.500_000, r(Exponential::In.tween(0.9)));
+        assert_eq!(1.000_000, r(Exponential::In.tween(1.0)));
     }
 
     #[test]
@@ -1016,17 +1027,17 @@ mod test {
     // y = 1 - 2^(-10x)  ; [0, 1]
     // y = 1             ; [1, 1]
     fn exponential_out() {
-        assert_eq!(0.000000, r(Exponential::Out.tween(0.0)));
-        assert_eq!(0.500000, r(Exponential::Out.tween(0.1)));
-        assert_eq!(0.750000, r(Exponential::Out.tween(0.2)));
-        assert_eq!(0.875000, r(Exponential::Out.tween(0.3)));
-        assert_eq!(0.937500, r(Exponential::Out.tween(0.4)));
-        assert_eq!(0.968750, r(Exponential::Out.tween(0.5)));
-        assert_eq!(0.984375, r(Exponential::Out.tween(0.6)));
-        assert_eq!(0.992188, r(Exponential::Out.tween(0.7)));
-        assert_eq!(0.996094, r(Exponential::Out.tween(0.8)));
-        assert_eq!(0.998047, r(Exponential::Out.tween(0.9)));
-        assert_eq!(1.000000, r(Exponential::Out.tween(1.0)));
+        assert_eq!(0.000_000, r(Exponential::Out.tween(0.0)));
+        assert_eq!(0.500_000, r(Exponential::Out.tween(0.1)));
+        assert_eq!(0.750_000, r(Exponential::Out.tween(0.2)));
+        assert_eq!(0.875_000, r(Exponential::Out.tween(0.3)));
+        assert_eq!(0.937_500, r(Exponential::Out.tween(0.4)));
+        assert_eq!(0.968_750, r(Exponential::Out.tween(0.5)));
+        assert_eq!(0.984_375, r(Exponential::Out.tween(0.6)));
+        assert_eq!(0.992_188, r(Exponential::Out.tween(0.7)));
+        assert_eq!(0.996_094, r(Exponential::Out.tween(0.8)));
+        assert_eq!(0.998_047, r(Exponential::Out.tween(0.9)));
+        assert_eq!(1.000_000, r(Exponential::Out.tween(1.0)));
     }
 
     #[test]
@@ -1036,49 +1047,49 @@ mod test {
     // y = 1 - 0.5*2^(-20x + 10))   ; [0.5, 1]
     // y = 1                        ; [1, 1  ]
     fn exponential_inout() {
-        assert_eq!(0.000000, r(Exponential::InOut.tween(0.0)));
-        assert_eq!(0.001953, r(Exponential::InOut.tween(0.1)));
-        assert_eq!(0.007813, r(Exponential::InOut.tween(0.2)));
-        assert_eq!(0.031250, r(Exponential::InOut.tween(0.3)));
-        assert_eq!(0.125000, r(Exponential::InOut.tween(0.4)));
-        assert_eq!(0.500000, r(Exponential::InOut.tween(0.5)));
-        assert_eq!(0.875000, r(Exponential::InOut.tween(0.6)));
-        assert_eq!(0.968750, r(Exponential::InOut.tween(0.7)));
-        assert_eq!(0.992188, r(Exponential::InOut.tween(0.8)));
-        assert_eq!(0.998047, r(Exponential::InOut.tween(0.9)));
-        assert_eq!(1.000000, r(Exponential::InOut.tween(1.0)));
+        assert_eq!(0.000_000, r(Exponential::InOut.tween(0.0)));
+        assert_eq!(0.001_953, r(Exponential::InOut.tween(0.1)));
+        assert_eq!(0.007_813, r(Exponential::InOut.tween(0.2)));
+        assert_eq!(0.031_250, r(Exponential::InOut.tween(0.3)));
+        assert_eq!(0.125_000, r(Exponential::InOut.tween(0.4)));
+        assert_eq!(0.500_000, r(Exponential::InOut.tween(0.5)));
+        assert_eq!(0.875_000, r(Exponential::InOut.tween(0.6)));
+        assert_eq!(0.968_750, r(Exponential::InOut.tween(0.7)));
+        assert_eq!(0.992_188, r(Exponential::InOut.tween(0.8)));
+        assert_eq!(0.998_047, r(Exponential::InOut.tween(0.9)));
+        assert_eq!(1.000_000, r(Exponential::InOut.tween(1.0)));
     }
 
     #[test]
     // Modeled after shifted quadrant IV of unit circle. y = 1 - sqrt(1 - x^2)
     fn circular_in() {
-        assert_eq!(0.000000, r(Circular::In.tween(0.0)));
-        assert_eq!(0.005013, r(Circular::In.tween(0.1)));
-        assert_eq!(0.020204, r(Circular::In.tween(0.2)));
-        assert_eq!(0.046061, r(Circular::In.tween(0.3)));
-        assert_eq!(0.083485, r(Circular::In.tween(0.4)));
-        assert_eq!(0.133975, r(Circular::In.tween(0.5)));
-        assert_eq!(0.200000, r(Circular::In.tween(0.6)));
-        assert_eq!(0.285857, r(Circular::In.tween(0.7)));
-        assert_eq!(0.400000, r(Circular::In.tween(0.8)));
-        assert_eq!(0.564110, r(Circular::In.tween(0.9)));
-        assert_eq!(1.000000, r(Circular::In.tween(1.0)));
+        assert_eq!(0.000_000, r(Circular::In.tween(0.0)));
+        assert_eq!(0.005_013, r(Circular::In.tween(0.1)));
+        assert_eq!(0.020_204, r(Circular::In.tween(0.2)));
+        assert_eq!(0.046_061, r(Circular::In.tween(0.3)));
+        assert_eq!(0.083_485, r(Circular::In.tween(0.4)));
+        assert_eq!(0.133_975, r(Circular::In.tween(0.5)));
+        assert_eq!(0.200_000, r(Circular::In.tween(0.6)));
+        assert_eq!(0.285_857, r(Circular::In.tween(0.7)));
+        assert_eq!(0.400_000, r(Circular::In.tween(0.8)));
+        assert_eq!(0.564_110, r(Circular::In.tween(0.9)));
+        assert_eq!(1.000_000, r(Circular::In.tween(1.0)));
     }
 
     #[test]
     // Modeled after shifted quadrant II of unit circle. y = sqrt(1 - (x - 1)^ 2)
     fn circular_out() {
-        assert_eq!(0.000000, r(Circular::Out.tween(0.0)));
-        assert_eq!(0.435890, r(Circular::Out.tween(0.1)));
-        assert_eq!(0.600000, r(Circular::Out.tween(0.2)));
-        assert_eq!(0.714143, r(Circular::Out.tween(0.3)));
-        assert_eq!(0.800000, r(Circular::Out.tween(0.4)));
-        assert_eq!(0.866025, r(Circular::Out.tween(0.5)));
-        assert_eq!(0.916515, r(Circular::Out.tween(0.6)));
-        assert_eq!(0.953939, r(Circular::Out.tween(0.7)));
-        assert_eq!(0.979796, r(Circular::Out.tween(0.8)));
-        assert_eq!(0.994987, r(Circular::Out.tween(0.9)));
-        assert_eq!(1.000000, r(Circular::Out.tween(1.0)));
+        assert_eq!(0.000_000, r(Circular::Out.tween(0.0)));
+        assert_eq!(0.435_890, r(Circular::Out.tween(0.1)));
+        assert_eq!(0.600_000, r(Circular::Out.tween(0.2)));
+        assert_eq!(0.714_143, r(Circular::Out.tween(0.3)));
+        assert_eq!(0.800_000, r(Circular::Out.tween(0.4)));
+        assert_eq!(0.866_025, r(Circular::Out.tween(0.5)));
+        assert_eq!(0.916_515, r(Circular::Out.tween(0.6)));
+        assert_eq!(0.953_939, r(Circular::Out.tween(0.7)));
+        assert_eq!(0.979_796, r(Circular::Out.tween(0.8)));
+        assert_eq!(0.994_987, r(Circular::Out.tween(0.9)));
+        assert_eq!(1.000_000, r(Circular::Out.tween(1.0)));
     }
 
     #[test]
@@ -1086,34 +1097,34 @@ mod test {
     // y = (1/2)(1 - sqrt(1 - (2x)^2))          ; [0, 0.5)
     // y = (1/2)(sqrt(1 - ((-2x + 2)^2)) + 1) ; [0.5, 1]
     fn circular_inout() {
-        assert_eq!(0.000000, r(Circular::InOut.tween(0.0)));
-        assert_eq!(0.010102, r(Circular::InOut.tween(0.1)));
-        assert_eq!(0.041742, r(Circular::InOut.tween(0.2)));
-        assert_eq!(0.100000, r(Circular::InOut.tween(0.3)));
-        assert_eq!(0.200000, r(Circular::InOut.tween(0.4)));
-        assert_eq!(0.500000, r(Circular::InOut.tween(0.5)));
-        assert_eq!(0.800000, r(Circular::InOut.tween(0.6)));
-        assert_eq!(0.900000, r(Circular::InOut.tween(0.7)));
-        assert_eq!(0.958258, r(Circular::InOut.tween(0.8)));
-        assert_eq!(0.989898, r(Circular::InOut.tween(0.9)));
-        assert_eq!(1.000000, r(Circular::InOut.tween(1.0)));
+        assert_eq!(0.000_000, r(Circular::InOut.tween(0.0)));
+        assert_eq!(0.010_102, r(Circular::InOut.tween(0.1)));
+        assert_eq!(0.041_742, r(Circular::InOut.tween(0.2)));
+        assert_eq!(0.100_000, r(Circular::InOut.tween(0.3)));
+        assert_eq!(0.200_000, r(Circular::InOut.tween(0.4)));
+        assert_eq!(0.500_000, r(Circular::InOut.tween(0.5)));
+        assert_eq!(0.800_000, r(Circular::InOut.tween(0.6)));
+        assert_eq!(0.900_000, r(Circular::InOut.tween(0.7)));
+        assert_eq!(0.958_258, r(Circular::InOut.tween(0.8)));
+        assert_eq!(0.989_898, r(Circular::InOut.tween(0.9)));
+        assert_eq!(1.000_000, r(Circular::InOut.tween(1.0)));
     }
 
     #[test]
     #[rustfmt::skip]
     // Modeled after damped sin wave: y = sin(13 * π/2 * x) * 2^(10 (x - 1))
     fn elastic_in() {
-        assert_eq!( 0.000000, r(Elastic::In.tween(0.0)));
-        assert_eq!( 0.001740, r(Elastic::In.tween(0.1)));
-        assert_eq!(-0.003160, r(Elastic::In.tween(0.2)));
-        assert_eq!(-0.001222, r(Elastic::In.tween(0.3)));
-        assert_eq!( 0.014860, r(Elastic::In.tween(0.4)));
-        assert_eq!(-0.022097, r(Elastic::In.tween(0.5)));
-        assert_eq!(-0.019313, r(Elastic::In.tween(0.6)));
-        assert_eq!( 0.123461, r(Elastic::In.tween(0.7)));
-        assert_eq!(-0.146947, r(Elastic::In.tween(0.8)));
-        assert_eq!(-0.226995, r(Elastic::In.tween(0.9)));
-        assert_eq!( 1.000000, r(Elastic::In.tween(1.0)));
+        assert_eq!( 0.000_000, r(Elastic::In.tween(0.0)));
+        assert_eq!( 0.001_740, r(Elastic::In.tween(0.1)));
+        assert_eq!(-0.003_160, r(Elastic::In.tween(0.2)));
+        assert_eq!(-0.001_222, r(Elastic::In.tween(0.3)));
+        assert_eq!( 0.014_860, r(Elastic::In.tween(0.4)));
+        assert_eq!(-0.022_097, r(Elastic::In.tween(0.5)));
+        assert_eq!(-0.019_313, r(Elastic::In.tween(0.6)));
+        assert_eq!( 0.123_461, r(Elastic::In.tween(0.7)));
+        assert_eq!(-0.146_947, r(Elastic::In.tween(0.8)));
+        assert_eq!(-0.226_995, r(Elastic::In.tween(0.9)));
+        assert_eq!( 1.000_000, r(Elastic::In.tween(1.0)));
     }
 
     #[test]
@@ -1121,17 +1132,17 @@ mod test {
     // y = 1 - 2^(-10 x) sin((13 π)/(2 (x + 1))) ; [0, 1]
     // y = 1 [1, 1]
     fn elastic_out() {
-        assert_eq!(0.000000, r(Elastic::Out.tween(0.0)));
-        assert_eq!(1.250000, r(Elastic::Out.tween(0.1)));
-        assert_eq!(1.125000, r(Elastic::Out.tween(0.2)));
-        assert_eq!(0.875000, r(Elastic::Out.tween(0.3)));
-        assert_eq!(1.031250, r(Elastic::Out.tween(0.4)));
-        assert_eq!(1.015625, r(Elastic::Out.tween(0.5)));
-        assert_eq!(0.984375, r(Elastic::Out.tween(0.6)));
-        assert_eq!(1.003906, r(Elastic::Out.tween(0.7)));
-        assert_eq!(1.001953, r(Elastic::Out.tween(0.8)));
-        assert_eq!(0.998047, r(Elastic::Out.tween(0.9)));
-        assert_eq!(1.000000, r(Elastic::Out.tween(1.0)));
+        assert_eq!(0.000_000, r(Elastic::Out.tween(0.0)));
+        assert_eq!(1.250_000, r(Elastic::Out.tween(0.1)));
+        assert_eq!(1.125_000, r(Elastic::Out.tween(0.2)));
+        assert_eq!(0.875_000, r(Elastic::Out.tween(0.3)));
+        assert_eq!(1.031_250, r(Elastic::Out.tween(0.4)));
+        assert_eq!(1.015_625, r(Elastic::Out.tween(0.5)));
+        assert_eq!(0.984_375, r(Elastic::Out.tween(0.6)));
+        assert_eq!(1.003_906, r(Elastic::Out.tween(0.7)));
+        assert_eq!(1.001_953, r(Elastic::Out.tween(0.8)));
+        assert_eq!(0.998_047, r(Elastic::Out.tween(0.9)));
+        assert_eq!(1.000_000, r(Elastic::Out.tween(1.0)));
     }
 
     #[test]
@@ -1140,50 +1151,50 @@ mod test {
     // y = 2^(10 (2 x - 1) - 1) sin(13 π x) [0, 0.5]
     // y = 1/2 (2 - 2^(-10 (2 x - 1)) sin(13 π x)) [0.5, 1]
     fn elastic_inout() {
-        assert_eq!( 0.000000, r(Elastic::InOut.tween(0.0)));
-        assert_eq!(-0.001580, r(Elastic::InOut.tween(0.1)));
-        assert_eq!( 0.007430, r(Elastic::InOut.tween(0.2)));
-        assert_eq!(-0.009657, r(Elastic::InOut.tween(0.3)));
-        assert_eq!(-0.073473, r(Elastic::InOut.tween(0.4)));
-        assert_eq!( 0.500000, r(Elastic::InOut.tween(0.5)));
-        assert_eq!( 1.073473, r(Elastic::InOut.tween(0.6)));
-        assert_eq!( 1.009657, r(Elastic::InOut.tween(0.7)));
-        assert_eq!( 0.992570, r(Elastic::InOut.tween(0.8)));
-        assert_eq!( 1.001580, r(Elastic::InOut.tween(0.9)));
-        assert_eq!( 1.000000, r(Elastic::InOut.tween(1.0)));
+        assert_eq!( 0.000_000, r(Elastic::InOut.tween(0.0)));
+        assert_eq!(-0.001_580, r(Elastic::InOut.tween(0.1)));
+        assert_eq!( 0.007_430, r(Elastic::InOut.tween(0.2)));
+        assert_eq!(-0.009_657, r(Elastic::InOut.tween(0.3)));
+        assert_eq!(-0.073_473, r(Elastic::InOut.tween(0.4)));
+        assert_eq!( 0.500_000, r(Elastic::InOut.tween(0.5)));
+        assert_eq!( 1.073_473, r(Elastic::InOut.tween(0.6)));
+        assert_eq!( 1.009_657, r(Elastic::InOut.tween(0.7)));
+        assert_eq!( 0.992_570, r(Elastic::InOut.tween(0.8)));
+        assert_eq!( 1.001_580, r(Elastic::InOut.tween(0.9)));
+        assert_eq!( 1.000_000, r(Elastic::InOut.tween(1.0)));
     }
 
     #[test]
     #[rustfmt::skip]
     fn back_in() {
         // Modeled after the function: y = 2.70158 * x^3 + x^2 * (-1.70158)
-        assert_eq!( 0.000000, r(Back::In.tween(0.0)));
-        assert_eq!(-0.014314, r(Back::In.tween(0.1)));
-        assert_eq!(-0.046451, r(Back::In.tween(0.2)));
-        assert_eq!(-0.080200, r(Back::In.tween(0.3)));
-        assert_eq!(-0.099352, r(Back::In.tween(0.4)));
-        assert_eq!(-0.087698, r(Back::In.tween(0.5)));
-        assert_eq!(-0.029028, r(Back::In.tween(0.6)));
-        assert_eq!( 0.092868, r(Back::In.tween(0.7)));
-        assert_eq!( 0.294198, r(Back::In.tween(0.8)));
-        assert_eq!( 0.591172, r(Back::In.tween(0.9)));
-        assert_eq!( 1.000000, r(Back::In.tween(1.0)));
+        assert_eq!( 0.000_000, r(Back::In.tween(0.0)));
+        assert_eq!(-0.014_314, r(Back::In.tween(0.1)));
+        assert_eq!(-0.046_451, r(Back::In.tween(0.2)));
+        assert_eq!(-0.080_200, r(Back::In.tween(0.3)));
+        assert_eq!(-0.099_352, r(Back::In.tween(0.4)));
+        assert_eq!(-0.087_698, r(Back::In.tween(0.5)));
+        assert_eq!(-0.029_028, r(Back::In.tween(0.6)));
+        assert_eq!( 0.092_868, r(Back::In.tween(0.7)));
+        assert_eq!( 0.294_198, r(Back::In.tween(0.8)));
+        assert_eq!( 0.591_172, r(Back::In.tween(0.9)));
+        assert_eq!( 1.000_000, r(Back::In.tween(1.0)));
     }
 
     #[test]
     fn back_out() {
         // Modeled after the function: y = 1 + 2.70158 (x - 1)^3 + 1.70158 (x - 1)^2
-        assert_eq!(0.000000, r(Back::Out.tween(0.0)));
-        assert_eq!(0.408828, r(Back::Out.tween(0.1)));
-        assert_eq!(0.705802, r(Back::Out.tween(0.2)));
-        assert_eq!(0.907132, r(Back::Out.tween(0.3)));
-        assert_eq!(1.029027, r(Back::Out.tween(0.4)));
-        assert_eq!(1.087698, r(Back::Out.tween(0.5)));
-        assert_eq!(1.099352, r(Back::Out.tween(0.6)));
+        assert_eq!(0.000_000, r(Back::Out.tween(0.0)));
+        assert_eq!(0.408_828, r(Back::Out.tween(0.1)));
+        assert_eq!(0.705_802, r(Back::Out.tween(0.2)));
+        assert_eq!(0.907_132, r(Back::Out.tween(0.3)));
+        assert_eq!(1.029_027, r(Back::Out.tween(0.4)));
+        assert_eq!(1.087_698, r(Back::Out.tween(0.5)));
+        assert_eq!(1.099_352, r(Back::Out.tween(0.6)));
         assert_eq!(1.0802, r(Back::Out.tween(0.7)));
-        assert_eq!(1.046451, r(Back::Out.tween(0.8)));
-        assert_eq!(1.014314, r(Back::Out.tween(0.9)));
-        assert_eq!(1.000000, r(Back::Out.tween(1.0)));
+        assert_eq!(1.046_451, r(Back::Out.tween(0.8)));
+        assert_eq!(1.014_314, r(Back::Out.tween(0.9)));
+        assert_eq!(1.000_000, r(Back::Out.tween(1.0)));
     }
 
     #[test]
@@ -1192,62 +1203,62 @@ mod test {
         // Modeled after the piecewise function:
         // y = (2x)^2 * (1/2 * ((2.5949095 + 1) * 2x - 2.5949095)) [0, 0.5]
         // y = 1/2 * ((2 x - 2)^2 * ((2.5949095 + 1) * (2x - 2) + 2.5949095) + 2) [0.5, 1]
-        assert_eq!( 0.000000, r(Back::InOut.tween(0.0)));
-        assert_eq!(-0.037519, r(Back::InOut.tween(0.1)));
-        assert_eq!(-0.092556, r(Back::InOut.tween(0.2)));
-        assert_eq!(-0.078833, r(Back::InOut.tween(0.3)));
-        assert_eq!( 0.089926, r(Back::InOut.tween(0.4)));
-        assert_eq!( 0.500000, r(Back::InOut.tween(0.5)));
-        assert_eq!( 0.910074, r(Back::InOut.tween(0.6)));
-        assert_eq!( 1.078834, r(Back::InOut.tween(0.7)));
-        assert_eq!( 1.092556, r(Back::InOut.tween(0.8)));
-        assert_eq!( 1.037519, r(Back::InOut.tween(0.9)));
-        assert_eq!( 1.000000, r(Back::InOut.tween(1.0)));
+        assert_eq!( 0.000_000, r(Back::InOut.tween(0.0)));
+        assert_eq!(-0.037_519, r(Back::InOut.tween(0.1)));
+        assert_eq!(-0.092_556, r(Back::InOut.tween(0.2)));
+        assert_eq!(-0.078_833, r(Back::InOut.tween(0.3)));
+        assert_eq!( 0.089_926, r(Back::InOut.tween(0.4)));
+        assert_eq!( 0.500_000, r(Back::InOut.tween(0.5)));
+        assert_eq!( 0.910_074, r(Back::InOut.tween(0.6)));
+        assert_eq!( 1.078_834, r(Back::InOut.tween(0.7)));
+        assert_eq!( 1.092_556, r(Back::InOut.tween(0.8)));
+        assert_eq!( 1.037_519, r(Back::InOut.tween(0.9)));
+        assert_eq!( 1.000_000, r(Back::InOut.tween(1.0)));
     }
 
     #[test]
     #[rustfmt::skip]
     fn bounce_in() {
-        assert_eq!(0.000000, r(Bounce::In.tween(0.0)));
+        assert_eq!(0.000_000, r(Bounce::In.tween(0.0)));
         assert_eq!(    1e-6, r(Bounce::In.tween(0.1)));
-        assert_eq!(0.087757, r(Bounce::In.tween(0.2)));
-        assert_eq!(0.083250, r(Bounce::In.tween(0.3)));
-        assert_eq!(0.273000, r(Bounce::In.tween(0.4)));
-        assert_eq!(0.281250, r(Bounce::In.tween(0.5)));
-        assert_eq!(0.108000, r(Bounce::In.tween(0.6)));
-        assert_eq!(0.319375, r(Bounce::In.tween(0.7)));
-        assert_eq!(0.697500, r(Bounce::In.tween(0.8)));
-        assert_eq!(0.924375, r(Bounce::In.tween(0.9)));
-        assert_eq!(1.000000, r(Bounce::In.tween(1.0)));
+        assert_eq!(0.087_757, r(Bounce::In.tween(0.2)));
+        assert_eq!(0.083_250, r(Bounce::In.tween(0.3)));
+        assert_eq!(0.273_000, r(Bounce::In.tween(0.4)));
+        assert_eq!(0.281_250, r(Bounce::In.tween(0.5)));
+        assert_eq!(0.108_000, r(Bounce::In.tween(0.6)));
+        assert_eq!(0.319_375, r(Bounce::In.tween(0.7)));
+        assert_eq!(0.697_500, r(Bounce::In.tween(0.8)));
+        assert_eq!(0.924_375, r(Bounce::In.tween(0.9)));
+        assert_eq!(1.000_000, r(Bounce::In.tween(1.0)));
     }
 
     #[test]
     fn bounce_out() {
-        assert_eq!(0.000000, r(Bounce::Out.tween(0.0)));
-        assert_eq!(0.075625, r(Bounce::Out.tween(0.1)));
-        assert_eq!(0.302500, r(Bounce::Out.tween(0.2)));
-        assert_eq!(0.680625, r(Bounce::Out.tween(0.3)));
-        assert_eq!(0.892000, r(Bounce::Out.tween(0.4)));
-        assert_eq!(0.718750, r(Bounce::Out.tween(0.5)));
-        assert_eq!(0.727000, r(Bounce::Out.tween(0.6)));
-        assert_eq!(0.916750, r(Bounce::Out.tween(0.7)));
-        assert_eq!(0.912243, r(Bounce::Out.tween(0.8)));
-        assert_eq!(0.999999, r(Bounce::Out.tween(0.9)));
-        assert_eq!(1.000000, r(Bounce::Out.tween(1.0)));
+        assert_eq!(0.000_000, r(Bounce::Out.tween(0.0)));
+        assert_eq!(0.075_625, r(Bounce::Out.tween(0.1)));
+        assert_eq!(0.302_500, r(Bounce::Out.tween(0.2)));
+        assert_eq!(0.680_625, r(Bounce::Out.tween(0.3)));
+        assert_eq!(0.892_000, r(Bounce::Out.tween(0.4)));
+        assert_eq!(0.718_750, r(Bounce::Out.tween(0.5)));
+        assert_eq!(0.727_000, r(Bounce::Out.tween(0.6)));
+        assert_eq!(0.916_750, r(Bounce::Out.tween(0.7)));
+        assert_eq!(0.912_243, r(Bounce::Out.tween(0.8)));
+        assert_eq!(0.999_999, r(Bounce::Out.tween(0.9)));
+        assert_eq!(1.000_000, r(Bounce::Out.tween(1.0)));
     }
 
     #[test]
     fn bounce_inout() {
-        assert_eq!(0.000000, r(Bounce::InOut.tween(0.0)));
-        assert_eq!(0.043878, r(Bounce::InOut.tween(0.1)));
-        assert_eq!(0.136500, r(Bounce::InOut.tween(0.2)));
-        assert_eq!(0.054000, r(Bounce::InOut.tween(0.3)));
-        assert_eq!(0.348750, r(Bounce::InOut.tween(0.4)));
-        assert_eq!(0.500000, r(Bounce::InOut.tween(0.5)));
-        assert_eq!(0.651250, r(Bounce::InOut.tween(0.6)));
-        assert_eq!(0.946000, r(Bounce::InOut.tween(0.7)));
-        assert_eq!(0.863500, r(Bounce::InOut.tween(0.8)));
-        assert_eq!(0.956121, r(Bounce::InOut.tween(0.9)));
-        assert_eq!(1.000000, r(Bounce::InOut.tween(1.0)));
+        assert_eq!(0.000_000, r(Bounce::InOut.tween(0.0)));
+        assert_eq!(0.043_878, r(Bounce::InOut.tween(0.1)));
+        assert_eq!(0.136_500, r(Bounce::InOut.tween(0.2)));
+        assert_eq!(0.054_000, r(Bounce::InOut.tween(0.3)));
+        assert_eq!(0.348_750, r(Bounce::InOut.tween(0.4)));
+        assert_eq!(0.500_000, r(Bounce::InOut.tween(0.5)));
+        assert_eq!(0.651_250, r(Bounce::InOut.tween(0.6)));
+        assert_eq!(0.946_000, r(Bounce::InOut.tween(0.7)));
+        assert_eq!(0.863_500, r(Bounce::InOut.tween(0.8)));
+        assert_eq!(0.956_121, r(Bounce::InOut.tween(0.9)));
+        assert_eq!(1.000_000, r(Bounce::InOut.tween(1.0)));
     }
 }

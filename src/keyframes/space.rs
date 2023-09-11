@@ -18,21 +18,25 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain_with_children(self, children: Vec<Space>) -> Chain {
         Chain::with_children(self, children)
     }
 
     /// Used by [`crate::anim!`] macro
+    #[must_use]
     pub fn as_widget(self, timeline: &crate::Timeline) -> iced_widget::Space {
         Space::as_widget(self, timeline)
     }
@@ -92,7 +96,7 @@ impl From<Chain> for crate::timeline::Chain {
             chain
                 .links
                 .into_iter()
-                .map(|s| s.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<_>>(),
         )
     }

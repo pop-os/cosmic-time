@@ -159,7 +159,7 @@ where
                     };
 
                     let b = cosmic::iced::widget::button(custom_content)
-                        .style(cosmic::theme::IcedButton::Card)
+                        .style(cosmic::theme::iced::Button::Card)
                         .padding(PADDING);
                     if i == 0 && !expanded && can_show_more {
                         let on_animation = chain::Cards::on(id.clone(), 1.0);
@@ -216,7 +216,7 @@ where
         + StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
-        vec![&self.show_less_button, &self.clear_all_button]
+        [&self.show_less_button, &self.clear_all_button]
             .iter()
             .map(|w| Tree::new(w.as_widget()))
             .chain(self.elements.iter().map(|w| Tree::new(w.as_widget())))

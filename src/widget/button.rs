@@ -271,6 +271,7 @@ pub struct State {
 
 impl State {
     /// Creates a new [`State`].
+    #[must_use]
     pub fn new() -> State {
         State::default()
     }
@@ -436,6 +437,7 @@ pub fn layout<Renderer>(
 }
 
 /// Returns the [`mouse::Interaction`] of a [`Button`].
+#[must_use]
 pub fn mouse_interaction(
     layout: Layout<'_>,
     cursor_position: mouse::Cursor,

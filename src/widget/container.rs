@@ -1,6 +1,6 @@
 //! Decorate content and apply alignment.
 
-use crate::reexports::*;
+use crate::reexports::{iced_core, iced_style};
 use iced_core::alignment::{self, Alignment};
 use iced_core::event::{self, Event};
 use iced_core::layout;
@@ -370,6 +370,7 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(widget::Id::unique())
     }

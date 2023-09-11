@@ -20,21 +20,25 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain_with_children(self, children: Vec<Column>) -> Chain {
         Chain::with_children(self, children)
     }
 
     /// Used by [`crate::anim!`] macro
+    #[must_use]
     pub fn as_widget<'a, Message, Renderer>(
         self,
         timeline: &crate::Timeline,
@@ -101,7 +105,7 @@ impl From<Chain> for crate::timeline::Chain {
             chain
                 .links
                 .into_iter()
-                .map(|c| c.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<_>>(),
         )
     }
@@ -157,12 +161,12 @@ impl Column {
         let id: IcedId = id.into();
 
         iced_widget::Column::new()
-            .spacing(timeline.get(&id, 0).map(|m| m.value).unwrap_or(0.))
+            .spacing(timeline.get(&id, 0).map_or(0., |m| m.value))
             .padding([
-                timeline.get(&id, 1).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 3).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 4).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 1).map_or(0., |m| m.value),
+                timeline.get(&id, 2).map_or(0., |m| m.value),
+                timeline.get(&id, 3).map_or(0., |m| m.value),
+                timeline.get(&id, 4).map_or(0., |m| m.value),
             ])
             .width(get_length(&id, timeline, 5, Length::Shrink))
             .height(get_length(&id, timeline, 6, Length::Shrink))

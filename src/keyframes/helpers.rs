@@ -49,13 +49,13 @@ pub fn cards(at: impl Into<MovementType>) -> Cards {
     Cards::new(at)
 }
 
-/// Create a style_button keyframe.
+/// Create a `style_button` keyframe.
 /// Needs to be added into a chain. See [`crate::chain!`] macro.
 pub fn style_button(at: impl Into<MovementType>) -> StyleButton {
     StyleButton::new(at)
 }
 
-/// Create a style_container keyframe.
+/// Create a `style_container` keyframe.
 /// Needs to be added into a chain. See [`crate::chain!`] macro.
 pub fn style_container(at: impl Into<MovementType>) -> StyleContainer {
     StyleContainer::new(at)
@@ -113,13 +113,13 @@ pub mod lazy {
         Cards::lazy(at)
     }
 
-    /// Create a lazy style_button keyframe.
+    /// Create a lazy `style_button` keyframe.
     /// Needs to be added into a chain. See [`crate::chain!`] macro.
     pub fn style_button(at: impl Into<MovementType>) -> StyleButton {
         StyleButton::lazy(at)
     }
 
-    /// Create a lazy style_container keyframe.
+    /// Create a lazy `style_container` keyframe.
     /// Needs to be added into a chain. See [`crate::chain!`] macro.
     pub fn style_container(at: impl Into<MovementType>) -> StyleContainer {
         StyleContainer::lazy(at)

@@ -20,16 +20,19 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain_with_children(self, children: Vec<Container>) -> Chain {
         Chain::with_children(self, children)
     }
@@ -99,11 +102,7 @@ impl From<Chain> for crate::timeline::Chain {
         crate::timeline::Chain::new(
             chain.id.into(),
             chain.repeat,
-            chain
-                .links
-                .into_iter()
-                .map(|b| b.into())
-                .collect::<Vec<_>>(),
+            chain.links.into_iter().map(Into::into).collect::<Vec<_>>(),
         )
     }
 }
@@ -165,23 +164,13 @@ impl Container {
             .width(get_length(&id, timeline, 0, Length::Shrink))
             .height(get_length(&id, timeline, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 3).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 4).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 5).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 2).map_or(0., |m| m.value),
+                timeline.get(&id, 3).map_or(0., |m| m.value),
+                timeline.get(&id, 4).map_or(0., |m| m.value),
+                timeline.get(&id, 5).map_or(0., |m| m.value),
             ])
-            .max_width(
-                timeline
-                    .get(&id, 6)
-                    .map(|m| m.value)
-                    .unwrap_or(f32::INFINITY),
-            )
-            .max_height(
-                timeline
-                    .get(&id, 7)
-                    .map(|m| m.value)
-                    .unwrap_or(f32::INFINITY),
-            )
+            .max_width(timeline.get(&id, 6).map_or(f32::INFINITY, |m| m.value))
+            .max_height(timeline.get(&id, 7).map_or(f32::INFINITY, |m| m.value))
     }
 
     pub fn width(mut self, width: impl Into<Length>) -> Self {

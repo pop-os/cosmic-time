@@ -20,16 +20,19 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(IcedId::unique())
     }
 
     /// Used by [`chain!`] macro
+    #[must_use]
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
     /// Used by [`chain!`] macro
+    #[must_use]
     pub fn into_chain_with_children(self, children: Vec<Cards>) -> Chain {
         Chain::with_children(self, children)
     }
@@ -85,6 +88,7 @@ impl Chain {
     /// Crate a new [`Cards`] animation chain.
     /// You probably don't want to use use directly, and should
     /// use the [`chain`] macro.
+    #[must_use]
     pub fn new(id: Id) -> Self {
         Chain {
             id,
@@ -96,6 +100,7 @@ impl Chain {
     /// Create a chain pre-fulled with children.
     /// You probably don't want to use use directly, and should
     /// use the [`chain`] macro.
+    #[must_use]
     pub fn with_children(id: Id, children: Vec<Cards>) -> Self {
         Chain {
             id,
@@ -107,12 +112,14 @@ impl Chain {
     /// Link another keyframe, (very similar to push)
     /// You probably don't want to use use directly, and should
     /// use the [`chain`] macro.
+    #[must_use]
     pub fn link(mut self, toggler: Cards) -> Self {
         self.links.push(toggler);
         self
     }
 
     /// Sets the animation to loop forever.
+    #[must_use]
     pub fn loop_forever(mut self) -> Self {
         self.repeat = Repeat::Forever;
         self
@@ -122,12 +129,14 @@ impl Chain {
     /// This is the default, and only useful to
     /// stop an animation that was previously set
     /// to loop forever.
+    #[must_use]
     pub fn loop_once(mut self) -> Self {
         self.repeat = Repeat::Never;
         self
     }
 
     /// Returns the default animation for animating the cards to "on"
+    #[must_use]
     pub fn on(id: Id, anim_multiplier: f32) -> Self {
         let duration = (ANIM_DURATION * anim_multiplier.round()) as u64;
         chain!(
@@ -138,6 +147,7 @@ impl Chain {
     }
 
     /// Returns the default animation for animating the cards to "off"
+    #[must_use]
     pub fn off(id: Id, anim_multiplier: f32) -> Self {
         let duration = (ANIM_DURATION * anim_multiplier.round()) as u64;
         chain!(
@@ -156,7 +166,7 @@ impl From<Chain> for crate::timeline::Chain {
             chain
                 .links
                 .into_iter()
-                .map(|t| t.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<_>>(),
         )
     }
@@ -224,8 +234,7 @@ impl Cards {
         .percent(
             timeline
                 .get(&id.into(), 0)
-                .map(|m| m.value)
-                .unwrap_or(if expanded { 1.0 } else { 0.0 }),
+                .map_or(if expanded { 1.0 } else { 0.0 }, |m| m.value),
         )
     }
 

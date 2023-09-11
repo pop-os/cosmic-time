@@ -18,16 +18,19 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(widget::Id::unique())
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain_with_children(self, children: Vec<StyleButton>) -> Chain {
         Chain::with_children(self, children)
     }
@@ -101,7 +104,7 @@ impl From<Chain> for crate::timeline::Chain {
             chain
                 .links
                 .into_iter()
-                .map(|b| b.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<_>>(),
         )
     }
@@ -164,10 +167,10 @@ impl StyleButton {
             .width(get_length(&id, timeline, 0, Length::Shrink))
             .height(get_length(&id, timeline, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, 2).map(|m| m.value).unwrap_or(5.0),
-                timeline.get(&id, 3).map(|m| m.value).unwrap_or(5.0),
-                timeline.get(&id, 4).map(|m| m.value).unwrap_or(5.0),
-                timeline.get(&id, 5).map(|m| m.value).unwrap_or(5.0),
+                timeline.get(&id, 2).map_or(5.0, |m| m.value),
+                timeline.get(&id, 3).map_or(5.0, |m| m.value),
+                timeline.get(&id, 4).map_or(5.0, |m| m.value),
+                timeline.get(&id, 5).map_or(5.0, |m| m.value),
             ]);
 
         if let Some(Interped {
@@ -220,7 +223,7 @@ impl From<StyleButton> for Vec<Option<Frame>> {
              button.padding.map(|p| Frame::eager(button.at, p.right, button.ease)),  // 3 = padding[1] (right)
              button.padding.map(|p| Frame::eager(button.at, p.bottom, button.ease)), // 4 = padding[2] (bottom)
              button.padding.map(|p| Frame::eager(button.at, p.left, button.ease)),  // 5 = padding[3] (left)
-             button.style.map(|s| Frame::eager(button.at, s as f32, button.ease)),  // 6 = style blend (passed to widget to mix values at `draw` time)
+             button.style.map(|s| Frame::eager(button.at, f32::from(s), button.ease)),  // 6 = style blend (passed to widget to mix values at `draw` time)
         ]
       } else {
         vec![Some(Frame::lazy(button.at, 0., button.ease)), // 0 = width
