@@ -142,6 +142,7 @@ pub mod timeline;
 pub mod widget;
 
 mod keyframes;
+mod utils;
 
 #[cfg(feature = "libcosmic")]
 pub use crate::keyframes::cards;

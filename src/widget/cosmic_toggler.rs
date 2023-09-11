@@ -339,23 +339,24 @@ where
     }
 }
 
-fn blend_appearances(one: Appearance, mut two: Appearance, percent: f32) -> Appearance {
+fn blend_appearances(first: Appearance, mut other: Appearance, percent: f32) -> Appearance {
     if percent == 0. {
-        one
+        first
     } else if percent == 1. {
-        two
+        other
     } else {
-        let background: [f32; 4] = one
-            .background
-            .into_linear()
-            .iter()
-            .zip(two.background.into_linear().iter())
-            .map(|(o, t)| o * (1.0 - percent) + t * percent)
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap();
+        let first_background = first.background.into_linear();
 
-        two.background = background.into();
-        two
+        let other_background = std::mem::take(&mut other.background).into_linear();
+
+        other.background = crate::utils::static_array_from_iter::<f32, 4>(
+            first_background
+                .iter()
+                .zip(other_background.iter())
+                .map(|(o, t)| o * (1.0 - percent) + t * percent),
+        )
+        .into();
+
+        other
     }
 }
