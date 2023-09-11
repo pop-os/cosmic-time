@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
-use crate::reexports::*;
+use crate::reexports::{iced_core, iced_style};
 
 #[cfg(feature = "libcosmic")]
 pub mod cards;
@@ -160,6 +160,7 @@ pub fn container_blend_appearances(
 }
 
 /// Blend between two button appearances.
+#[must_use]
 pub fn button_blend_appearances(
     one: iced_style::button::Appearance,
     mut two: iced_style::button::Appearance,

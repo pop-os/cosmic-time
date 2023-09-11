@@ -8,7 +8,7 @@ use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{Frame, Interped};
 use crate::{Ease, Linear, MovementType};
 
-/// A StyleContainer's animation Id. Used for linking animation built in `update()` with widget output in `view()`
+/// A `StyleContainer`'s animation Id. Used for linking animation built in `update()` with widget output in `view()`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(IcedId);
 
@@ -21,16 +21,19 @@ impl Id {
     /// Creates a unique [`Id`].
     ///
     /// This function produces a different [`Id`] every time it is called.
+    #[must_use]
     pub fn unique() -> Self {
         Self(IcedId::unique())
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain(self) -> Chain {
         Chain::new(self)
     }
 
     /// Used by [`crate::chain!`] macro
+    #[must_use]
     pub fn into_chain_with_children(self, children: Vec<StyleContainer>) -> Chain {
         Chain::with_children(self, children)
     }
@@ -104,7 +107,7 @@ impl From<Chain> for crate::timeline::Chain {
             chain
                 .links
                 .into_iter()
-                .map(|c| c.into())
+                .map(std::convert::Into::into)
                 .collect::<Vec<_>>(),
         )
     }
@@ -173,23 +176,13 @@ impl StyleContainer {
             .width(get_length(&id, timeline, 0, Length::Shrink))
             .height(get_length(&id, timeline, 1, Length::Shrink))
             .padding([
-                timeline.get(&id, 2).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 3).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 4).map(|m| m.value).unwrap_or(0.),
-                timeline.get(&id, 5).map(|m| m.value).unwrap_or(0.),
+                timeline.get(&id, 2).map_or(0., |m| m.value),
+                timeline.get(&id, 3).map_or(0., |m| m.value),
+                timeline.get(&id, 4).map_or(0., |m| m.value),
+                timeline.get(&id, 5).map_or(0., |m| m.value),
             ])
-            .max_width(
-                timeline
-                    .get(&id, 6)
-                    .map(|m| m.value)
-                    .unwrap_or(f32::INFINITY),
-            )
-            .max_height(
-                timeline
-                    .get(&id, 7)
-                    .map(|m| m.value)
-                    .unwrap_or(f32::INFINITY),
-            );
+            .max_width(timeline.get(&id, 6).map_or(f32::INFINITY, |m| m.value))
+            .max_height(timeline.get(&id, 7).map_or(f32::INFINITY, |m| m.value));
 
         if let Some(Interped {
             previous,
@@ -253,7 +246,7 @@ impl From<StyleContainer> for Vec<Option<Frame>> {
              container.padding.map(|p| Frame::eager(container.at, p.left, container.ease)),   // 5 = padding[3] (left)
              container.max_width.map(|w| Frame::eager(container.at, w, container.ease)),      // 6 = max_width
              container.max_height.map(|h| Frame::eager(container.at, h, container.ease)),     // 7 = max_height
-             container.style.map(|s| Frame::eager(container.at, s as f32, container.ease)),   // 6 = style blend (passed to widget to mix values at `draw` time)
+             container.style.map(|s| Frame::eager(container.at, f32::from(s), container.ease)),   // 6 = style blend (passed to widget to mix values at `draw` time)
         ]
       } else {
         vec![Some(Frame::lazy(container.at, 0., container.ease)); 9] // lazy evaluates for all values

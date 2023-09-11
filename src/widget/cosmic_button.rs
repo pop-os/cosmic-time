@@ -402,16 +402,19 @@ pub struct State {
 
 impl State {
     /// Creates a new [`State`].
+    #[must_use]
     pub fn new() -> State {
         State::default()
     }
 
     /// Returns whether the [`Button`] is currently focused or not.
+    #[must_use]
     pub fn is_focused(&self) -> bool {
         self.is_focused
     }
 
     /// Returns whether the [`Button`] is currently hovered or not.
+    #[must_use]
     pub fn is_hovered(&self) -> bool {
         self.is_hovered
     }
@@ -609,6 +612,7 @@ pub fn layout<Renderer>(
 }
 
 /// Returns the [`mouse::Interaction`] of a [`Button`].
+#[must_use]
 pub fn mouse_interaction(
     layout: Layout<'_>,
     cursor_position: mouse::Cursor,

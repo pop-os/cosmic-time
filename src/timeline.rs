@@ -101,8 +101,9 @@ impl Frame {
     }
 
     /// You almost certainly do not need this function.
-    /// Used in timeline::start to guarentee that we have the same
+    /// Used in `timeline::start` to guarentee that we have the same
     /// time of an animation, not the API convinient [`MovementType`].
+    #[must_use]
     pub fn to_subframe(self, time: Instant) -> SubFrame {
         let (value, ease) = match self {
             Frame::Eager(_movement_type, value, ease) => (value, ease),
@@ -116,7 +117,7 @@ impl Frame {
     /// Converts a Lazy [`Frame`] to an Eager [`Frame`].
     pub fn to_eager(&mut self, timeline: &Timeline, id: &widget::Id, index: usize) {
         *self = if let Frame::Lazy(movement_type, default, ease) = *self {
-            let value = timeline.get(id, index).map(|i| i.value).unwrap_or(default);
+            let value = timeline.get(id, index).map_or(default, |i| i.value);
             Frame::Eager(movement_type, value, ease)
         } else {
             *self
@@ -132,6 +133,7 @@ impl Frame {
 
     /// You almost certainly do not need this function.
     /// Get the duration of a [`Frame`]
+    #[must_use]
     pub fn get_duration(self, previous: &Self) -> Duration {
         match self {
             Frame::Eager(movement_type, value, _ease) => match movement_type {
@@ -161,6 +163,7 @@ pub struct Meta {
 
 impl Meta {
     /// Creates new metadata for an animation.
+    #[must_use]
     pub fn new(
         repeat: Repeat,
         start: Instant,
@@ -182,7 +185,7 @@ impl Meta {
     /// You want the `pause` function on [`Timeline`].
     pub fn pause(&mut self, now: Instant) {
         if let Pause::Resumed(delay) = self.pause {
-            self.pause = Pause::Paused(relative_time(&(now - delay), self));
+            self.pause = Pause::Paused(relative_time(&now.checked_sub(delay).unwrap(), self));
         } else {
             self.pause = Pause::Paused(relative_time(&now, self));
         }
@@ -213,6 +216,7 @@ pub enum Pause {
 
 impl Pause {
     /// A conviniece function to check if an animation is playing.
+    #[must_use]
     pub fn is_playing(&self) -> bool {
         !matches!(self, Pause::Paused(_))
     }
@@ -235,9 +239,10 @@ pub struct SubFrame {
 }
 
 impl SubFrame {
-    /// Creates a new SubFrame.
+    /// Creates a new `SubFrame`.
+    #[must_use]
     pub fn new(at: Instant, value: f32, ease: Ease) -> Self {
-        SubFrame { value, at, ease }
+        SubFrame { value, ease, at }
     }
 }
 
@@ -283,6 +288,7 @@ pub struct Interped {
 impl Timeline {
     /// Creates a new [`Timeline`]. If you don't find this function you are going
     /// to have a bad time.
+    #[must_use]
     pub fn new() -> Self {
         Timeline {
             tracks: HashMap::new(),
@@ -477,6 +483,7 @@ impl Timeline {
     /// Use internaly by Cosmic Time.
     /// index is the index that the keyframe arbitratily assigns to each
     /// widget modifier (think width/height).
+    #[must_use]
     pub fn get(&self, id: &widget::Id, index: usize) -> Option<Interped> {
         let now = self.get_now();
         // Get requested modifier_timeline or skip
@@ -492,7 +499,7 @@ impl Timeline {
 
         let relative_now = match meta.pause {
             Pause::NoPause => relative_time(&now, meta),
-            Pause::Resumed(delay) => relative_time(&(now - delay), meta),
+            Pause::Resumed(delay) => relative_time(&now.checked_sub(delay).unwrap(), meta),
             Pause::Paused(time) => relative_time(&time, meta),
         };
 
@@ -535,8 +542,8 @@ impl Timeline {
                         return Some(Interped {
                             previous,
                             next,
-                            percent,
                             value,
+                            percent,
                         });
                     }
                 }
@@ -550,6 +557,7 @@ impl Timeline {
     /// 1. Played until completion
     /// 2. Paused
     /// 3. Does not loop forever
+    #[must_use]
     pub fn is_idle(&self) -> bool {
         let now = self.now;
         !(now.is_some()
