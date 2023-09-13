@@ -115,7 +115,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(std::slice::from_ref(&self.content));
     }
 
     fn width(&self) -> Length {

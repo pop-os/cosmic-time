@@ -117,7 +117,7 @@ where
                 }
                 show_less_children.push(text(show_less_label).width(Length::Shrink).into());
                 show_less_children.push(
-                    icon::handle::from_name("pan-up-symbolic")
+                    icon::from_name("pan-up-symbolic")
                         .size(ICON_SIZE)
                         .icon()
                         .into(),
