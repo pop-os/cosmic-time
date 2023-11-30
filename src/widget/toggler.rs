@@ -8,15 +8,11 @@ use iced_core::layout;
 use iced_core::mouse;
 use iced_core::renderer;
 use iced_core::text;
-use iced_core::text::LineHeight;
-use iced_core::text::Shaping;
-use iced_core::widget::{self, Text, Tree};
-use iced_core::{
-    color, Alignment, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
-    Widget,
-};
 
-use iced_widget::Row;
+use iced_core::widget::{self, Tree};
+use iced_core::{
+    color, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
+};
 
 use crate::{chain, id, lerp};
 
@@ -156,25 +152,43 @@ where
         Length::Shrink
     }
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
-        let mut row = Row::<(), Renderer>::new()
-            .width(self.width)
-            .spacing(self.spacing)
-            .align_items(Alignment::Center);
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits.width(self.width);
 
-        if let Some(label) = &self.label {
-            row = row.push(
-                Text::new(label)
-                    .horizontal_alignment(self.text_alignment)
-                    .font(self.font.unwrap_or_else(|| renderer.default_font()))
-                    .width(self.width)
-                    .size(self.text_size.unwrap_or_else(|| renderer.default_size())),
-            );
-        }
+        layout::next_to_each_other(
+            &limits,
+            self.spacing,
+            |_| layout::Node::new(iced_core::Size::new(2.0 * self.size, self.size)),
+            |limits| {
+                if let Some(label) = self.label.as_deref() {
+                    let state = tree
+                        .state
+                        .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
-        row = row.push(Row::new().width(2.0 * self.size).height(self.size));
-
-        row.layout(renderer, limits)
+                    iced_core::widget::text::layout(
+                        state,
+                        renderer,
+                        limits,
+                        self.width,
+                        Length::Shrink,
+                        label,
+                        iced_core::text::LineHeight::default(),
+                        self.text_size.map(iced::Pixels),
+                        self.font,
+                        self.text_alignment,
+                        alignment::Vertical::Top,
+                        iced_core::text::Shaping::Advanced,
+                    )
+                } else {
+                    layout::Node::new(iced_core::Size::ZERO)
+                }
+            },
+        )
     }
 
     fn on_event(
@@ -229,7 +243,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -246,21 +260,15 @@ where
 
         let mut children = layout.children();
 
-        if let Some(label) = &self.label {
+        if self.label.is_some() {
             let label_layout = children.next().unwrap();
 
-            iced_core::widget::text::draw(
+            iced_widget::text::draw(
                 renderer,
                 style,
                 label_layout,
-                label,
-                self.text_size,
-                LineHeight::default(),
-                self.font,
-                Default::default(),
-                self.text_alignment,
-                alignment::Vertical::Center,
-                Shaping::Advanced,
+                tree.state.downcast_ref(),
+                iced_widget::text::Appearance::default(),
             );
         }
 

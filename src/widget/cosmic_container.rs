@@ -162,7 +162,12 @@ where
         self.height
     }
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         layout(
             renderer,
             limits,
@@ -173,7 +178,11 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |renderer, limits| self.content.as_widget().layout(renderer, limits),
+            |renderer, limits| {
+                self.content
+                    .as_widget()
+                    .layout(&mut tree.children[0], renderer, limits)
+            },
         )
     }
 

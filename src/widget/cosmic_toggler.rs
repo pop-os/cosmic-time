@@ -1,17 +1,14 @@
 //! Show toggle controls using togglers.
-use cosmic::iced_core::alignment;
-use cosmic::iced_core::event;
-use cosmic::iced_core::layout;
-use cosmic::iced_core::mouse;
-use cosmic::iced_core::renderer;
-use cosmic::iced_core::text;
-use cosmic::iced_core::widget::Tree;
-use cosmic::iced_core::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
-};
-use cosmic::iced_widget::{Row, Text};
 
-use crate::{chain, id, lerp};
+use iced_core::{
+    alignment, event, layout, mouse, renderer, text, widget::Tree, Clipboard, Element, Event,
+    Layout, Length, Pixels, Rectangle, Shell, Widget,
+};
+
+use crate::{
+    chain, id, lerp,
+    reexports::{iced, iced_core, iced_widget},
+};
 pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
@@ -155,27 +152,43 @@ where
         Length::Shrink
     }
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
-        let mut row = Row::<(), Renderer>::new()
-            .width(self.width)
-            .spacing(self.spacing)
-            .align_items(Alignment::Center);
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let limits = limits.width(self.width);
 
-        if let Some(label) = &self.label {
-            row = row.push(
-                Text::new(label)
-                    .horizontal_alignment(self.text_alignment)
-                    .font(self.font.unwrap_or_else(|| renderer.default_font()))
-                    .width(self.width)
-                    .size(self.text_size.unwrap_or_else(|| renderer.default_size()))
-                    .line_height(self.text_line_height)
-                    .shaping(self.text_shaping),
-            );
-        }
+        layout::next_to_each_other(
+            &limits,
+            self.spacing,
+            |_| layout::Node::new(iced_core::Size::new(2.0 * self.size, self.size)),
+            |limits| {
+                if let Some(label) = self.label.as_deref() {
+                    let state = tree
+                        .state
+                        .downcast_mut::<iced_widget::text::State<Renderer::Paragraph>>();
 
-        row = row.push(Row::new().width(2.0 * self.size).height(self.size));
-
-        row.layout(renderer, limits)
+                    iced_core::widget::text::layout(
+                        state,
+                        renderer,
+                        limits,
+                        self.width,
+                        Length::Shrink,
+                        label,
+                        self.text_line_height,
+                        self.text_size.map(iced::Pixels),
+                        self.font,
+                        self.text_alignment,
+                        alignment::Vertical::Top,
+                        self.text_shaping,
+                    )
+                } else {
+                    layout::Node::new(iced_core::Size::ZERO)
+                }
+            },
+        )
     }
 
     fn on_event(
@@ -230,7 +243,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -247,21 +260,15 @@ where
 
         let mut children = layout.children();
 
-        if let Some(label) = &self.label {
+        if let Some(_label) = &self.label {
             let label_layout = children.next().unwrap();
 
-            cosmic::iced_widget::text::draw(
+            iced_widget::text::draw(
                 renderer,
                 style,
                 label_layout,
-                label,
-                self.text_size,
-                self.text_line_height,
-                self.font,
-                Default::default(),
-                self.text_alignment,
-                alignment::Vertical::Center,
-                self.text_shaping,
+                tree.state.downcast_ref(),
+                iced_widget::text::Appearance::default(),
             );
         }
 

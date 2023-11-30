@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { version = "0.10.0", features = ["image", "debug", "tokio"] }
+iced = { git = "https://github.com/iced-rs/iced", rev = "7f8b176", features = ["image", "debug", "tokio"] }
 cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }
 serde_json = "1.0"
 

@@ -6,8 +6,8 @@ use iced::{
 };
 
 use cosmic_time::{
-    self, anim, chain, id, once_cell::sync::Lazy, Back, Bounce, Circular, Ease, Elastic,
-    Exponential, Linear, Quadratic, Quartic, Quintic, Sinusoidal, Timeline,
+    self, anim, chain, id, once_cell::sync::Lazy, reexports::iced, Back, Bounce, Circular, Ease,
+    Elastic, Exponential, Linear, Quadratic, Quartic, Quintic, Sinusoidal, Timeline,
 };
 
 static SPACE: Lazy<id::Space> = Lazy::new(id::Space::unique);
