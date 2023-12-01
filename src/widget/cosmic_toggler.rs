@@ -1,8 +1,9 @@
 //! Show toggle controls using togglers.
 
 use iced_core::{
-    alignment, event, layout, mouse, renderer, text, widget::Tree, Clipboard, Element, Event,
-    Layout, Length, Pixels, Rectangle, Shell, Widget,
+    alignment, event, layout, mouse, renderer, text,
+    widget::{self, tree, Tree},
+    Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
 };
 
 use crate::{
@@ -41,7 +42,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Toggler`].
-    pub const DEFAULT_SIZE: f32 = 20.0;
+    pub const DEFAULT_SIZE: f32 = 24.0;
 
     /// Creates a new [`Toggler`].
     ///
@@ -65,7 +66,7 @@ where
             text_size: None,
             text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
-            text_shaping: text::Shaping::Basic,
+            text_shaping: text::Shaping::Advanced,
             spacing: 0.0,
             font: None,
             style: Default::default(),
@@ -152,6 +153,10 @@ where
         Length::Shrink
     }
 
+    fn state(&self) -> tree::State {
+        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+    }
+
     fn layout(
         &self,
         tree: &mut Tree,
@@ -160,10 +165,9 @@ where
     ) -> layout::Node {
         let limits = limits.width(self.width);
 
-        layout::next_to_each_other(
+        crate::utils::next_to_each_other(
             &limits,
             self.spacing,
-            |_| layout::Node::new(iced_core::Size::new(2.0 * self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {
                     let state = tree
@@ -188,6 +192,7 @@ where
                     layout::Node::new(iced_core::Size::ZERO)
                 }
             },
+            |_| layout::Node::new(iced_core::Size::new(2.0 * self.size, self.size)),
         )
     }
 

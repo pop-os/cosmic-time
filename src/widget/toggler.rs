@@ -9,7 +9,7 @@ use iced_core::mouse;
 use iced_core::renderer;
 use iced_core::text;
 
-use iced_core::widget::{self, Tree};
+use iced_core::widget::{self, tree, Tree};
 use iced_core::{
     color, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
 };
@@ -150,6 +150,10 @@ where
 
     fn height(&self) -> Length {
         Length::Shrink
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
     }
 
     fn layout(
