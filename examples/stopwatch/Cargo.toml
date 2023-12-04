@@ -6,6 +6,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = {  git = "https://github.com/iced-rs/iced", rev = "7f8b176", features = ["smol"] }
+iced = {  git = "https://github.com/iced-rs/iced", rev = "8727b3f", features = ["smol"] }
 cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }
 

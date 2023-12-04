@@ -253,7 +253,7 @@ where
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         /// Makes sure that the border radius of the toggler looks good at every size.
         const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
@@ -273,6 +273,7 @@ where
                 label_layout,
                 tree.state.downcast_ref(),
                 iced_widget::text::Appearance::default(),
+                viewport,
             );
         }
 
