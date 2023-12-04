@@ -1,3 +1,4 @@
+use cosmic_time::reexports::iced;
 use iced::widget::{container, text};
 use iced::{application, color};
 
@@ -57,6 +58,8 @@ impl container::StyleSheet for Theme {
 
 pub mod widget {
     #![allow(dead_code)]
+    use cosmic_time::reexports::iced;
+
     use crate::theme::Theme;
 
     pub type Renderer = iced::Renderer<Theme>;

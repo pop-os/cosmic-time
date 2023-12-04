@@ -6,5 +6,4 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = "0.10.0"
 cosmic-time = { path = "../..", default-features = false, features = ["iced", "once_cell"] }

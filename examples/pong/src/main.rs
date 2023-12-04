@@ -1,12 +1,16 @@
+use cosmic_time::reexports::iced_futures::event::listen_raw;
 use iced::event;
 use iced::keyboard::{self, KeyCode};
-use iced::subscription;
+
 use iced::widget::{column, container, row, Space};
 use iced::{executor, Application, Command, Event, Length, Settings, Subscription};
 use iced_core::window;
 
 use cosmic_time::{
-    self, anim, chain, id, once_cell::sync::Lazy, Duration, Instant, Speed, Timeline,
+    self, anim, chain, id,
+    once_cell::sync::Lazy,
+    reexports::{iced, iced_core},
+    Duration, Instant, Speed, Timeline,
 };
 
 use rand::prelude::*;
@@ -90,7 +94,7 @@ impl Application for Pong {
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch(vec![
             self.timeline.as_subscription::<Event>().map(Message::Tick),
-            subscription::events_with(|event, status| match (event, status) {
+            listen_raw(|event, status| match (event, status) {
                 (
                     Event::Keyboard(keyboard::Event::KeyPressed {
                         key_code,

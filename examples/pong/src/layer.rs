@@ -5,6 +5,7 @@
  *
  */
 
+use cosmic_time::reexports::iced_core::{self, Vector};
 use iced_core::widget::{self, Tree};
 use iced_core::{
     event, layout, mouse, overlay, renderer, Clipboard, Color, Element, Event, Layout, Length,
@@ -51,8 +52,15 @@ where
         self.base.as_widget().height()
     }
 
-    fn layout(&self, renderer: &Renderer, limits: &layout::Limits) -> layout::Node {
-        self.base.as_widget().layout(renderer, limits)
+    fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        self.base
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn on_event(
@@ -157,12 +165,21 @@ where
     Renderer: iced_core::Renderer,
     Message: Clone,
 {
-    fn layout(&self, renderer: &Renderer, _bounds: Size, position: Point) -> layout::Node {
+    fn layout(
+        &mut self,
+        renderer: &Renderer,
+        _bounds: Size,
+        position: Point,
+        _translation: Vector,
+    ) -> layout::Node {
         let limits = layout::Limits::new(Size::ZERO, self.size)
             .width(Length::Fill)
             .height(Length::Fill);
 
-        let child = self.content.as_widget().layout(renderer, &limits);
+        let child = self
+            .content
+            .as_widget()
+            .layout(&mut self.tree.children[0], renderer, &limits);
         let mut node = layout::Node::with_children(self.size, vec![child]);
         node.move_to(position);
 

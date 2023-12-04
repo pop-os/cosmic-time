@@ -250,12 +250,13 @@ where
     #[allow(clippy::too_many_lines)]
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &iced_core::layout::Limits,
     ) -> iced_core::layout::Node {
         let mut children = Vec::with_capacity(1 + self.elements.len());
         let mut size = Size::new(0.0, 0.0);
-
+        let tree_children = &mut tree.children;
         if self.elements.is_empty() {
             return Node::with_children(size, children);
         }
@@ -266,13 +267,17 @@ where
         let show_less = &self.show_less_button;
         let clear_all = &self.clear_all_button;
 
-        let show_less_node = show_less.as_widget().layout(renderer, limits);
-        let clear_all_node = clear_all.as_widget().layout(renderer, limits);
+        let show_less_node = show_less
+            .as_widget()
+            .layout(&mut tree_children[0], renderer, limits);
+        let clear_all_node = clear_all
+            .as_widget()
+            .layout(&mut tree_children[1], renderer, limits);
         size.width += show_less_node.size().width + clear_all_node.size().width;
 
         let custom_limits = limits.min_width(size.width);
-        for c in &self.elements {
-            let card_node = c.as_widget().layout(renderer, &custom_limits);
+        for (c, t) in self.elements.iter().zip(tree_children[2..].iter_mut()) {
+            let card_node = c.as_widget().layout(t, renderer, &custom_limits);
             size.width = size.width.max(card_node.size().width);
         }
 
@@ -280,8 +285,14 @@ where
             let show_less = &self.show_less_button;
             let clear_all = &self.clear_all_button;
 
-            let show_less_node = show_less.as_widget().layout(renderer, limits);
-            let mut clear_all_node = clear_all.as_widget().layout(renderer, limits);
+            let show_less_node =
+                show_less
+                    .as_widget()
+                    .layout(&mut tree_children[0], renderer, limits);
+            let mut clear_all_node =
+                clear_all
+                    .as_widget()
+                    .layout(&mut tree_children[1], renderer, limits);
 
             let clear_all_node_size = clear_all_node.size();
             clear_all_node =
@@ -300,11 +311,16 @@ where
             .max_width(size.width)
             .width(Length::Fixed(size.width));
 
-        for (i, c) in self.elements.iter().enumerate() {
+        for (i, (c, t)) in self
+            .elements
+            .iter()
+            .zip(tree_children[2..].iter_mut())
+            .enumerate()
+        {
             let progress = self.percent * size.height;
             let card_node = c
                 .as_widget()
-                .layout(renderer, &custom_limits)
+                .layout(t, renderer, &custom_limits)
                 .translate(Vector::new(0.0, progress));
 
             size.height = size.height.max(progress + card_node.size().height);
