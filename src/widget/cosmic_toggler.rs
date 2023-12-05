@@ -3,7 +3,7 @@
 use iced_core::{
     alignment, event, layout, mouse, renderer, text,
     widget::{self, tree, Tree},
-    Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
+    Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Widget,
 };
 
 use crate::{
@@ -174,7 +174,7 @@ where
                         .state
                         .downcast_mut::<iced_widget::text::State<Renderer::Paragraph>>();
 
-                    iced_core::widget::text::layout(
+                    let node = iced_core::widget::text::layout(
                         state,
                         renderer,
                         limits,
@@ -187,7 +187,17 @@ where
                         self.text_alignment,
                         alignment::Vertical::Top,
                         self.text_shaping,
-                    )
+                    );
+                    match self.width {
+                        Length::Fill => {
+                            let size = node.size();
+                            layout::Node::with_children(
+                                Size::new(limits.width(Length::Fill).max().width, size.height),
+                                vec![node],
+                            )
+                        }
+                        _ => node,
+                    }
                 } else {
                     layout::Node::new(iced_core::Size::ZERO)
                 }
