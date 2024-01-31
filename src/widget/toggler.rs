@@ -1,6 +1,6 @@
 //! Show toggle controls using togglers.
 
-use crate::reexports::{iced_core, iced_style, iced_widget};
+use crate::reexports::{iced_core, iced_style, iced_widget, Theme};
 use crate::utils::static_array_from_iter;
 use iced_core::alignment;
 use iced_core::event;
@@ -9,9 +9,11 @@ use iced_core::mouse;
 use iced_core::renderer;
 use iced_core::text;
 
+use iced::Size;
 use iced_core::widget::{self, tree, Tree};
 use iced_core::{
-    color, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Widget,
+    border::Border, color, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle,
+    Shell, Widget,
 };
 
 use crate::{chain, id, lerp};
@@ -24,7 +26,6 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 pub struct Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: id::Toggler,
     is_toggled: bool,
@@ -36,7 +37,7 @@ where
     text_alignment: alignment::Horizontal,
     spacing: f32,
     font: Option<<Renderer as iced_core::text::Renderer>::Font>,
-    style: <<Renderer as iced_core::renderer::Renderer>::Theme as StyleSheet>::Style,
+    style: <Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
 }
@@ -44,7 +45,6 @@ where
 impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 20.0;
@@ -117,7 +117,7 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<<Theme as StyleSheet>::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -139,17 +139,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Toggler<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+    Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: Length::Shrink,
+        }
     }
 
     fn state(&self) -> tree::State {
@@ -249,7 +248,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -309,9 +308,12 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_background_bounds,
-                border_radius: border_radius.into(),
-                border_width: 1.0,
-                border_color: style.background_border.unwrap_or(style.background),
+                border: Border {
+                    radius: border_radius.into(),
+                    width: 1.0,
+                    color: style.background_border.unwrap_or(style.background),
+                },
+                shadow: Default::default(),
             },
             style.background,
         );
@@ -331,22 +333,26 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_foreground_bounds,
-                border_radius: border_radius.into(),
-                border_width: 1.0,
-                border_color: style.foreground_border.unwrap_or(style.foreground),
+                border: Border {
+                    radius: border_radius.into(),
+                    width: 1.0,
+                    color: style.foreground_border.unwrap_or(style.foreground),
+                },
+                shadow: Default::default(),
             },
             style.foreground,
         );
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+    Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
     }
 }

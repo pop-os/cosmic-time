@@ -44,8 +44,8 @@ pub fn next_to_each_other(
         ((right_size.height - left_size.height) / 2.0, 0.0)
     };
 
-    left_node.move_to(Point::new(0.0, left_y));
-    right_node.move_to(Point::new(left_size.width + spacing, right_y));
+    left_node = left_node.move_to(Point::new(0.0, left_y));
+    right_node = right_node.move_to(Point::new(left_size.width + spacing, right_y));
 
     Node::with_children(
         Size::new(

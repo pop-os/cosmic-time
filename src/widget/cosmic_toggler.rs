@@ -1,5 +1,6 @@
 //! Show toggle controls using togglers.
 
+use cosmic::iced_core::Border;
 use iced_core::{
     alignment, event, layout, mouse, renderer, text,
     widget::{self, tree, Tree},
@@ -17,7 +18,6 @@ pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
 pub struct Toggler<'a, Message, Renderer = cosmic::iced::Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: id::Toggler,
     is_toggled: bool,
@@ -31,7 +31,7 @@ where
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <cosmic::Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
 }
@@ -39,7 +39,6 @@ where
 impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 24.0;
@@ -126,7 +125,7 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<<cosmic::Theme as StyleSheet>::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -140,17 +139,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Toggler<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
+    for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + cosmic::iced_widget::text::StyleSheet,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size::new(self.width, Length::Shrink)
     }
 
     fn state(&self) -> tree::State {
@@ -260,7 +255,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &cosmic::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -320,9 +315,12 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_background_bounds,
-                border_radius: border_radius.into(),
-                border_width: 1.0,
-                border_color: style.background_border.unwrap_or(style.background),
+                border: Border {
+                    width: 1.0,
+                    color: style.background_border.unwrap_or(style.background),
+                    radius: border_radius.into(),
+                },
+                shadow: Default::default(),
             },
             style.background,
         );
@@ -342,22 +340,27 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_foreground_bounds,
-                border_radius: border_radius.into(),
-                border_width: 1.0,
-                border_color: style.foreground_border.unwrap_or(style.foreground),
+                border: Border {
+                    width: 1.0,
+                    color: style.foreground_border.unwrap_or(style.foreground),
+                    radius: border_radius.into(),
+                },
+                shadow: Default::default(),
             },
             style.foreground,
         );
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
+    for Element<'a, Message, cosmic::Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet + cosmic::iced_widget::text::StyleSheet,
 {
-    fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(
+        toggler: Toggler<'a, Message, Renderer>,
+    ) -> Element<'a, Message, cosmic::Theme, Renderer> {
         Element::new(toggler)
     }
 }

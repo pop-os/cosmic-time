@@ -2,7 +2,7 @@ use crate::reexports::iced_core::{
     widget::Id as IcedId, Element, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
 use crate::reexports::iced_style::container::StyleSheet;
-use crate::reexports::iced_widget;
+use crate::reexports::{iced_widget, Theme};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{Frame, Interped};
@@ -41,13 +41,12 @@ impl Id {
     /// Used by [`crate::anim!`] macro
     pub fn as_widget<'a, Message, Renderer>(
         self,
-        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
+        style: fn(u8) -> <Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
-        content: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> crate::widget::Container<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         StyleContainer::as_widget(self, style, timeline, content)
     }
@@ -162,13 +161,12 @@ impl StyleContainer {
     // matter to the end user. Though it is an implementation detail.
     pub fn as_widget<'a, Message, Renderer>(
         id: Id,
-        style: fn(u8) -> <Renderer::Theme as StyleSheet>::Style,
+        style: fn(u8) -> <Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
-        content: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> crate::widget::Container<'a, Message, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         let id: IcedId = id.into();
 

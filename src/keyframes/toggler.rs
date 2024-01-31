@@ -46,7 +46,6 @@ impl Id {
     ) -> crate::widget::Toggler<'a, Message, Renderer>
     where
         Renderer: IcedRenderer + text::Renderer,
-        Renderer::Theme: iced_widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
     {
         Toggler::as_widget(self, timeline, label, is_toggled, f)
@@ -195,7 +194,6 @@ impl Toggler {
     ) -> crate::widget::Toggler<'a, Message, Renderer>
     where
         Renderer: IcedRenderer + text::Renderer,
-        Renderer::Theme: iced_widget::toggler::StyleSheet,
         F: 'a + Fn(Chain, bool) -> Message,
     {
         crate::widget::Toggler::new(id.clone(), label, is_toggled, f).percent(

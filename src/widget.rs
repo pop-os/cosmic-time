@@ -119,10 +119,11 @@ pub fn container_blend_appearances(
     };
     // boarder color
     let border_color = static_array_from_iter::<f32, 4>(
-        one.border_color
+        one.border
+            .color
             .into_linear()
             .iter()
-            .zip(two.border_color.into_linear().iter())
+            .zip(two.border.color.into_linear().iter())
             .map(|(o, t)| lerp(*o, *t, percent)),
     );
 
@@ -139,18 +140,18 @@ pub fn container_blend_appearances(
         })
         .map(Into::<Color>::into);
 
-    let one_border_radius: [f32; 4] = one.border_radius.into();
-    let two_border_radius: [f32; 4] = two.border_radius.into();
+    let one_border_radius: [f32; 4] = one.border.radius.into();
+    let two_border_radius: [f32; 4] = two.border.radius.into();
     two.background = Some(background_mix);
-    two.border_radius = [
+    two.border.radius = [
         lerp(one_border_radius[0], two_border_radius[0], percent),
         lerp(one_border_radius[1], two_border_radius[1], percent),
         lerp(one_border_radius[2], two_border_radius[2], percent),
         lerp(one_border_radius[3], two_border_radius[3], percent),
     ]
     .into();
-    two.border_width = lerp(one.border_width, two.border_width, percent);
-    two.border_color = border_color.into();
+    two.border.width = lerp(one.border.width, two.border.width, percent);
+    two.border.color = border_color.into();
     two.text_color = text;
     two
 }
@@ -224,10 +225,11 @@ pub fn button_blend_appearances(
 
     // boarder color
     let border_color: [f32; 4] = crate::utils::static_array_from_iter(
-        one.border_color
+        one.border
+            .color
             .into_linear()
             .iter()
-            .zip(two.border_color.into_linear().iter())
+            .zip(two.border.color.into_linear().iter())
             .map(|(o, t)| lerp(*o, *t, percent)),
     );
 
@@ -240,8 +242,8 @@ pub fn button_blend_appearances(
             .map(|(o, t)| lerp(*o, *t, percent)),
     );
 
-    let br1: [f32; 4] = one.border_radius.into();
-    let br2: [f32; 4] = two.border_radius.into();
+    let br1: [f32; 4] = one.border.radius.into();
+    let br2: [f32; 4] = two.border.radius.into();
 
     let br = [
         lerp(br1[0], br2[0], percent),
@@ -252,9 +254,9 @@ pub fn button_blend_appearances(
 
     two.shadow_offset = Vector::new(lerp(x1, x2, percent), lerp(y1, y2, percent));
     two.background = Some(background_mix);
-    two.border_radius = br.into();
-    two.border_width = lerp(one.border_width, two.border_width, percent);
-    two.border_color = border_color.into();
+    two.border.radius = br.into();
+    two.border.width = lerp(one.border.width, two.border.width, percent);
+    two.border.color = border_color.into();
     two.text_color = text.into();
     two
 }

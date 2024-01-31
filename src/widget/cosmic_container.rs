@@ -2,11 +2,11 @@
 use cosmic::iced_core::alignment::{self, Alignment};
 use cosmic::iced_core::event::{self, Event};
 use cosmic::iced_core::gradient::{ColorStop, Linear};
-use cosmic::iced_core::overlay;
 use cosmic::iced_core::renderer;
 use cosmic::iced_core::widget::{Id, Operation, Tree};
 use cosmic::iced_core::{layout, Gradient};
 use cosmic::iced_core::{mouse, Radians};
+use cosmic::iced_core::{overlay, Border};
 use cosmic::iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
     Shell, Widget,
@@ -25,7 +25,6 @@ pub use cosmic::iced_style::container::{Appearance, StyleSheet};
 pub struct Container<'a, Message, Renderer = cosmic::iced::Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
     padding: Padding,
@@ -35,19 +34,18 @@ where
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
-    content: Element<'a, Message, Renderer>,
+    style: StyleType<<cosmic::Theme as StyleSheet>::Style>,
+    content: Element<'a, Message, cosmic::Theme, Renderer>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
     where
-        T: Into<Element<'a, Message, Renderer>>,
+        T: Into<Element<'a, Message, cosmic::Theme, Renderer>>,
     {
         Container {
             id: None,
@@ -124,7 +122,7 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<<cosmic::Theme as StyleSheet>::Style>) -> Self {
         self.style = StyleType::Static(style.into());
         self
     }
@@ -132,8 +130,8 @@ where
     /// Sets the animatable style variant of this [`Container`].
     pub fn blend_style(
         mut self,
-        style1: <Renderer::Theme as StyleSheet>::Style,
-        style2: <Renderer::Theme as StyleSheet>::Style,
+        style1: <cosmic::Theme as StyleSheet>::Style,
+        style2: <cosmic::Theme as StyleSheet>::Style,
         percent: f32,
     ) -> Self {
         self.style = StyleType::Blend(style1, style2, percent);
@@ -141,10 +139,10 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Container<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
+    for Container<'a, Message, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -154,12 +152,8 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> cosmic::iced_core::Size<Length> {
+        cosmic::iced_core::Size::new(self.width, self.height)
     }
 
     fn layout(
@@ -247,7 +241,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &cosmic::Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -282,7 +276,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, cosmic::Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -305,13 +299,14 @@ where
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, cosmic::Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(
+        column: Container<'a, Message, Renderer>,
+    ) -> Element<'a, Message, cosmic::Theme, Renderer> {
         Element::new(column)
     }
 }
@@ -336,18 +331,21 @@ pub fn layout<Renderer>(
         .width(width)
         .height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding).loose());
+    let mut content = layout_content(renderer, &limits.shrink(padding).loose());
     let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size());
+    let size = limits
+        .shrink(padding)
+        .resolve(width, height, content.size());
 
-    content.move_to(Point::new(padding.left, padding.top));
-    content.align(
-        Alignment::from(horizontal_alignment),
-        Alignment::from(vertical_alignment),
-        size,
-    );
+    content = content
+        .move_to(Point::new(padding.left, padding.top))
+        .align(
+            Alignment::from(horizontal_alignment),
+            Alignment::from(vertical_alignment),
+            size,
+        );
 
-    layout::Node::with_children(size.pad(padding), vec![content])
+    layout::Node::with_children(size.expand(padding), vec![content])
 }
 
 /// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.
@@ -358,13 +356,16 @@ pub fn draw_background<Renderer>(
 ) where
     Renderer: cosmic::iced_core::Renderer,
 {
-    if appearance.background.is_some() || appearance.border_width > 0.0 {
+    if appearance.background.is_some() || appearance.border.width > 0.0 {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: appearance.border_radius,
-                border_width: appearance.border_width,
-                border_color: appearance.border_color,
+                border: Border {
+                    width: appearance.border.width,
+                    color: appearance.border.color,
+                    radius: appearance.border.radius,
+                },
+                shadow: appearance.shadow,
             },
             appearance
                 .background
@@ -433,10 +434,11 @@ fn blend_appearances(
     };
     // boarder color
     let border_color = static_array_from_iter::<f32, 4>(
-        one.border_color
+        one.border
+            .color
             .into_linear()
             .iter()
-            .zip(two.border_color.into_linear().iter())
+            .zip(two.border.color.into_linear().iter())
             .map(|(o, t)| lerp(*o, *t, percent)),
     );
 
@@ -453,18 +455,18 @@ fn blend_appearances(
         })
         .map(Into::<Color>::into);
 
-    let one_border_radius: [f32; 4] = one.border_radius.into();
-    let two_border_radius: [f32; 4] = two.border_radius.into();
+    let one_border_radius: [f32; 4] = one.border.radius.into();
+    let two_border_radius: [f32; 4] = two.border.radius.into();
     two.background = Some(background_mix);
-    two.border_radius = [
+    two.border.radius = [
         lerp(one_border_radius[0], two_border_radius[0], percent),
         lerp(one_border_radius[1], two_border_radius[1], percent),
         lerp(one_border_radius[2], two_border_radius[2], percent),
         lerp(one_border_radius[3], two_border_radius[3], percent),
     ]
     .into();
-    two.border_width = lerp(one.border_width, two.border_width, percent);
-    two.border_color = border_color.into();
+    two.border.width = lerp(one.border.width, two.border.width, percent);
+    two.border.color = border_color.into();
     two.text_color = text;
     two
 }

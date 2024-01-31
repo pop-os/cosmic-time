@@ -1,7 +1,7 @@
 use crate::reexports::iced_core::{
     widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
-use crate::reexports::iced_widget;
+use crate::reexports::{iced_widget, Theme};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -42,10 +42,9 @@ impl Id {
     pub fn as_iced_widget<'a, Message, Renderer>(
         self,
         timeline: &crate::Timeline,
-    ) -> iced_widget::Row<'a, Message, Renderer>
+    ) -> iced_widget::Row<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         Row::as_iced_widget(self, timeline)
     }
@@ -153,10 +152,9 @@ impl Row {
     pub fn as_iced_widget<'a, Message, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
-    ) -> iced_widget::Row<'a, Message, Renderer>
+    ) -> iced_widget::Row<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer,
-        Renderer::Theme: iced_widget::container::StyleSheet,
     {
         let id: IcedId = id.into();
 
