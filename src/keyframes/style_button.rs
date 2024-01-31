@@ -1,8 +1,7 @@
+use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::reexports::iced_core::{widget, Element, Length, Padding, Renderer as IcedRenderer};
 use crate::reexports::iced_style::button::StyleSheet;
 use crate::reexports::Theme;
-
-use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{Frame, Interped};
 use crate::{Ease, Linear, MovementType};
 

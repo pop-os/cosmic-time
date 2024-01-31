@@ -1,5 +1,5 @@
 use self::iced_core::{widget::Id as IcedId, Element, Length, Padding, Renderer as IcedRenderer};
-use crate::reexports::{iced_core, iced_widget, Theme};
+use crate::reexports::{iced_core, iced_style, iced_widget};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -36,13 +36,14 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_widget<'a, Message, Theme, Renderer>(
         self,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> iced_widget::Button<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer,
+        Theme: iced_style::button::StyleSheet,
     {
         Button::as_widget(self, timeline, content)
     }
@@ -144,13 +145,14 @@ impl Button {
         }
     }
 
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_widget<'a, Message, Theme, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> iced_widget::Button<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer,
+        Theme: iced_style::button::StyleSheet,
     {
         let id: IcedId = id.into();
 
