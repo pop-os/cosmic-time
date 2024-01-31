@@ -2,19 +2,20 @@
 //!
 //! A [`Button`] has some local [`State`].
 use cosmic::iced_core::gradient::{ColorStop, Linear};
+use cosmic::iced_core::keyboard::key::Named;
 use cosmic::iced_runtime::core::widget::Id;
 use cosmic::iced_runtime::{keyboard, Command};
 
 use crate::utils::static_array_from_iter;
 use crate::widget::StyleType;
 use cosmic::iced_core::event::{self, Event};
-use cosmic::iced_core::overlay;
 use cosmic::iced_core::renderer;
 use cosmic::iced_core::touch;
 use cosmic::iced_core::widget::tree::{self, Tree};
 use cosmic::iced_core::widget::Operation;
 use cosmic::iced_core::{layout, Gradient};
 use cosmic::iced_core::{mouse, Radians};
+use cosmic::iced_core::{overlay, Border};
 use cosmic::iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle, Shell,
     Vector, Widget,
@@ -28,7 +29,6 @@ pub use cosmic::iced_style::button::{Appearance, StyleSheet};
 pub struct Button<'a, Message, Renderer = cosmic::Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: Id,
     #[cfg(feature = "a11y")]
@@ -37,21 +37,20 @@ where
     description: Option<iced_accessibility::Description<'a>>,
     #[cfg(feature = "a11y")]
     label: Option<Vec<iced_accessibility::accesskit::NodeId>>,
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, cosmic::Theme, Renderer>,
     on_press: Option<Message>,
     width: Length,
     height: Length,
     padding: Padding,
-    style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
+    style: StyleType<<cosmic::Theme as StyleSheet>::Style>,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, cosmic::Theme, Renderer>>) -> Self {
         Button {
             id: Id::unique(),
             #[cfg(feature = "a11y")]
@@ -65,7 +64,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: StyleType::Static(<Renderer::Theme as StyleSheet>::Style::default()),
+            style: StyleType::Static(<cosmic::Theme as StyleSheet>::Style::default()),
         }
     }
 
@@ -96,7 +95,7 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(mut self, style: <Renderer::Theme as StyleSheet>::Style) -> Self {
+    pub fn style(mut self, style: <cosmic::Theme as StyleSheet>::Style) -> Self {
         self.style = StyleType::Static(style);
         self
     }
@@ -104,8 +103,8 @@ where
     /// Sets the animatable style variant of this [`Button`].
     pub fn blend_style(
         mut self,
-        style1: <Renderer::Theme as StyleSheet>::Style,
-        style2: <Renderer::Theme as StyleSheet>::Style,
+        style1: <cosmic::Theme as StyleSheet>::Style,
+        style2: <cosmic::Theme as StyleSheet>::Style,
         percent: f32,
     ) -> Self {
         self.style = StyleType::Blend(style1, style2, percent);
@@ -149,11 +148,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
+    for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + cosmic::iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -171,12 +170,8 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> cosmic::iced_core::Size<Length> {
+        cosmic::iced_core::Size::new(self.width, self.height)
     }
 
     fn layout(
@@ -257,7 +252,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &cosmic::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -308,7 +303,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, cosmic::Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -391,11 +386,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
+    for Element<'a, Message, cosmic::Theme, Renderer>
 where
     Message: Clone + 'a,
     Renderer: cosmic::iced_core::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
 {
     fn from(button: Button<'a, Message, Renderer>) -> Self {
         Self::new(button)
@@ -496,10 +491,10 @@ pub fn update<'a, Message: Clone>(
             }
             return event::Status::Captured;
         }
-        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+        Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
             if let Some(on_press) = on_press.clone() {
                 let state = state();
-                if state.is_focused && key_code == keyboard::KeyCode::Enter {
+                if state.is_focused && key == keyboard::Key::Named(Named::Enter) {
                     state.is_pressed = true;
                     shell.publish(on_press);
                     return event::Status::Captured;
@@ -523,13 +518,10 @@ pub fn draw<'a, Renderer: cosmic::iced_core::Renderer>(
     bounds: Rectangle,
     cursor_position: mouse::Cursor,
     is_enabled: bool,
-    style_sheet: &dyn StyleSheet<Style = <Renderer::Theme as StyleSheet>::Style>,
-    style: &StyleType<<Renderer::Theme as StyleSheet>::Style>,
+    style_sheet: &dyn StyleSheet<Style = <cosmic::Theme as StyleSheet>::Style>,
+    style: &StyleType<<cosmic::Theme as StyleSheet>::Style>,
     state: impl FnOnce() -> &'a State,
-) -> Appearance
-where
-    Renderer::Theme: StyleSheet,
-{
+) -> Appearance {
     let is_mouse_over = cursor_position.is_over(bounds);
 
     let styling = match style {
@@ -577,9 +569,11 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
+                    border: Border {
+                        radius: styling.border_radius,
+                        ..Default::default()
+                    },
+                    shadow: Default::default(),
                 },
                 Background::Color([0.0, 0.0, 0.0, 0.5].into()),
             );
@@ -588,9 +582,12 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius,
-                border_width: styling.border_width,
-                border_color: styling.border_color,
+                border: Border {
+                    radius: styling.border_radius,
+                    width: styling.border_width,
+                    color: styling.border_color,
+                },
+                shadow: Default::default(),
             },
             styling
                 .background
@@ -612,11 +609,14 @@ pub fn layout<Renderer>(
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding));
+    let mut content = layout_content(renderer, &limits.shrink(padding));
     let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size()).pad(padding);
+    let size = limits
+        .shrink(padding)
+        .resolve(width, height, content.size())
+        .expand(padding);
 
-    content.move_to(Point::new(padding.left, padding.top));
+    content = content.move_to(Point::new(padding.left, padding.top));
 
     layout::Node::with_children(size, vec![content])
 }

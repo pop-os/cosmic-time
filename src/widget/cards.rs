@@ -1,11 +1,11 @@
 //! An expandable stack of cards
 use self::iced_core::{
-    event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, BorderRadius, Color,
+    border::Radius, event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, Color,
     Element, Length, Size, Vector, Widget,
 };
 use cosmic::{
     cosmic_theme::LayeredTheme,
-    iced_core,
+    iced_core::{self, Border, Shadow},
     widget::{button, card::style::StyleSheet, column, icon, icon::Handle, row, text},
 };
 use float_cmp::approx_eq;
@@ -24,7 +24,7 @@ const BG_CARD_MARGIN_STEP: f32 = 8.0;
 #[allow(clippy::too_many_arguments)]
 pub fn cards<'a, Message, F>(
     id: id::Cards,
-    card_inner_elements: Vec<Element<'a, Message, cosmic::Renderer>>,
+    card_inner_elements: Vec<Element<'a, Message, cosmic::Theme, cosmic::Renderer>>,
     on_clear_all: Message,
     on_show_more: F,
     show_more_label: &'a str,
@@ -53,10 +53,6 @@ where
 impl<'a, Message, Renderer> Cards<'a, Message, Renderer>
 where
     Renderer: iced_core::text::Renderer,
-    <Renderer as iced_core::Renderer>::Theme: std::clone::Clone
-        + LayeredTheme
-        + cosmic::widget::cosmic_container::StyleSheet
-        + StyleSheet,
 {
     fn fully_expanded(&self) -> bool {
         self.expanded && self.elements.len() > 1 && approx_eq!(f32, self.percent, 1.0)
@@ -72,15 +68,11 @@ where
 pub struct Cards<'a, Message, Renderer = cosmic::Renderer>
 where
     Renderer: iced_core::text::Renderer,
-    <Renderer as iced_core::Renderer>::Theme: std::clone::Clone
-        + LayeredTheme
-        + cosmic::widget::cosmic_container::StyleSheet
-        + StyleSheet,
 {
     _id: Id,
-    show_less_button: Element<'a, Message, Renderer>,
-    clear_all_button: Element<'a, Message, Renderer>,
-    elements: Vec<Element<'a, Message, Renderer>>,
+    show_less_button: Element<'a, Message, cosmic::Theme, Renderer>,
+    clear_all_button: Element<'a, Message, cosmic::Theme, Renderer>,
+    elements: Vec<Element<'a, Message, cosmic::Theme, Renderer>>,
     expanded: bool,
     width: Length,
     percent: f32,
@@ -95,7 +87,7 @@ where
     #[allow(clippy::too_many_arguments)]
     pub fn new<F>(
         id: id::Cards,
-        card_inner_elements: Vec<Element<'a, Message, cosmic::Renderer>>,
+        card_inner_elements: Vec<Element<'a, Message, cosmic::Theme, cosmic::Renderer>>,
         on_clear_all: Message,
         on_show_more: F,
         show_more_label: &'a str,
@@ -206,14 +198,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Cards<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
+    for Cards<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + iced_core::Renderer + iced_core::text::Renderer,
-    <Renderer as iced_core::Renderer>::Theme: std::clone::Clone
-        + LayeredTheme
-        + cosmic::widget::cosmic_container::StyleSheet
-        + StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         [&self.show_less_button, &self.clear_all_button]
@@ -237,14 +226,6 @@ where
         .collect();
 
         tree.diff_children(children.as_mut_slice());
-    }
-
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
     }
 
     #[allow(clippy::too_many_lines)]
@@ -360,7 +341,7 @@ where
         &self,
         state: &iced_core::widget::Tree,
         renderer: &mut Renderer,
-        theme: &<Renderer as iced_core::Renderer>::Theme,
+        theme: &cosmic::Theme,
         style: &iced_core::renderer::Style,
         layout: iced_core::Layout<'_>,
         cursor: iced_core::mouse::Cursor,
@@ -427,14 +408,16 @@ where
                 renderer.fill_quad(
                     Quad {
                         bounds: layout.bounds(),
-                        border_radius: BorderRadius::from([
-                            0.0,
-                            0.0,
-                            BG_CARD_BORDER_RADIUS,
-                            BG_CARD_BORDER_RADIUS,
-                        ]),
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
+                        border: Border {
+                            radius: Radius::from([
+                                BG_CARD_BORDER_RADIUS,
+                                BG_CARD_BORDER_RADIUS,
+                                0.0,
+                                0.0,
+                            ]),
+                            ..Default::default()
+                        },
+                        shadow: Shadow::default(),
                     },
                     if i == 0 {
                         appearance.card_1
@@ -547,9 +530,13 @@ where
 
         status
     }
+
+    fn size(&self) -> Size<Length> {
+        Size::new(self.width, Length::Shrink)
+    }
 }
 
-impl<'a, Message> From<Cards<'a, Message>> for Element<'a, Message, cosmic::Renderer>
+impl<'a, Message> From<Cards<'a, Message>> for Element<'a, Message, cosmic::Theme, cosmic::Renderer>
 where
     Message: Clone + 'a,
 {

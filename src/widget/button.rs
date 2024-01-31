@@ -1,6 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+use crate::reexports::{iced::Size, Theme};
 use crate::widget::StyleType;
 use iced_core::event::{self, Event};
 use iced_core::layout;
@@ -25,30 +26,28 @@ use super::button_blend_appearances;
 pub struct Button<'a, Message, Renderer>
 where
     Renderer: iced_core::renderer::Renderer,
-    Renderer::Theme: StyleSheet,
 {
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     width: Length,
     height: Length,
     padding: Padding,
-    style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
+    style: StyleType<<Theme as StyleSheet>::Style>,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
 where
     Renderer: iced_core::renderer::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Button {
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: StyleType::Static(<Renderer::Theme as StyleSheet>::Style::default()),
+            style: StyleType::Static(<Theme as StyleSheet>::Style::default()),
         }
     }
 
@@ -79,7 +78,7 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(mut self, style: <Renderer::Theme as StyleSheet>::Style) -> Self {
+    pub fn style(mut self, style: <Theme as StyleSheet>::Style) -> Self {
         self.style = StyleType::Static(style);
         self
     }
@@ -87,8 +86,8 @@ where
     /// Sets the animatable style variant of this [`Button`].
     pub fn blend_style(
         mut self,
-        style1: <Renderer::Theme as StyleSheet>::Style,
-        style2: <Renderer::Theme as StyleSheet>::Style,
+        style1: <Theme as StyleSheet>::Style,
+        style2: <Theme as StyleSheet>::Style,
         percent: f32,
     ) -> Self {
         self.style = StyleType::Blend(style1, style2, percent);
@@ -96,11 +95,10 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Button<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Button<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + iced_core::renderer::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -118,12 +116,8 @@ where
         tree.diff_children(std::slice::from_ref(&self.content));
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size::new(self.width, self.height)
     }
 
     fn layout(
@@ -201,7 +195,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         #[cfg(feature = "libcosmic")] style: &renderer::Style,
         #[cfg(not(feature = "libcosmic"))] _style: &renderer::Style,
         layout: Layout<'_>,
@@ -252,7 +246,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -261,11 +255,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::renderer::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     fn from(button: Button<'a, Message, Renderer>) -> Self {
         Self::new(button)
@@ -346,13 +341,10 @@ pub fn draw<'a, Renderer: iced_core::renderer::Renderer>(
     bounds: Rectangle,
     cursor_position: mouse::Cursor,
     is_enabled: bool,
-    style_sheet: &dyn StyleSheet<Style = <Renderer::Theme as StyleSheet>::Style>,
-    style: &StyleType<<Renderer::Theme as StyleSheet>::Style>,
+    style_sheet: &dyn StyleSheet<Style = <Theme as StyleSheet>::Style>,
+    style: &StyleType<<Theme as StyleSheet>::Style>,
     state: impl FnOnce() -> &'a State,
-) -> Appearance
-where
-    Renderer::Theme: StyleSheet,
-{
+) -> Appearance {
     let is_mouse_over = cursor_position.is_over(bounds);
 
     // todo disable blend if user has applied style.
@@ -391,7 +383,7 @@ where
         }
     };
 
-    if styling.background.is_some() || styling.border_width > 0.0 {
+    if styling.background.is_some() || styling.border.width > 0.0 {
         if styling.shadow_offset != Vector::default() {
             // TODO: Implement proper shadow support
             renderer.fill_quad(
@@ -401,9 +393,8 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
+                    border: styling.border,
+                    shadow: Default::default(),
                 },
                 Background::Color([0.0, 0.0, 0.0, 0.5].into()),
             );
@@ -412,9 +403,8 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius,
-                border_width: styling.border_width,
-                border_color: styling.border_color,
+                border: styling.border,
+                shadow: Default::default(),
             },
             styling
                 .background
@@ -436,11 +426,14 @@ pub fn layout<Renderer>(
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding));
+    let mut content = layout_content(renderer, &limits.shrink(padding));
     let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size()).pad(padding);
+    let size = limits
+        .shrink(padding)
+        .resolve(width, height, content.size())
+        .expand(padding);
 
-    content.move_to(Point::new(padding.left, padding.top));
+    content = content.move_to(Point::new(padding.left, padding.top));
 
     layout::Node::with_children(size, vec![content])
 }

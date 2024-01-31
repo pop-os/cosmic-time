@@ -1,6 +1,7 @@
 //! Decorate content and apply alignment.
 
-use crate::reexports::{iced_core, iced_style};
+use crate::reexports::{iced, iced_core, iced_style, Theme};
+use iced::Border;
 use iced_core::alignment::{self, Alignment};
 use iced_core::event::{self, Event};
 use iced_core::layout;
@@ -10,7 +11,7 @@ use iced_core::renderer;
 use iced_core::widget::{self, Operation, Tree};
 use iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Widget,
+    Shell, Size, Widget,
 };
 
 use crate::widget::StyleType;
@@ -26,7 +27,6 @@ use super::container_blend_appearances;
 pub struct Container<'a, Message, Renderer>
 where
     Renderer: iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
     padding: Padding,
@@ -36,19 +36,18 @@ where
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: StyleType<<Renderer::Theme as StyleSheet>::Style>,
-    content: Element<'a, Message, Renderer>,
+    style: StyleType<<Theme as StyleSheet>::Style>,
+    content: Element<'a, Message, Theme, Renderer>,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
 where
     Renderer: iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
     where
-        T: Into<Element<'a, Message, Renderer>>,
+        T: Into<Element<'a, Message, Theme, Renderer>>,
     {
         Container {
             id: None,
@@ -125,7 +124,7 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: impl Into<<Renderer::Theme as StyleSheet>::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<<Theme as StyleSheet>::Style>) -> Self {
         self.style = StyleType::Static(style.into());
         self
     }
@@ -136,8 +135,8 @@ where
     /// Where 0 is 100% style1 and 1 is 100% style2.
     pub fn blend_style(
         mut self,
-        style1: <Renderer::Theme as StyleSheet>::Style,
-        style2: <Renderer::Theme as StyleSheet>::Style,
+        style1: <Theme as StyleSheet>::Style,
+        style2: <Theme as StyleSheet>::Style,
         percent: f32,
     ) -> Self {
         self.style = StyleType::Blend(style1, style2, percent);
@@ -145,10 +144,9 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Container<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Container<'a, Message, Renderer>
 where
     Renderer: iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -158,12 +156,8 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size::new(self.width, self.height)
     }
 
     fn layout(
@@ -255,7 +249,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -288,7 +282,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -298,13 +292,12 @@ where
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + iced_core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(column)
     }
 }
@@ -329,18 +322,21 @@ pub fn layout<Renderer>(
         .width(width)
         .height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding).loose());
+    let mut content = layout_content(renderer, &limits.shrink(padding).loose());
     let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size());
+    let size = limits
+        .shrink(padding)
+        .resolve(width, height, content.size());
 
-    content.move_to(Point::new(padding.left, padding.top));
-    content.align(
-        Alignment::from(horizontal_alignment),
-        Alignment::from(vertical_alignment),
-        size,
-    );
+    content = content
+        .move_to(Point::new(padding.left, padding.top))
+        .align(
+            Alignment::from(horizontal_alignment),
+            Alignment::from(vertical_alignment),
+            size,
+        );
 
-    layout::Node::with_children(size.pad(padding), vec![content])
+    layout::Node::with_children(size.expand(padding), vec![content])
 }
 
 /// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.
@@ -351,13 +347,12 @@ pub fn draw_background<Renderer>(
 ) where
     Renderer: iced_core::Renderer,
 {
-    if appearance.background.is_some() || appearance.border_width > 0.0 {
+    if appearance.background.is_some() || appearance.border.width > 0.0 {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: appearance.border_radius,
-                border_width: appearance.border_width,
-                border_color: appearance.border_color,
+                border: appearance.border,
+                shadow: appearance.shadow,
             },
             appearance
                 .background
