@@ -1,7 +1,7 @@
 use crate::reexports::iced_core::{
     widget::Id as IcedId, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
-use crate::reexports::{iced_widget, Theme};
+use crate::reexports::iced_widget;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::Frame;
@@ -39,7 +39,7 @@ impl Id {
 
     /// Used by [`crate::anim!`] macro
     #[must_use]
-    pub fn as_iced_widget<'a, Message, Renderer>(
+    pub fn as_iced_widget<'a, Message, Theme, Renderer>(
         self,
         timeline: &crate::Timeline,
     ) -> iced_widget::Row<'a, Message, Theme, Renderer>
@@ -149,7 +149,7 @@ impl Row {
         }
     }
 
-    pub fn as_iced_widget<'a, Message, Renderer>(
+    pub fn as_iced_widget<'a, Message, Theme, Renderer>(
         id: Id,
         timeline: &crate::Timeline,
     ) -> iced_widget::Row<'a, Message, Theme, Renderer>
