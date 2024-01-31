@@ -22,6 +22,9 @@ libcosmic = ["dep:libcosmic"]
 members = [
     "examples/*"
 ]
+exclude = [
+    "examples/stopwatch"
+]
 
 [dependencies]
 iced = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", features = ["tokio"], optional = true }
