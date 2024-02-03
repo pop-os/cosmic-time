@@ -1,4 +1,5 @@
 //! Decorate content and apply alignment.
+use cosmic::cosmic_theme::LayeredTheme;
 use cosmic::iced_core::alignment::{self, Alignment};
 use cosmic::iced_core::event::{self, Event};
 use cosmic::iced_core::gradient::{ColorStop, Linear};
@@ -11,6 +12,7 @@ use cosmic::iced_core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
     Shell, Widget,
 };
+use cosmic::iced_style;
 
 use crate::utils::static_array_from_iter;
 use crate::widget::StyleType;
@@ -22,9 +24,11 @@ pub use cosmic::iced_style::container::{Appearance, StyleSheet};
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer = cosmic::iced::Renderer>
+pub struct Container<'a, Message, Theme, Renderer = cosmic::iced::Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet + LayeredTheme,
+    <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
 {
     id: Option<Id>,
     padding: Padding,
@@ -34,18 +38,20 @@ where
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: StyleType<<cosmic::Theme as StyleSheet>::Style>,
-    content: Element<'a, Message, cosmic::Theme, Renderer>,
+    style: StyleType<<Theme as StyleSheet>::Style>,
+    content: Element<'a, Message, Theme, Renderer>,
 }
 
-impl<'a, Message, Renderer> Container<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet + LayeredTheme,
+    <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
     where
-        T: Into<Element<'a, Message, cosmic::Theme, Renderer>>,
+        T: Into<Element<'a, Message, Theme, Renderer>>,
     {
         Container {
             id: None,
@@ -122,7 +128,7 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: impl Into<<cosmic::Theme as StyleSheet>::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<<Theme as StyleSheet>::Style>) -> Self {
         self.style = StyleType::Static(style.into());
         self
     }
@@ -130,8 +136,8 @@ where
     /// Sets the animatable style variant of this [`Container`].
     pub fn blend_style(
         mut self,
-        style1: <cosmic::Theme as StyleSheet>::Style,
-        style2: <cosmic::Theme as StyleSheet>::Style,
+        style1: <Theme as StyleSheet>::Style,
+        style2: <Theme as StyleSheet>::Style,
         percent: f32,
     ) -> Self {
         self.style = StyleType::Blend(style1, style2, percent);
@@ -139,10 +145,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
-    for Container<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Container<'a, Message, Theme, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet + LayeredTheme,
+    <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -241,7 +249,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &cosmic::Theme,
+        theme: &Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -276,7 +284,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, cosmic::Theme, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -298,15 +306,17 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
-    for Element<'a, Message, cosmic::Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Container<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + cosmic::iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet + LayeredTheme + 'a,
+    <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
 {
     fn from(
-        column: Container<'a, Message, Renderer>,
-    ) -> Element<'a, Message, cosmic::Theme, Renderer> {
+        column: Container<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(column)
     }
 }

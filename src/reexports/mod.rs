@@ -4,7 +4,7 @@
 mod libcosmic;
 #[cfg(feature = "libcosmic")]
 pub use self::libcosmic::{
-    iced, iced_core, iced_futures, iced_runtime, iced_style, iced_widget, Theme,
+    iced, iced_core, iced_futures, iced_runtime, iced_style, iced_widget, ButtonStyleSheet, Theme,
 };
 
 #[cfg(feature = "iced")]
@@ -13,4 +13,5 @@ mod _iced;
 #[cfg(feature = "iced")]
 pub use self::_iced::{
     iced, iced::Theme, iced_core, iced_futures, iced_runtime, iced_style, iced_widget,
+    ButtonStyleSheet,
 };

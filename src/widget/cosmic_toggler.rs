@@ -9,15 +9,16 @@ use iced_core::{
 
 use crate::{
     chain, id, lerp,
-    reexports::{iced, iced_core, iced_widget},
+    reexports::{iced, iced_core, iced_style, iced_widget},
 };
 pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
 #[allow(missing_debug_implementations)]
-pub struct Toggler<'a, Message, Renderer = cosmic::iced::Renderer>
+pub struct Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: iced_style::toggler::StyleSheet,
 {
     id: id::Toggler,
     is_toggled: bool,
@@ -31,14 +32,15 @@ where
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: <cosmic::Theme as StyleSheet>::Style,
+    style: <Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
 }
 
-impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: cosmic::iced_style::toggler::StyleSheet,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 24.0;
@@ -125,7 +127,7 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<<cosmic::Theme as StyleSheet>::Style>) -> Self {
+    pub fn style(mut self, style: impl Into<<Theme as StyleSheet>::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -139,10 +141,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
-    for Toggler<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: cosmic::iced_style::toggler::StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size::new(self.width, Length::Shrink)
@@ -255,7 +258,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &cosmic::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -352,15 +355,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
-    for Element<'a, Message, cosmic::Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
+    Theme: cosmic::iced_style::toggler::StyleSheet + 'a,
 {
     fn from(
-        toggler: Toggler<'a, Message, Renderer>,
-    ) -> Element<'a, Message, cosmic::Theme, Renderer> {
+        toggler: Toggler<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
     }
 }
