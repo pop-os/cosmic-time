@@ -1,4 +1,7 @@
-use crate::reexports::iced_core::{text, widget::Id as IcedId, Renderer as IcedRenderer};
+use crate::reexports::{
+    iced_core::{text, widget::Id as IcedId, Renderer as IcedRenderer},
+    iced_style,
+};
 
 use crate::keyframes::Repeat;
 use crate::timeline::Frame;
@@ -36,16 +39,17 @@ impl Id {
     }
 
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget<'a, Message, Renderer, F>(
+    pub fn as_widget<'a, Message, Theme, Renderer, F>(
         self,
         timeline: &crate::Timeline,
         label: impl Into<Option<String>>,
         is_toggled: bool,
         f: F,
-    ) -> crate::widget::Toggler<'a, Message, Renderer>
+    ) -> crate::widget::Toggler<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer + text::Renderer,
         F: 'a + Fn(Chain, bool) -> Message,
+        Theme: iced_style::toggler::StyleSheet,
     {
         Toggler::as_widget(self, timeline, label, is_toggled, f)
     }
@@ -184,16 +188,17 @@ impl Toggler {
         }
     }
 
-    pub fn as_widget<'a, Message, Renderer, F>(
+    pub fn as_widget<'a, Message, Theme, Renderer, F>(
         id: Id,
         timeline: &crate::Timeline,
         label: impl Into<Option<String>>,
         is_toggled: bool,
         f: F,
-    ) -> crate::widget::Toggler<'a, Message, Renderer>
+    ) -> crate::widget::Toggler<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer + text::Renderer,
         F: 'a + Fn(Chain, bool) -> Message,
+        Theme: iced_style::toggler::StyleSheet,
     {
         crate::widget::Toggler::new(id.clone(), label, is_toggled, f).percent(
             timeline

@@ -1,6 +1,6 @@
 //! Show toggle controls using togglers.
 
-use crate::reexports::{iced_core, iced_style, iced_widget, Theme};
+use crate::reexports::{iced_core, iced_style, iced_widget};
 use crate::utils::static_array_from_iter;
 use iced_core::alignment;
 use iced_core::event;
@@ -23,9 +23,10 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 /// A toggler widget.
 ///
 #[allow(missing_debug_implementations)]
-pub struct Toggler<'a, Message, Renderer>
+pub struct Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: iced_widget::toggler::StyleSheet,
 {
     id: id::Toggler,
     is_toggled: bool,
@@ -42,9 +43,10 @@ where
     anim_multiplier: f32,
 }
 
-impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: iced_widget::toggler::StyleSheet,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 20.0;
@@ -139,7 +141,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Toggler<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
     Theme: StyleSheet + widget::text::StyleSheet,
@@ -345,14 +348,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Theme: StyleSheet + widget::text::StyleSheet,
+    Theme: StyleSheet + widget::text::StyleSheet + 'a,
 {
-    fn from(toggler: Toggler<'a, Message, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(
+        toggler: Toggler<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
     }
 }

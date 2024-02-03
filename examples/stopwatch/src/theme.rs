@@ -9,8 +9,8 @@
  */
 
 use iced::widget::{button, container, text};
-use iced::Background as B;
-use iced::{application, color, Vector};
+use iced::{application, color, Shadow, Vector};
+use iced::{Background as B, Border};
 
 #[derive(Default)]
 pub struct Theme;
@@ -94,25 +94,34 @@ impl button::StyleSheet for Theme {
             Button::Primary => button::Appearance {
                 background: Some(color!(0x25, 0x63, 0xeb).into()),
                 text_color: color!(0x00, 0x00, 0x00),
-                border_radius: 10.0.into(),
-                border_width: 10.0,
                 shadow_offset: Vector::new(3., 3.),
-                border_color: color!(0x25, 0x63, 0xeb),
+                border: Border {
+                    radius: 10.0.into(),
+                    width: 10.0,
+                    color: color!(0x25, 0x63, 0xeb),
+                },
+                ..Default::default()
             },
             Button::Secondary => button::Appearance {
                 background: Some(color!(0x3c, 0x38, 0x36).into()),
-                border_radius: 10.0.into(),
+                border: Border {
+                    radius: 10.0.into(),
+                    ..Default::default()
+                },
                 shadow_offset: Vector::new(3., 3.),
                 text_color: color!(0xff, 0xff, 0xff),
                 ..Default::default()
             },
             Button::Destructive => button::Appearance {
                 background: Some(color!(0xdc, 0x26, 0x26).into()),
-                text_color: color!(0xff, 0xff, 0xff),
-                border_radius: 10.0.into(),
                 shadow_offset: Vector::new(5., 5.),
-                border_color: color!(0xdc, 0x26, 0x26),
-                border_width: 10.0,
+                text_color: color!(0xff, 0xff, 0xff),
+                border: Border {
+                    radius: 10.0.into(),
+                    color: color!(0xdc, 0x26, 0x26),
+                    width: 10.0,
+                },
+                shadow: Shadow::default(),
             },
             _ => panic!("This isn't a custom style exmaple, just skipping these for now"),
         }

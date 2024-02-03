@@ -21,14 +21,16 @@ use cosmic::iced_core::{
     Vector, Widget,
 };
 use cosmic::iced_renderer::core::widget::{operation, OperationOutputWrapper};
+use cosmic::widget::button::{Appearance, StyleSheet};
 
-pub use cosmic::iced_style::button::{Appearance, StyleSheet};
+// TODO update to match libcosmic implementation
 
 /// A generic widget that produces a message when pressed.
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer = cosmic::Renderer>
+pub struct Button<'a, Message, Theme, Renderer = cosmic::Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
+    Theme: StyleSheet,
 {
     id: Id,
     #[cfg(feature = "a11y")]
@@ -37,20 +39,21 @@ where
     description: Option<iced_accessibility::Description<'a>>,
     #[cfg(feature = "a11y")]
     label: Option<Vec<iced_accessibility::accesskit::NodeId>>,
-    content: Element<'a, Message, cosmic::Theme, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     width: Length,
     height: Length,
     padding: Padding,
-    style: StyleType<<cosmic::Theme as StyleSheet>::Style>,
+    style: StyleType<<Theme as StyleSheet>::Style>,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
     Renderer: cosmic::iced_core::Renderer,
+    Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, cosmic::Theme, Renderer>>) -> Self {
+    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Button {
             id: Id::unique(),
             #[cfg(feature = "a11y")]
@@ -64,7 +67,7 @@ where
             width: Length::Shrink,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: StyleType::Static(<cosmic::Theme as StyleSheet>::Style::default()),
+            style: StyleType::Static(<Theme as StyleSheet>::Style::default()),
         }
     }
 
@@ -95,7 +98,7 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(mut self, style: <cosmic::Theme as StyleSheet>::Style) -> Self {
+    pub fn style(mut self, style: <Theme as StyleSheet>::Style) -> Self {
         self.style = StyleType::Static(style);
         self
     }
@@ -103,8 +106,8 @@ where
     /// Sets the animatable style variant of this [`Button`].
     pub fn blend_style(
         mut self,
-        style1: <cosmic::Theme as StyleSheet>::Style,
-        style2: <cosmic::Theme as StyleSheet>::Style,
+        style1: <Theme as StyleSheet>::Style,
+        style2: <Theme as StyleSheet>::Style,
         percent: f32,
     ) -> Self {
         self.style = StyleType::Blend(style1, style2, percent);
@@ -148,11 +151,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
-    for Button<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Button<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + cosmic::iced_core::Renderer,
+    Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -252,7 +256,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &cosmic::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -261,7 +265,7 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
 
-        let styling = draw(
+        let styling = draw::<_, Theme>(
             renderer,
             bounds,
             cursor_position,
@@ -278,7 +282,7 @@ where
             &renderer::Style {
                 #[cfg(feature = "libcosmic")]
                 icon_color: styling.icon_color.unwrap_or(style.icon_color),
-                text_color: styling.text_color,
+                text_color: styling.text_color.unwrap_or(style.text_color),
                 scale_factor: style.scale_factor,
             },
             content_layout,
@@ -303,7 +307,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, cosmic::Theme, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -386,13 +390,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
-    for Element<'a, Message, cosmic::Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
     Renderer: cosmic::iced_core::Renderer + 'a,
+    Theme: StyleSheet + 'a,
 {
-    fn from(button: Button<'a, Message, Renderer>) -> Self {
+    fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
         Self::new(button)
     }
 }
@@ -513,46 +518,55 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: cosmic::iced_core::Renderer>(
+pub fn draw<'a, Renderer: cosmic::iced_core::Renderer, Theme: StyleSheet>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: mouse::Cursor,
     is_enabled: bool,
-    style_sheet: &dyn StyleSheet<Style = <cosmic::Theme as StyleSheet>::Style>,
-    style: &StyleType<<cosmic::Theme as StyleSheet>::Style>,
+    style_sheet: &dyn StyleSheet<Style = <Theme as StyleSheet>::Style>,
+    style: &StyleType<<Theme as StyleSheet>::Style>,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance {
     let is_mouse_over = cursor_position.is_over(bounds);
+
+    let state = state();
+
+    let focused = state.is_focused;
 
     let styling = match style {
         StyleType::Static(style) => {
             if !is_enabled {
                 style_sheet.disabled(style)
             } else if is_mouse_over {
-                let state = state();
-
                 if state.is_pressed {
-                    style_sheet.pressed(style)
+                    style_sheet.pressed(focused, style)
                 } else {
-                    style_sheet.hovered(style)
+                    style_sheet.hovered(focused, style)
                 }
             } else {
-                style_sheet.active(style)
+                style_sheet.active(focused, style)
             }
         }
         StyleType::Blend(style1, style2, percent) => {
             let (one, two) = if !is_enabled {
                 (style_sheet.disabled(style1), style_sheet.disabled(style2))
             } else if is_mouse_over {
-                let state = state();
-
                 if state.is_pressed {
-                    (style_sheet.pressed(style1), style_sheet.pressed(style2))
+                    (
+                        style_sheet.pressed(focused, style1),
+                        style_sheet.pressed(focused, style2),
+                    )
                 } else {
-                    (style_sheet.hovered(style1), style_sheet.hovered(style2))
+                    (
+                        style_sheet.hovered(focused, style1),
+                        style_sheet.hovered(focused, style2),
+                    )
                 }
             } else {
-                (style_sheet.active(style1), style_sheet.active(style2))
+                (
+                    style_sheet.active(focused, style1),
+                    style_sheet.active(focused, style2),
+                )
             };
 
             blend_appearances(one, two, *percent)
@@ -656,11 +670,7 @@ impl operation::Focusable for State {
     }
 }
 
-fn blend_appearances(
-    one: cosmic::iced_style::button::Appearance,
-    mut two: cosmic::iced_style::button::Appearance,
-    percent: f32,
-) -> cosmic::iced_style::button::Appearance {
+fn blend_appearances(one: Appearance, mut two: Appearance, percent: f32) -> Appearance {
     use crate::lerp;
 
     // shadow offet
@@ -731,13 +741,24 @@ fn blend_appearances(
     );
 
     // text
-    let text = static_array_from_iter::<f32, 4>(
-        one.text_color
-            .into_linear()
-            .iter()
-            .zip(two.text_color.into_linear().iter())
-            .map(|(o, t)| lerp(*o, *t, percent)),
-    );
+    let text = one
+        .text_color
+        .iter()
+        .zip(two.text_color.iter())
+        .map(|(c1, c2)| {
+            static_array_from_iter::<f32, 4>(
+                c1.into_linear()
+                    .iter()
+                    .zip(c2.into_linear().iter())
+                    .map(|(o, t)| lerp(*o, *t, percent)),
+            )
+        })
+        .next()
+        .or_else(|| {
+            one.text_color
+                .or(two.text_color)
+                .map(|c| static_array_from_iter::<f32, 4>(c.into_linear().into_iter()))
+        });
 
     let br1: [f32; 4] = one.border_radius.into();
     let br2: [f32; 4] = two.border_radius.into();
@@ -754,6 +775,6 @@ fn blend_appearances(
     two.border_radius = br.into();
     two.border_width = lerp(one.border_width, two.border_width, percent);
     two.border_color = border_color.into();
-    two.text_color = text.into();
+    two.text_color = text.map(|c| c.into());
     two
 }

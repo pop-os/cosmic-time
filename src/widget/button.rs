@@ -1,7 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-use crate::reexports::{iced::Size, Theme};
+use crate::reexports::iced::Size;
 use crate::widget::StyleType;
 use iced_core::event::{self, Event};
 use iced_core::layout;
@@ -23,9 +23,10 @@ use super::button_blend_appearances;
 /// A generic widget that produces a message when pressed.
 ///
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer>
+pub struct Button<'a, Message, Theme, Renderer>
 where
     Renderer: iced_core::renderer::Renderer,
+    Theme: iced_style::button::StyleSheet,
 {
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
@@ -35,9 +36,10 @@ where
     style: StyleType<<Theme as StyleSheet>::Style>,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
     Renderer: iced_core::renderer::Renderer,
+    Theme: iced_style::button::StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
@@ -95,10 +97,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Button<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Button<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + iced_core::renderer::Renderer,
+    Theme: iced_style::button::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -205,7 +209,7 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
 
-        let styling = draw(
+        let styling = draw::<_, Theme>(
             renderer,
             bounds,
             cursor_position,
@@ -255,14 +259,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
     Renderer: iced_core::renderer::Renderer + 'a,
-    Theme: StyleSheet,
+    Theme: StyleSheet + 'a,
 {
-    fn from(button: Button<'a, Message, Renderer>) -> Self {
+    fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
         Self::new(button)
     }
 }
@@ -336,7 +340,7 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: iced_core::renderer::Renderer>(
+pub fn draw<'a, Renderer: iced_core::renderer::Renderer, Theme: iced_style::button::StyleSheet>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor_position: mouse::Cursor,

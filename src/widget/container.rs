@@ -1,7 +1,6 @@
 //! Decorate content and apply alignment.
 
-use crate::reexports::{iced, iced_core, iced_style, Theme};
-use iced::Border;
+use crate::reexports::{iced, iced_core, iced_style};
 use iced_core::alignment::{self, Alignment};
 use iced_core::event::{self, Event};
 use iced_core::layout;
@@ -24,9 +23,10 @@ use super::container_blend_appearances;
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer>
+pub struct Container<'a, Message, Theme, Renderer>
 where
     Renderer: iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet,
 {
     id: Option<Id>,
     padding: Padding,
@@ -40,9 +40,10 @@ where
     content: Element<'a, Message, Theme, Renderer>,
 }
 
-impl<'a, Message, Renderer> Container<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
 where
     Renderer: iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
@@ -144,9 +145,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Container<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Container<'a, Message, Theme, Renderer>
 where
     Renderer: iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet,
 {
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -291,13 +294,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Container<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + iced_core::Renderer,
+    Theme: iced_style::container::StyleSheet + 'a,
 {
-    fn from(column: Container<'a, Message, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(
+        column: Container<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(column)
     }
 }

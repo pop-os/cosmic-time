@@ -1,8 +1,7 @@
 use crate::reexports::iced_core::{
     widget::Id as IcedId, Element, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
-use crate::reexports::iced_style::container::StyleSheet;
-use crate::reexports::{iced_widget, Theme};
+use crate::reexports::iced_style::{self, container::StyleSheet};
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{Frame, Interped};
@@ -38,15 +37,33 @@ impl Id {
         Chain::with_children(self, children)
     }
 
+    #[cfg(feature = "iced")]
     /// Used by [`crate::anim!`] macro
-    pub fn as_widget<'a, Message, Renderer>(
+    pub fn as_widget<'a, Message, Theme, Renderer>(
         self,
         style: fn(u8) -> <Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> crate::widget::Container<'a, Message, Renderer>
+    ) -> crate::widget::Container<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer,
+        Theme: StyleSheet,
+    {
+        StyleContainer::as_widget(self, style, timeline, content)
+    }
+
+    #[cfg(feature = "libcosmic")]
+    /// Used by [`crate::anim!`] macro
+    pub fn as_widget<'a, Message, Theme, Renderer>(
+        self,
+        style: fn(u8) -> <Theme as StyleSheet>::Style,
+        timeline: &crate::Timeline,
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> crate::widget::Container<'a, Message, Theme, Renderer>
+    where
+        Renderer: IcedRenderer,
+        Theme: StyleSheet + cosmic::cosmic_theme::LayeredTheme,
+        <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
     {
         StyleContainer::as_widget(self, style, timeline, content)
     }
@@ -159,14 +176,55 @@ impl StyleContainer {
 
     // Returns a cosmic-time container, not a default iced button. The difference shouldn't
     // matter to the end user. Though it is an implementation detail.
-    pub fn as_widget<'a, Message, Renderer>(
+    #[cfg(feature = "iced")]
+    pub fn as_widget<'a, Message, Theme, Renderer>(
         id: Id,
         style: fn(u8) -> <Theme as StyleSheet>::Style,
         timeline: &crate::Timeline,
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> crate::widget::Container<'a, Message, Renderer>
+    ) -> crate::widget::Container<'a, Message, Theme, Renderer>
     where
         Renderer: IcedRenderer,
+        Theme: StyleSheet,
+    {
+        let id: IcedId = id.into();
+
+        let container = crate::widget::Container::new(content)
+            .width(get_length(&id, timeline, 0, Length::Shrink))
+            .height(get_length(&id, timeline, 1, Length::Shrink))
+            .padding([
+                timeline.get(&id, 2).map_or(0., |m| m.value),
+                timeline.get(&id, 3).map_or(0., |m| m.value),
+                timeline.get(&id, 4).map_or(0., |m| m.value),
+                timeline.get(&id, 5).map_or(0., |m| m.value),
+            ])
+            .max_width(timeline.get(&id, 6).map_or(f32::INFINITY, |m| m.value))
+            .max_height(timeline.get(&id, 7).map_or(f32::INFINITY, |m| m.value));
+
+        if let Some(Interped {
+            previous,
+            next,
+            percent,
+            ..
+        }) = timeline.get(&id, 8)
+        {
+            container.blend_style(style(previous as u8), style(next as u8), percent)
+        } else {
+            container
+        }
+    }
+
+    #[cfg(feature = "libcosmic")]
+    pub fn as_widget<'a, Message, Theme, Renderer>(
+        id: Id,
+        style: fn(u8) -> <Theme as StyleSheet>::Style,
+        timeline: &crate::Timeline,
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> crate::widget::Container<'a, Message, Theme, Renderer>
+    where
+        Renderer: IcedRenderer,
+        Theme: StyleSheet + cosmic::cosmic_theme::LayeredTheme,
+        <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
     {
         let id: IcedId = id.into();
 
