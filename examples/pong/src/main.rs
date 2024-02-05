@@ -1,6 +1,7 @@
+use cosmic_time::reexports::iced_core::keyboard::key::Named;
 use cosmic_time::reexports::iced_futures::event::listen_raw;
 use iced::event;
-use iced::keyboard::{self, KeyCode};
+use iced::keyboard;
 
 use iced::widget::{column, container, row, Space};
 use iced::{executor, Application, Command, Event, Length, Settings, Subscription};
@@ -96,20 +97,23 @@ impl Application for Pong {
             self.timeline.as_subscription::<Event>().map(Message::Tick),
             listen_raw(|event, status| match (event, status) {
                 (
-                    Event::Keyboard(keyboard::Event::KeyPressed {
-                        key_code,
-                        modifiers: _,
-                    }),
+                    Event::Keyboard(keyboard::Event::KeyPressed { key, .. }),
                     event::Status::Ignored,
-                ) => match key_code {
-                    KeyCode::W => Some(Message::Paddle(Paddle::LeftUp)),
-                    KeyCode::S => Some(Message::Paddle(Paddle::LeftDown)),
-                    KeyCode::Up => Some(Message::Paddle(Paddle::RightUp)),
-                    KeyCode::Down => Some(Message::Paddle(Paddle::RightDown)),
+                ) => match key {
+                    keyboard::Key::Character(c) if c == "w" => {
+                        Some(Message::Paddle(Paddle::LeftUp))
+                    }
+                    keyboard::Key::Character(c) if c == "s" => {
+                        Some(Message::Paddle(Paddle::LeftDown))
+                    }
+                    keyboard::Key::Named(Named::ArrowUp) => Some(Message::Paddle(Paddle::RightUp)),
+                    keyboard::Key::Named(Named::ArrowDown) => {
+                        Some(Message::Paddle(Paddle::RightDown))
+                    }
                     _ => None,
                 },
                 (
-                    Event::Window(window::Event::Resized { width, height }),
+                    Event::Window(_, window::Event::Resized { width, height }),
                     event::Status::Ignored,
                 ) => Some(Message::WindowResized(width, height)),
                 _ => None,
