@@ -1,7 +1,7 @@
 use crate::reexports::iced_core::{
     widget::Id as IcedId, Element, Length, Padding, Pixels, Renderer as IcedRenderer,
 };
-use crate::reexports::iced_style::{self, container::StyleSheet};
+use crate::reexports::iced_style::container::StyleSheet;
 
 use crate::keyframes::{as_f32, get_length, Repeat};
 use crate::timeline::{Frame, Interped};
@@ -63,7 +63,8 @@ impl Id {
     where
         Renderer: IcedRenderer,
         Theme: StyleSheet + cosmic::cosmic_theme::LayeredTheme,
-        <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
+        <Theme as crate::reexports::iced_style::container::StyleSheet>::Style:
+            From<cosmic::theme::Container>,
     {
         StyleContainer::as_widget(self, style, timeline, content)
     }
@@ -224,7 +225,8 @@ impl StyleContainer {
     where
         Renderer: IcedRenderer,
         Theme: StyleSheet + cosmic::cosmic_theme::LayeredTheme,
-        <Theme as iced_style::container::StyleSheet>::Style: From<cosmic::theme::Container>,
+        <Theme as crate::reexports::iced_style::container::StyleSheet>::Style:
+            From<cosmic::theme::Container>,
     {
         let id: IcedId = id.into();
 
