@@ -12,17 +12,19 @@ use iced_core::{
     Point, Rectangle, Shell, Size, Widget,
 };
 
+use crate::theme::Theme;
+
 /// A simple widget that layers one above another.
 pub struct Layer<'a, Message, Renderer> {
-    base: Element<'a, Message, Renderer>,
-    layer: Element<'a, Message, Renderer>,
+    base: Element<'a, Message, Theme, Renderer>,
+    layer: Element<'a, Message, Theme, Renderer>,
 }
 
 impl<'a, Message, Renderer> Layer<'a, Message, Renderer> {
     /// Returns a new [`Layer`]
     pub fn new(
-        base: impl Into<Element<'a, Message, Renderer>>,
-        layer: impl Into<Element<'a, Message, Renderer>>,
+        base: impl Into<Element<'a, Message, Theme, Renderer>>,
+        layer: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         Self {
             base: base.into(),
@@ -31,7 +33,7 @@ impl<'a, Message, Renderer> Layer<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Layer<'a, Message, Renderer>
+impl<'a, Message, Renderer> Widget<Message, Theme, Renderer> for Layer<'a, Message, Renderer>
 where
     Renderer: iced_core::Renderer,
     Message: Clone,
@@ -44,12 +46,8 @@ where
         tree.diff_children(&[&self.base, &self.layer]);
     }
 
-    fn width(&self) -> Length {
-        self.base.as_widget().width()
-    }
-
-    fn height(&self) -> Length {
-        self.base.as_widget().height()
+    fn size(&self) -> Size<Length> {
+        self.base.as_widget().size()
     }
 
     fn layout(
@@ -90,7 +88,7 @@ where
         &self,
         state: &Tree,
         renderer: &mut Renderer,
-        theme: &<Renderer as iced_core::Renderer>::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -112,7 +110,7 @@ where
         state: &'b mut Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         Some(overlay::Element::new(
             layout.position(),
             Box::new(Overlay {
@@ -154,12 +152,12 @@ where
 }
 
 struct Overlay<'a, 'b, Message, Renderer> {
-    content: &'b mut Element<'a, Message, Renderer>,
+    content: &'b mut Element<'a, Message, Theme, Renderer>,
     tree: &'b mut Tree,
     size: Size,
 }
 
-impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Renderer>
+impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'a, 'b, Message, Renderer>
 where
     Renderer: iced_core::Renderer,
@@ -180,10 +178,7 @@ where
             .content
             .as_widget()
             .layout(&mut self.tree.children[0], renderer, &limits);
-        let mut node = layout::Node::with_children(self.size, vec![child]);
-        node.move_to(position);
-
-        node
+        layout::Node::with_children(self.size, vec![child]).move_to(position)
     }
 
     fn on_event(
@@ -210,7 +205,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -218,9 +213,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: layout.bounds(),
-                border_radius: iced_core::BorderRadius::from(0.0),
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
+                ..Default::default()
             },
             Color {
                 a: 0.,
@@ -270,7 +263,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Layer<'a, Message, Renderer>> for Element<'a, Message, Renderer>
+impl<'a, Message, Renderer> From<Layer<'a, Message, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: 'a + iced_core::Renderer,
     Message: 'a + Clone,

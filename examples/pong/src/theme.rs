@@ -1,4 +1,5 @@
 use cosmic_time::reexports::iced;
+use cosmic_time::reexports::iced_core::Border;
 use iced::widget::{container, text};
 use iced::{application, color};
 
@@ -49,7 +50,10 @@ impl container::StyleSheet for Theme {
             },
             Container::Ball => container::Appearance {
                 background: Some(color!(0xff, 0xff, 0xff).into()),
-                border_radius: 100000.0.into(),
+                border: Border {
+                    radius: 100000.0.into(),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
         }
@@ -62,7 +66,7 @@ pub mod widget {
 
     use crate::theme::Theme;
 
-    pub type Renderer = iced::Renderer<Theme>;
-    pub type Element<'a, Message> = iced::Element<'a, Message, Renderer>;
+    pub type Renderer = iced::Renderer;
+    pub type Element<'a, Message> = iced::Element<'a, Message, Theme, Renderer>;
     pub type Container<'a, Message> = iced::widget::Container<'a, Message, Renderer>;
 }
