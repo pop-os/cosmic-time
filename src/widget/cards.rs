@@ -1,10 +1,9 @@
 //! An expandable stack of cards
 use self::iced_core::{
-    border::Radius, event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, Color,
-    Element, Length, Size, Vector, Widget,
+    border::Radius, event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, Element,
+    Length, Size, Vector, Widget,
 };
 use cosmic::{
-    cosmic_theme::LayeredTheme,
     iced_core::{self, Border, Shadow},
     widget::{button, card::style::StyleSheet, column, icon, icon::Handle, row, text},
 };
@@ -130,7 +129,8 @@ where
                 )
             },
             clear_all_button: Element::from(
-                button::text(clear_all_label)
+                button(text(clear_all_label))
+                    .style(cosmic::theme::Button::Text)
                     .width(Length::Shrink)
                     .on_press(on_clear_all)
                     .padding([PADDING / 2, PADDING]),
@@ -410,10 +410,10 @@ where
                         bounds: layout.bounds(),
                         border: Border {
                             radius: Radius::from([
-                                BG_CARD_BORDER_RADIUS,
-                                BG_CARD_BORDER_RADIUS,
                                 0.0,
                                 0.0,
+                                BG_CARD_BORDER_RADIUS,
+                                BG_CARD_BORDER_RADIUS,
                             ]),
                             ..Default::default()
                         },
