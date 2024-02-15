@@ -106,7 +106,8 @@ where
                 if let Some(source) = show_less_icon {
                     show_less_children.push(icon(source).size(ICON_SIZE).into());
                 }
-                show_less_children.push(text(show_less_label).width(Length::Shrink).into());
+                show_less_children
+                    .push(text(show_less_label).size(14).width(Length::Shrink).into());
                 show_less_children.push(
                     icon::from_name("pan-up-symbolic")
                         .size(ICON_SIZE)
@@ -129,7 +130,7 @@ where
                 )
             },
             clear_all_button: Element::from(
-                button(text(clear_all_label))
+                button(text(clear_all_label).size(14))
                     .style(cosmic::theme::Button::Text)
                     .width(Length::Shrink)
                     .on_press(on_clear_all)
