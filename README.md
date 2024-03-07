@@ -110,7 +110,7 @@ fn update(&mut self, message: Message) -> Command<Message> {
 
 5. Show the widget in your `view()`!
 ```rust
-anim!(CONTIANER, &self.timeline, contents)
+anim!(CONTAINER, &self.timeline, contents)
 ```
 
 All done!
