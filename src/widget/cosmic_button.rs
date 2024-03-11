@@ -539,12 +539,12 @@ pub fn draw<'a, Renderer: cosmic::iced_core::Renderer, Theme: StyleSheet>(
                 style_sheet.disabled(style)
             } else if is_mouse_over {
                 if state.is_pressed {
-                    style_sheet.pressed(focused, style)
+                    style_sheet.pressed(focused, false, style)
                 } else {
-                    style_sheet.hovered(focused, style)
+                    style_sheet.hovered(focused, focused, style)
                 }
             } else {
-                style_sheet.active(focused, style)
+                style_sheet.active(focused, focused, style)
             }
         }
         StyleType::Blend(style1, style2, percent) => {
@@ -553,19 +553,19 @@ pub fn draw<'a, Renderer: cosmic::iced_core::Renderer, Theme: StyleSheet>(
             } else if is_mouse_over {
                 if state.is_pressed {
                     (
-                        style_sheet.pressed(focused, style1),
-                        style_sheet.pressed(focused, style2),
+                        style_sheet.pressed(focused, false, style1),
+                        style_sheet.pressed(focused, false, style2),
                     )
                 } else {
                     (
-                        style_sheet.hovered(focused, style1),
-                        style_sheet.hovered(focused, style2),
+                        style_sheet.hovered(focused, false, style1),
+                        style_sheet.hovered(focused, false, style2),
                     )
                 }
             } else {
                 (
-                    style_sheet.active(focused, style1),
-                    style_sheet.active(focused, style2),
+                    style_sheet.active(focused, false, style1),
+                    style_sheet.active(focused, false, style2),
                 )
             };
 
