@@ -200,7 +200,7 @@ where
                     layout::Node::new(iced_core::Size::ZERO)
                 }
             },
-            |_| layout::Node::new(iced_core::Size::new(2.0 * self.size, self.size)),
+            |_| layout::Node::new(Size::new(48., 24.)),
         )
     }
 
@@ -305,25 +305,23 @@ where
             )
         };
 
-        let border_radius = bounds.height / BORDER_RADIUS_RATIO;
-        let space = SPACE_RATIO * bounds.height;
+        let space = style.handle_margin;
 
         let toggler_background_bounds = Rectangle {
-            x: bounds.x + space,
-            y: bounds.y + space,
-            width: bounds.width - (2.0 * space),
-            height: bounds.height - (2.0 * space),
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
         };
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_background_bounds,
                 border: Border {
-                    width: 1.0,
-                    color: style.background_border.unwrap_or(style.background),
-                    radius: border_radius.into(),
+                    radius: style.border_radius,
+                    ..Default::default()
                 },
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             style.background,
         );
@@ -331,24 +329,24 @@ where
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
                 + lerp(
-                    2.0 * space,
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space)),
+                    space,
+                    bounds.width - space - (bounds.height - (2.0 * space)),
                     self.percent,
                 ),
-            y: bounds.y + (2.0 * space),
-            width: bounds.height - (4.0 * space),
-            height: bounds.height - (4.0 * space),
+
+            y: bounds.y + space,
+            width: bounds.height - (2.0 * space),
+            height: bounds.height - (2.0 * space),
         };
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_foreground_bounds,
                 border: Border {
-                    width: 1.0,
-                    color: style.foreground_border.unwrap_or(style.foreground),
-                    radius: border_radius.into(),
+                    radius: style.handle_radius,
+                    ..Default::default()
                 },
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             style.foreground,
         );
