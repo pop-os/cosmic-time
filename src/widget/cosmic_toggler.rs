@@ -185,6 +185,7 @@ where
                         self.text_alignment,
                         alignment::Vertical::Top,
                         self.text_shaping,
+                        cosmic::iced_core::text::Wrap::default(),
                     );
                     match self.width {
                         Length::Fill => {
