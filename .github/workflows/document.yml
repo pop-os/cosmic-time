@@ -36,3 +36,4 @@ jobs:
         deploy_key: ${{ secrets.DOCS_DEPLOY_KEY }}
         external_repository: iced-rs/docs
         publish_dir: ./target/doc
+        force_orphan: true
