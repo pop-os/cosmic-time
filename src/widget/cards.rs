@@ -106,8 +106,7 @@ where
                 if let Some(source) = show_less_icon {
                     show_less_children.push(icon(source).size(ICON_SIZE).into());
                 }
-                show_less_children
-                    .push(text(show_less_label).size(14).width(Length::Shrink).into());
+                show_less_children.push(text::body(show_less_label).width(Length::Shrink).into());
                 show_less_children.push(
                     icon::from_name("pan-up-symbolic")
                         .size(ICON_SIZE)
@@ -122,7 +121,7 @@ where
                     .width(Length::Shrink);
 
                 Element::from(
-                    button(button_content)
+                    button::custom(button_content)
                         .style(cosmic::theme::Button::Text)
                         .width(Length::Shrink)
                         .on_press(on_show_more(off_animation, false))
@@ -130,7 +129,7 @@ where
                 )
             },
             clear_all_button: Element::from(
-                button(text(clear_all_label).size(14))
+                button::custom(text::body(clear_all_label))
                     .style(cosmic::theme::Button::Text)
                     .width(Length::Shrink)
                     .on_press(on_clear_all)
@@ -143,7 +142,7 @@ where
                     let custom_content = if i == 0 && !expanded && can_show_more {
                         column::with_capacity(2)
                             .push(w)
-                            .push(text(show_more_label).size(10))
+                            .push(text::caption(show_more_label))
                             .spacing(VERTICAL_SPACING)
                             .align_items(iced_core::Alignment::Center)
                             .into()
