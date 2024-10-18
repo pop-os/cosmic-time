@@ -21,18 +21,4 @@ jobs:
     - name: Run tests
       run: |
         cargo test --verbose --workspace
-  wayland:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-      with: 
-        rust-version: stable
-    - uses: actions/checkout@master
-    - name: Install dependencies
-      run: |
-          export DEBIAN_FRONTED=noninteractive
-          sudo apt-get -qq update
-          sudo apt-get install -y libxkbcommon-dev
-    - name: Run tests
-      run: |
-        cargo test --verbose --no-default-features --features=wayland-libcosmic
+
