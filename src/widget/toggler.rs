@@ -18,7 +18,7 @@ use iced_core::{
 
 use crate::{chain, id, lerp};
 
-pub use iced_style::toggler::{Appearance, StyleSheet};
+pub use iced_widget::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
 ///
@@ -26,7 +26,7 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 pub struct Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: iced_widget::toggler::StyleSheet,
+    Theme: iced_widget::toggler::Catalog,
 {
     id: id::Toggler,
     is_toggled: bool,
@@ -46,7 +46,7 @@ where
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: iced_widget::toggler::StyleSheet,
+    Theme: iced_widget::toggler::Catalog,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 20.0;
@@ -145,7 +145,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: StyleSheet + widget::text::StyleSheet,
+    Theme: StyleSheet + widget::text::Catalog,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -274,7 +274,7 @@ where
                 style,
                 label_layout,
                 tree.state.downcast_ref(),
-                iced_widget::text::Appearance::default(),
+                iced_widget::text::Style::default(),
                 viewport,
             );
         }
@@ -353,7 +353,7 @@ impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Theme: StyleSheet + widget::text::StyleSheet + 'a,
+    Theme: StyleSheet + widget::text::Catalog + 'a,
 {
     fn from(
         toggler: Toggler<'a, Message, Theme, Renderer>,
@@ -363,10 +363,10 @@ where
 }
 
 fn blend_appearances(
-    one: iced_style::toggler::Appearance,
-    mut two: iced_style::toggler::Appearance,
+    one: iced_widget::toggler::Appearance,
+    mut two: iced_widget::toggler::Appearance,
     percent: f32,
-) -> iced_style::toggler::Appearance {
+) -> iced_widget::toggler::Appearance {
     if percent == 0. {
         one
     } else if percent == 1. {

@@ -2,7 +2,6 @@
 
 //! Utility functions for handling data in this library.
 
-#[cfg(feature = "libcosmic")]
 use crate::reexports::iced_core::{
     layout::{Limits, Node},
     Point, Size,
@@ -23,7 +22,6 @@ pub fn static_array_from_iter<T: Copy + Default, const SIZE: usize>(
     array
 }
 
-#[cfg(feature = "libcosmic")]
 /// Produces a [`Node`] with two children nodes one right next to each other.
 pub fn next_to_each_other(
     limits: &Limits,

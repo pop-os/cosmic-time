@@ -5,7 +5,13 @@ use self::iced_core::{
 };
 use cosmic::{
     iced_core::{self, Border, Shadow},
-    widget::{button, card::style::StyleSheet, column, icon, icon::Handle, row, text},
+    widget::{
+        button,
+        card::style::{Catalog, Style},
+        column, icon,
+        icon::Handle,
+        row, text,
+    },
 };
 use float_cmp::approx_eq;
 
@@ -116,21 +122,21 @@ where
                 let off_animation = chain::Cards::off(id.clone(), 1.0);
 
                 let button_content = row::with_children(show_less_children)
-                    .align_items(iced_core::Alignment::Center)
+                    .align_y(iced_core::Alignment::Center)
                     .spacing(TOP_SPACING)
                     .width(Length::Shrink);
 
                 Element::from(
                     button::custom(button_content)
-                        .style(cosmic::theme::Button::Text)
+                        .class(cosmic::theme::Button::Text)
                         .width(Length::Shrink)
                         .on_press(on_show_more(off_animation, false))
                         .padding([PADDING / 2, PADDING]),
                 )
             },
             clear_all_button: Element::from(
-                button::custom(text::body(clear_all_label))
-                    .style(cosmic::theme::Button::Text)
+                button::custom(text(clear_all_label))
+                    .class(cosmic::theme::Button::Text)
                     .width(Length::Shrink)
                     .on_press(on_clear_all)
                     .padding([PADDING / 2, PADDING]),
@@ -144,14 +150,14 @@ where
                             .push(w)
                             .push(text::caption(show_more_label))
                             .spacing(VERTICAL_SPACING)
-                            .align_items(iced_core::Alignment::Center)
+                            .align_x(iced_core::Alignment::Center)
                             .into()
                     } else {
                         w
                     };
 
                     let b = cosmic::iced::widget::button(custom_content)
-                        .style(cosmic::theme::iced::Button::Card)
+                        .class(cosmic::theme::iced::Button::Card)
                         .padding(PADDING);
                     if i == 0 && !expanded && can_show_more {
                         let on_animation = chain::Cards::on(id.clone(), 1.0);
@@ -402,7 +408,7 @@ where
         // Draw first to appear behind
         if fully_unexpanded {
             let card_layout = layout.next().unwrap();
-            let appearance = theme.default();
+            let appearance = Style::default();
             let bg_layout = layout.collect::<Vec<_>>();
             for (i, layout) in (0..2).zip(bg_layout.into_iter()).rev() {
                 renderer.fill_quad(
