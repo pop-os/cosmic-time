@@ -1,9 +1,6 @@
 mod imports {
     pub use cosmic::iced::time::{Duration, Instant};
-    pub use cosmic::iced_core::{
-        event::{self, Event},
-        widget, Hasher,
-    };
+    pub use cosmic::iced_core::widget;
     pub use cosmic::iced_futures::subscription::Subscription;
 }
 
@@ -574,8 +571,6 @@ impl Timeline {
     /// Efficiently request redraws for animations.
     /// Automatically checks if animations are in a state where redraws arn't necessary.
     pub fn as_subscription(&self) -> Subscription<(cosmic::iced::window::Id, Instant)> {
-        use cosmic::iced;
-
         if self.is_idle() {
             Subscription::none()
         } else {

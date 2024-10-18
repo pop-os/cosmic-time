@@ -5,13 +5,7 @@ use self::iced_core::{
 };
 use cosmic::{
     iced_core::{self, Border, Shadow},
-    widget::{
-        button,
-        card::style::{Catalog, Style},
-        column, icon,
-        icon::Handle,
-        row, text,
-    },
+    widget::{button, card::style::Style, column, icon, icon::Handle, row, text},
 };
 use float_cmp::approx_eq;
 
