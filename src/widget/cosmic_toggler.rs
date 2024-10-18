@@ -1,6 +1,6 @@
 //! Show toggle controls using togglers.
 
-use cosmic::iced_core::Border;
+use cosmic::{iced_core::Border, iced_widget::toggler::Status};
 use iced_core::{
     alignment, event, layout, mouse, renderer, text,
     widget::{self, tree, Tree},
@@ -9,16 +9,15 @@ use iced_core::{
 
 use crate::{
     chain, id, lerp,
-    reexports::{iced, iced_core, iced_style, iced_widget},
+    reexports::{iced, iced_core, iced_widget},
 };
-pub use cosmic::iced_style::toggler::{Appearance, StyleSheet};
+pub use cosmic::iced_widget::toggler::{Catalog, Style};
 
 /// A toggler widget.
 #[allow(missing_debug_implementations)]
-pub struct Toggler<'a, Message, Theme, Renderer>
+pub struct Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: iced_style::toggler::StyleSheet,
 {
     id: id::Toggler,
     is_toggled: bool,
@@ -32,15 +31,13 @@ where
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: <Theme as StyleSheet>::Style,
     percent: f32,
     anim_multiplier: f32,
 }
 
-impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
+impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: cosmic::iced_style::toggler::StyleSheet,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 24.0;
@@ -70,7 +67,6 @@ where
             text_shaping: text::Shaping::Advanced,
             spacing: 0.0,
             font: None,
-            style: Default::default(),
             percent: if is_toggled { 1.0 } else { 0.0 },
             anim_multiplier: 1.0,
         }
@@ -126,12 +122,6 @@ where
         self
     }
 
-    /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<<Theme as StyleSheet>::Style>) -> Self {
-        self.style = style.into();
-        self
-    }
-
     /// The percent completion of the toggler animation.
     /// This is indented to automated cosmic-time use, and shouldn't
     /// need to be called manually.
@@ -141,11 +131,10 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Toggler<'a, Message, Theme, Renderer>
+impl<'a, Message, Renderer> Widget<Message, cosmic::Theme, Renderer>
+    for Toggler<'a, Message, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: cosmic::iced_style::toggler::StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size::new(self.width, Length::Shrink)
@@ -185,7 +174,7 @@ where
                         self.text_alignment,
                         alignment::Vertical::Top,
                         self.text_shaping,
-                        cosmic::iced_core::text::Wrap::default(),
+                        cosmic::iced_core::text::Wrapping::default(),
                     );
                     match self.width {
                         Length::Fill => {
@@ -259,30 +248,23 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Theme,
+        theme: &cosmic::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        /// Makes sure that the border radius of the toggler looks good at every size.
-        const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
-
-        /// The space ratio between the background Quad and the Toggler bounds, and
-        /// between the background Quad and foreground Quad.
-        const SPACE_RATIO: f32 = 0.05;
-
         let mut children = layout.children();
 
         if let Some(_label) = &self.label {
             let label_layout = children.next().unwrap();
-
+            let state: &iced_widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
             iced_widget::text::draw(
                 renderer,
                 style,
                 label_layout,
-                tree.state.downcast_ref(),
-                iced_widget::text::Appearance::default(),
+                state.0.raw(),
+                iced_widget::text::Style::default(),
                 viewport,
             );
         }
@@ -292,19 +274,25 @@ where
 
         let is_mouse_over = cursor_position.is_over(bounds);
 
-        let style = if is_mouse_over {
-            blend_appearances(
-                theme.hovered(&self.style, false),
-                theme.hovered(&self.style, true),
-                self.percent,
-            )
-        } else {
-            blend_appearances(
-                theme.active(&self.style, false),
-                theme.active(&self.style, true),
-                self.percent,
-            )
-        };
+        let style = blend_appearances(
+            theme.style(
+                &(),
+                if is_mouse_over {
+                    Status::Hovered { is_toggled: false }
+                } else {
+                    Status::Active { is_toggled: false }
+                },
+            ),
+            theme.style(
+                &(),
+                if is_mouse_over {
+                    Status::Hovered { is_toggled: true }
+                } else {
+                    Status::Active { is_toggled: true }
+                },
+            ),
+            self.percent,
+        );
 
         let space = style.handle_margin;
 
@@ -354,21 +342,20 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
+    for Element<'a, Message, cosmic::Theme, Renderer>
 where
     Message: 'a,
     Renderer: 'a + text::Renderer,
-    Theme: cosmic::iced_style::toggler::StyleSheet + 'a,
 {
     fn from(
-        toggler: Toggler<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+        toggler: Toggler<'a, Message, Renderer>,
+    ) -> Element<'a, Message, cosmic::Theme, Renderer> {
         Element::new(toggler)
     }
 }
 
-fn blend_appearances(first: Appearance, mut other: Appearance, percent: f32) -> Appearance {
+fn blend_appearances(first: Style, mut other: Style, percent: f32) -> Style {
     if percent == 0. {
         first
     } else if percent == 1. {

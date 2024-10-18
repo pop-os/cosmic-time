@@ -1,4 +1,3 @@
-#[cfg(feature = "libcosmic")]
 mod imports {
     pub use cosmic::iced::time::{Duration, Instant};
     pub use cosmic::iced_core::{
@@ -6,12 +5,6 @@ mod imports {
         widget, Hasher,
     };
     pub use cosmic::iced_futures::subscription::Subscription;
-}
-#[cfg(not(feature = "libcosmic"))]
-mod imports {
-    pub use iced::time::{Duration, Instant};
-    pub use iced_core::{event, widget, Event, Hasher};
-    pub use iced_futures::subscription::Subscription;
 }
 
 use imports::{widget, Duration, Instant, Subscription};
@@ -567,27 +560,26 @@ impl Timeline {
             }))
     }
 
-    /// Efficiently request redraws for animations.
-    /// Automatically checks if animations are in a state where redraws arn't necessary.
-    #[cfg(not(feature = "libcosmic"))]
-    pub fn as_subscription<Event>(&self) -> Subscription<Instant> {
-        if self.is_idle() {
-            Subscription::none()
-        } else {
-            iced::window::frames()
-        }
-    }
+    // /// Efficiently request redraws for animations.
+    // /// Automatically checks if animations are in a state where redraws arn't necessary.
+    // #[cfg(not(feature = "libcosmic"))]
+    // pub fn as_subscription<Event>(&self) -> Subscription<Instant> {
+    //     if self.is_idle() {
+    //         Subscription::none()
+    //     } else {
+    //         iced::window::frames()
+    //     }
+    // }
 
     /// Efficiently request redraws for animations.
     /// Automatically checks if animations are in a state where redraws arn't necessary.
-    #[cfg(feature = "libcosmic")]
     pub fn as_subscription(&self) -> Subscription<(cosmic::iced::window::Id, Instant)> {
         use cosmic::iced;
 
         if self.is_idle() {
             Subscription::none()
         } else {
-            iced::window::frames() // ~120FPS
+            cosmic::iced_runtime::window::frames() // ~120FPS
         }
     }
 }

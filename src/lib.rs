@@ -144,17 +144,10 @@ pub mod widget;
 mod keyframes;
 mod utils;
 
-#[cfg(feature = "libcosmic")]
-pub use crate::keyframes::cards;
-pub use crate::keyframes::{
-    button, chain, column, container, id, lazy, row, space, style_button, style_container, toggler,
-};
+pub use crate::keyframes::{cards, chain, id, lazy, toggler};
 pub use crate::timeline::{Chain, Timeline};
 
-#[cfg(feature = "libcosmic")]
 pub use cosmic::iced::time::{Duration, Instant};
-#[cfg(not(feature = "libcosmic"))]
-pub use iced::time::{Duration, Instant};
 
 #[cfg(feature = "once_cell")]
 pub use once_cell;

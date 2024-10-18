@@ -2,48 +2,28 @@
 name = "cosmic-time"
 version = "0.4.0"
 edition = "2021"
-description = "An animation Crate for Iced and Cosmic DE"
+description = "An animation Crate for libcosmic and Cosmic DE"
 authors = ["Brock Szuszczewicz <brock@szu.email>"]
 license = "MIT"
 repository = "https://github.com/pop-os/cosmic-time"
 documentation = "https://docs.rs/cosmic-time"
-keywords = ["gui", "animation", "interface", "widgets", "iced"]
+keywords = ["gui", "animation", "interface", "widgets", "libcosmic"]
 categories = ["gui"]
 
 [features]
-default = ["iced"]
-iced = [
-    "dep:iced",
-    "dep:iced_runtime",
-    "dep:iced_widget",
-    "dep:iced_futures",
-    "dep:iced_core",
-    "dep:iced_style",
-]
 once_cell = ["dep:once_cell"]
-wayland-libcosmic = ["libcosmic", "libcosmic/wayland"]
-winit-libcosmic = ["libcosmic", "libcosmic/winit"]
-libcosmic = ["dep:libcosmic"]
 
 [workspace]
-members = ["examples/*"]
+members = []
 
 [dependencies]
-iced = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", features = [
-    "tokio",
-], optional = true }
-iced_runtime = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", optional = true }
-iced_widget = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", optional = true }
-iced_futures = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", optional = true }
-iced_core = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", optional = true }
-iced_style = { git = "https://github.com/iced-rs/iced", rev = "5540ac0", optional = true }
 libcosmic = { git = "https://github.com/pop-os/libcosmic/", default-features = false, features = [
     "tokio",
-], optional = true }
+] }
 once_cell = { version = "1.18.0", optional = true }
 float-cmp = "0.9"
 
 # [patch.'https://github.com/pop-os/libcosmic']
-# libcosmic = { path = "../libcosmic" }
-# cosmic-config = { path = "../libcosmic/cosmic-config" }
-# cosmic-theme = { path = "../libcosmic/cosmic-theme" }
+# libcosmic = { path = "../fork/libcosmic" }
+# cosmic-config = { path = "../fork/libcosmic/cosmic-config" }
+# cosmic-theme = { path = "../fork/libcosmic/cosmic-theme" }
