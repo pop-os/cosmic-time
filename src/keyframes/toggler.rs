@@ -155,7 +155,6 @@ impl From<Chain> for crate::timeline::Chain {
 
 #[must_use = "Keyframes are intended to be used in an animation chain."]
 #[derive(Debug, Clone, Copy)]
-///
 pub struct Toggler {
     at: MovementType,
     ease: Ease,

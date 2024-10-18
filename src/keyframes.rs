@@ -2,17 +2,12 @@ mod cards;
 mod helpers;
 mod toggler;
 
-use crate::reexports::iced_core::{widget, Length};
-
 pub use cards::Cards;
 pub use helpers::cards;
 pub use helpers::id;
 pub use helpers::lazy;
 pub use helpers::{chain, toggler};
 pub use toggler::Toggler;
-
-use crate::Timeline;
-
 /// The macro used to cleanly and efficently build an animation chain.
 /// Works for ann Id's that implement `into_chain` and `into_chain_with_children`
 #[macro_export]
@@ -38,21 +33,4 @@ pub enum Repeat {
     #[default]
     Never,
     Forever,
-}
-
-pub trait IsChain {
-    fn repeat(&self) -> Repeat;
-}
-
-pub fn get_length(id: &widget::Id, timeline: &Timeline, index: usize, default: Length) -> Length {
-    timeline
-        .get(id, index)
-        .map_or(default, |m| Length::Fixed(m.value))
-}
-
-fn as_f32(length: Option<Length>) -> Option<f32> {
-    match length {
-        Some(Length::Fixed(i)) => Some(i),
-        _ => None,
-    }
 }

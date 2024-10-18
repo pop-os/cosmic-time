@@ -1,7 +1,4 @@
 #![allow(clippy::too_many_arguments)]
-
-use crate::{reexports::iced_core, utils::static_array_from_iter};
-
 pub mod cards;
 pub mod cosmic_toggler;
 
@@ -17,8 +14,3 @@ pub enum StyleType<T> {
     /// The stlye is being animated. Blend between the two values.
     Blend(T, T, f32),
 }
-
-use self::iced_core::{
-    gradient::{ColorStop, Linear},
-    Background, Color, Gradient, Radians, Vector,
-};
