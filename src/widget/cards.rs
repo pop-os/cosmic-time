@@ -293,7 +293,7 @@ where
                 let mut n = clear_all
                     .as_widget()
                     .layout(&mut tree_children[1], renderer, limits);
-                let clear_all_node_size = clear_all_node.size();
+                let clear_all_node_size = n.size();
                 n = clear_all_node
                     .translate(Vector::new(size.width - clear_all_node_size.width, 0.0));
                 size.height += show_less_node.size().height.max(n.size().height) + VERTICAL_SPACING;
