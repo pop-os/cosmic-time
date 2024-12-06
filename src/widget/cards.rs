@@ -21,11 +21,12 @@ const BG_CARD_MARGIN_STEP: f32 = 8.0;
 
 /// get an expandable stack of cards
 #[allow(clippy::too_many_arguments)]
-pub fn cards<'a, Message, F>(
+pub fn cards<'a, Message, F, G>(
     id: id::Cards,
     card_inner_elements: Vec<Element<'a, Message, cosmic::Theme, cosmic::Renderer>>,
     on_clear_all: Message,
-    on_show_more: F,
+    on_show_more: Option<F>,
+    on_activate: Option<G>,
     show_more_label: &'a str,
     show_less_label: &'a str,
     clear_all_label: &'a str,
@@ -35,12 +36,14 @@ pub fn cards<'a, Message, F>(
 where
     Message: 'static + Clone,
     F: 'a + Fn(chain::Cards, bool) -> Message,
+    G: 'a + Fn(usize) -> Message,
 {
     Cards::new(
         id,
         card_inner_elements,
         on_clear_all,
         on_show_more,
+        on_activate,
         show_more_label,
         show_less_label,
         clear_all_label,
@@ -54,11 +57,15 @@ where
     Renderer: iced_core::text::Renderer,
 {
     fn fully_expanded(&self) -> bool {
-        self.expanded && self.elements.len() > 1 && approx_eq!(f32, self.percent, 1.0)
+        self.expanded
+            && self.elements.len() > 1
+            && self.can_show_more
+            && approx_eq!(f32, self.percent, 1.0)
     }
 
     fn fully_unexpanded(&self) -> bool {
-        self.elements.len() == 1 || (!self.expanded && approx_eq!(f32, self.percent, 0.0))
+        self.elements.len() == 1
+            || (!self.expanded && (!self.can_show_more || approx_eq!(f32, self.percent, 0.0)))
     }
 }
 
@@ -73,6 +80,7 @@ where
     clear_all_button: Element<'a, Message, cosmic::Theme, Renderer>,
     elements: Vec<Element<'a, Message, cosmic::Theme, Renderer>>,
     expanded: bool,
+    can_show_more: bool,
     width: Length,
     percent: f32,
     anim_multiplier: f32,
@@ -84,11 +92,12 @@ where
 {
     /// Get an expandable stack of cards
     #[allow(clippy::too_many_arguments)]
-    pub fn new<F>(
+    pub fn new<F, G>(
         id: id::Cards,
         card_inner_elements: Vec<Element<'a, Message, cosmic::Theme, cosmic::Renderer>>,
         on_clear_all: Message,
-        on_show_more: F,
+        on_show_more: Option<F>,
+        on_activate: Option<G>,
         show_more_label: &'a str,
         show_less_label: &'a str,
         clear_all_label: &'a str,
@@ -97,9 +106,12 @@ where
     ) -> Self
     where
         F: 'a + Fn(chain::Cards, bool) -> Message,
+        G: 'a + Fn(usize) -> Message,
     {
-        let can_show_more = card_inner_elements.len() > 1;
+        let can_show_more = card_inner_elements.len() > 1 && on_show_more.is_some();
+
         Self {
+            can_show_more,
             _id: Id::unique(),
             show_less_button: {
                 let mut show_less_children = Vec::with_capacity(3);
@@ -124,7 +136,7 @@ where
                     button::custom(button_content)
                         .class(cosmic::theme::Button::Text)
                         .width(Length::Shrink)
-                        .on_press(on_show_more(off_animation, false))
+                        .on_press_maybe(on_show_more.as_ref().map(|f| f(off_animation, false)))
                         .padding([PADDING / 2, PADDING]),
                 )
             },
@@ -155,9 +167,9 @@ where
                         .padding(PADDING);
                     if i == 0 && !expanded && can_show_more {
                         let on_animation = chain::Cards::on(id.clone(), 1.0);
-                        b.on_press(on_show_more(on_animation, true))
+                        b.on_press_maybe(on_show_more.as_ref().map(|f| f(on_animation, true)))
                     } else {
-                        b
+                        b.on_press_maybe(on_activate.as_ref().map(|f| f(i)))
                     }
                     .into()
                 })
@@ -239,7 +251,7 @@ where
         let mut size = Size::new(0.0, 0.0);
         let tree_children = &mut tree.children;
         if self.elements.is_empty() {
-            return Node::with_children(size, children);
+            return Node::with_children(Size::new(1., 1.), children);
         }
 
         let fully_expanded: bool = self.fully_expanded();
@@ -248,9 +260,13 @@ where
         let show_less = &self.show_less_button;
         let clear_all = &self.clear_all_button;
 
-        let show_less_node = show_less
-            .as_widget()
-            .layout(&mut tree_children[0], renderer, limits);
+        let show_less_node = if self.can_show_more {
+            show_less
+                .as_widget()
+                .layout(&mut tree_children[0], renderer, limits)
+        } else {
+            Node::new(Size::default())
+        };
         let clear_all_node = clear_all
             .as_widget()
             .layout(&mut tree_children[1], renderer, limits);
@@ -266,23 +282,26 @@ where
             let show_less = &self.show_less_button;
             let clear_all = &self.clear_all_button;
 
-            let show_less_node =
+            let show_less_node = if self.can_show_more {
                 show_less
                     .as_widget()
-                    .layout(&mut tree_children[0], renderer, limits);
-            let mut clear_all_node =
-                clear_all
+                    .layout(&mut tree_children[0], renderer, limits)
+            } else {
+                Node::new(Size::default())
+            };
+            let clear_all_node = if self.can_show_more {
+                let mut n = clear_all
                     .as_widget()
                     .layout(&mut tree_children[1], renderer, limits);
+                let clear_all_node_size = clear_all_node.size();
+                n = clear_all_node
+                    .translate(Vector::new(size.width - clear_all_node_size.width, 0.0));
+                size.height += show_less_node.size().height.max(n.size().height) + VERTICAL_SPACING;
+                n
+            } else {
+                Node::new(Size::default())
+            };
 
-            let clear_all_node_size = clear_all_node.size();
-            clear_all_node =
-                clear_all_node.translate(Vector::new(size.width - clear_all_node_size.width, 0.0));
-            size.height += show_less_node
-                .size()
-                .height
-                .max(clear_all_node.size().height)
-                + VERTICAL_SPACING;
             children.push(show_less_node);
             children.push(clear_all_node);
         }

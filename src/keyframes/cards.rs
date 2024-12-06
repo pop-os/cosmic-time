@@ -39,12 +39,13 @@ impl Id {
 
     /// Used by [`crate::anim!`] macro
     #[allow(clippy::too_many_arguments)]
-    pub fn as_widget<'a, Message, F>(
+    pub fn as_widget<'a, Message, F, G>(
         self,
         timeline: &crate::Timeline,
         card_inner_elements: Vec<Element<'a, Message>>,
         on_clear_all: Message,
-        on_show_more: F,
+        on_show_more: Option<F>,
+        on_activate: Option<G>,
         show_more_label: &'a str,
         show_less_label: &'a str,
         clear_all_label: &'a str,
@@ -53,6 +54,8 @@ impl Id {
     ) -> crate::widget::Cards<'a, Message, cosmic::Renderer>
     where
         F: 'a + Fn(Chain, bool) -> Message,
+        G: 'a + Fn(usize) -> Message,
+
         Message: 'static + Clone,
     {
         Cards::as_widget(
@@ -61,6 +64,7 @@ impl Id {
             card_inner_elements,
             on_clear_all,
             on_show_more,
+            on_activate,
             show_more_label,
             show_less_label,
             clear_all_label,
@@ -203,12 +207,13 @@ impl Cards {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn as_widget<'a, Message, F>(
+    pub fn as_widget<'a, Message, F, G>(
         id: Id,
         timeline: &crate::Timeline,
         card_inner_elements: Vec<Element<'a, Message>>,
         on_clear_all: Message,
-        on_show_more: F,
+        on_show_more: Option<F>,
+        on_activate: Option<G>,
         show_more_label: &'a str,
         show_less_label: &'a str,
         clear_all_label: &'a str,
@@ -217,6 +222,8 @@ impl Cards {
     ) -> crate::widget::Cards<'a, Message, cosmic::Renderer>
     where
         F: 'a + Fn(Chain, bool) -> Message,
+        G: 'a + Fn(usize) -> Message,
+
         Message: Clone + 'static,
     {
         crate::widget::Cards::new(
@@ -224,6 +231,7 @@ impl Cards {
             card_inner_elements,
             on_clear_all,
             on_show_more,
+            on_activate,
             show_more_label,
             show_less_label,
             clear_all_label,
