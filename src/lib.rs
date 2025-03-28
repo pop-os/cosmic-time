@@ -144,7 +144,7 @@ pub mod widget;
 mod keyframes;
 mod utils;
 
-pub use crate::keyframes::{cards, chain, id, lazy, toggler};
+pub use crate::keyframes::{cards, chain, id, lazy, toggler, Repeat};
 pub use crate::timeline::{Chain, Timeline};
 
 pub use cosmic::iced::time::{Duration, Instant};
