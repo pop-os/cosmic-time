@@ -24,6 +24,6 @@ once_cell = { version = "1.18.0", optional = true }
 float-cmp = "0.9"
 
 # [patch.'https://github.com/pop-os/libcosmic']
-# libcosmic = { path = "../fork/libcosmic" }
-# cosmic-config = { path = "../fork/libcosmic/cosmic-config" }
-# cosmic-theme = { path = "../fork/libcosmic/cosmic-theme" }
+# libcosmic = { path = "../libcosmic" }
+# cosmic-config = { path = "../libcosmic/cosmic-config" }
+# cosmic-theme = { path = "../libcosmic/cosmic-theme" }

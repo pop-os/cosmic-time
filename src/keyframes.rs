@@ -28,9 +28,12 @@ macro_rules! anim{
   };
 }
 
+/// Repeat Limit
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub enum Repeat {
+    /// Never repeat
     #[default]
     Never,
+    /// Repeat forever
     Forever,
 }

@@ -3,6 +3,7 @@ use self::iced_core::{
     border::Radius, event::Status, id::Id, layout::Node, renderer::Quad, widget::Tree, Element,
     Length, Size, Vector, Widget,
 };
+use cosmic::widget::style::Catalog;
 use cosmic::{
     iced_core::{self, Border, Shadow},
     widget::{button, card::style::Style, column, icon, icon::Handle, row, text},
@@ -421,7 +422,7 @@ where
         // Draw first to appear behind
         if fully_unexpanded {
             let card_layout = layout.next().unwrap();
-            let appearance = Style::default();
+            let appearance = theme.default();
             let bg_layout = layout.collect::<Vec<_>>();
             for (i, layout) in (0..2).zip(bg_layout.into_iter()).rev() {
                 renderer.fill_quad(
