@@ -569,7 +569,7 @@ impl Timeline {
     // }
 
     /// Efficiently request redraws for animations.
-    /// Automatically checks if animations are in a state where redraws arn't necessary.
+    /// Automatically checks if animations are in a state where redraws aren't necessary.
     pub fn as_subscription(&self) -> Subscription<(cosmic::iced::window::Id, Instant)> {
         if self.is_idle() {
             Subscription::none()

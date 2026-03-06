@@ -91,6 +91,8 @@ where
     }
 
     /// Sets the text [`LineHeight`] of the [`Toggler`].
+    ///
+    /// [`LineHeight`]: text::LineHeight
     pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.text_line_height = line_height.into();
         self
@@ -116,7 +118,7 @@ where
 
     /// Sets the [`Font`] of the text of the [`Toggler`]
     ///
-    /// [`Font`]: cosmic::iced::text::Renderer::Font
+    /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
         self

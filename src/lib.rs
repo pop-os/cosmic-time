@@ -1,10 +1,10 @@
 //! An animation toolkit for [Iced](https://github.com/iced-rs/iced)
 //!
-//! > This Project was build for [Cosmic DE](https://github.com/pop-os/cosmic-epoch). Though this will work for any project that depends on [Iced](https://github.com/iced-rs/iced).
+//! > This project was built for [Cosmic DE](https://github.com/pop-os/cosmic-epoch). However, it works for any project that depends on [Iced](https://github.com/iced-rs/iced).
 //!
 //!
 //!  The goal of this project is to provide a simple API to build and show
-//!  complex animations efficiently in applications built with Iced-rs/Iced.
+//!  complex animations efficiently in applications built with [iced-rs/iced](https://github.com/iced-rs/iced).
 //!
 //! # Project Goals:
 //! * Full compatibility with Iced and The Elm Architecture.
@@ -15,9 +15,11 @@
 //! * Custom widget support (create your own!).
 //!
 //! # Overview
-//! To wire cosmic-time into Iced there are five steps to do.
+//! To wire cosmic-time into Iced there are five steps:
 //!
-//! 1. Create a [`Timeline`] This is the type that controls the animations.
+//! 1. Create a [`Timeline`]:
+//!
+//! This is the type that controls the animations.
 //! ```ignore
 //! struct Counter {
 //!       timeline: Timeline
@@ -32,8 +34,9 @@
 //!      }
 //! }
 //! ```
-//! 2. Add at least one animation to your timeline. This can be done in your
-//!    Application's `new()` or `update()`, or both!
+//! 2. Add at least one animation to your timeline:
+//!
+//! This can be done in your Application's `new()` or `update()`, or both!
 //! ```ignore
 //! static CONTAINER: Lazy<id::Container> = Lazy::new(id::Container::unique);
 //!
@@ -43,8 +46,8 @@
 //!   container(Duration::from_secs(10)).width(100)
 //! ];
 //! self.timeline.set_chain(animation).start();
-//!
 //! ```
+//!
 //! There are some different things here!
 //!   > static CONTAINER: Lazy<id::Container> = `Lazy::new(id::Container::unique`);
 //!
@@ -52,23 +55,23 @@
 //!   Identical to the widget Id's Iced uses for widget operations.
 //!   Each animatable widget needs an Id. And each Id can only refer to one animation.
 //!
-//!   > let animation = chain![
+//!   > let animation = chain!\[...\]
 //!
-//!   Cosmic Time refers to animations as [`Chain`]s because of how we build then.
+//!   Cosmic Time refers to animations as [`Chain`]s because of how we build them.
 //!   Each Keyframe is linked together like a chain. The Cosmic Time API doesn't
 //!   say "change your width from 10 to 100". We define each state we want the
 //!   widget to have `.width(10)` at `Duration::ZERO` then `.width(100)` at
 //!   `Duration::from_secs(10)`. Where the `Duration` is the time after the previous
 //!   keyframe. This is why we call the animations chains. We cannot get to the
-//!   next state without animating though all previous Keyframes.
+//!   next state without animating through all previous Keyframes.
 //!
 //!   > `self.timeline.set_chain(animation).start`();
 //!
 //!   Then we need to add the animation to the [`Timeline`]. We call this `.set_chain`,
 //!   because there can only be one chain per Id.
 //!   If we `set_chain` with a different animation with the same Id, the first one is
-//!   replaced. This a actually a feature not a bug!
-//!   As well you can set multiple animations at once:
+//!   replaced. This actually is a feature not a bug!
+//!   You can also set multiple animations at once:
 //!   `self.timeline.set_chain(animation1).set_chain(animation2).start()`
 //!
 //!   > .start()
@@ -79,7 +82,7 @@
 //!   calculate any animation's interpolation is global. And we use `.start()` to
 //!   sync them together.
 //!   Say you have two 5 seconds animations running at the same time. They should end
-//!   at the same time right? That all depends on when the widget thinks it's animation
+//!   at the same time right? That all depends on when the widget thinks its animation
 //!   should start. `.start()` tells all pending animations to start at the moment that
 //!   `.start()` is called. This guarantees they stay in sync.
 //!   IMPORTANT! Be sure to only call `.start()` once per call to `update()`.
@@ -90,7 +93,7 @@
 //!   ```
 //!   That code will compile, but will result in the animations not being in sync.
 //!
-//! 3. Add the Cosmic time Subscription
+//! 3. Add the Cosmic Time Subscription:
 //! ```ignore
 //!   fn subscription(&self) -> Subscription<Message> {
 //!        self.timeline.as_subscription::<Event>().map(Message::Tick)
@@ -109,7 +112,7 @@
 //!
 //! 5. Show the widget in your `view()`!
 //! ```ignore
-//! anim!(CONTIANER, &self.timeline, contents)
+//! anim!(CONTAINER, &self.timeline, contents)
 //! ```
 //!
 //! All done!
@@ -184,7 +187,7 @@ pub trait Tween: std::fmt::Debug + Copy {
 pub enum Speed {
     /// Whole number of seconds to move per second.
     PerSecond(f32),
-    /// Whole number of millisseconds to move per millisecond.
+    /// Whole number of milliseconds to move per millisecond.
     PerMillis(f32),
     /// Whole number of microseconds to move per microseconds.
     PerMicros(f32),
@@ -469,12 +472,12 @@ impl From<Quintic> for Ease {
     }
 }
 
-/// Used to set a sinusoildal animation easing.
+/// Used to set a sinusoidal animation easing.
 #[derive(Debug, Copy, Clone)]
 pub enum Sinusoidal {
     /// Modeled after eighth sinusoidal wave y = 1 - cos((x * PI) / 2)
     In,
-    /// Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
+    /// Modeled after eighth sinusoidal wave y = sin((x * PI) / 2)
     Out,
     /// Modeled after quarter sinusoidal wave y = -0.5 * (cos(x * PI) - 1);
     InOut,
@@ -967,7 +970,7 @@ mod test {
 
     #[test]
     #[allow(clippy::approx_constant)]
-    // Modeled after eigth sinusoidal wave y = sin((x * PI) / 2)
+    // Modeled after eighth sinusoidal wave y = sin((x * PI) / 2)
     fn sinusoidal_out() {
         assert_eq!(0.000_000, r(Sinusoidal::Out.tween(0.0)));
         assert_eq!(0.156_434, r(Sinusoidal::Out.tween(0.1)));
